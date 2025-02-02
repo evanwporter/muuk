@@ -1,34 +1,29 @@
-#ifndef MUUKBUILDER_H
-#define MUUKBUILDER_H
+#ifndef MUUK_BUILDER_H
+#define MUUK_BUILDER_H
 
-#include <vector>
-#include <string>
-#include <nlohmann/json.hpp>
-#include <filesystem>
-#include <spdlog/spdlog.h>
 #include "../include/muukfiler.h"
 #include "../include/muuklockgen.h"
 #include "../include/ninjagen.h"
-
-
-namespace fs = std::filesystem;
+#include "../include/util.h"
+#include "../include/logger.h"
+#include <vector>
+#include <memory>
+#include <spdlog/spdlog.h>
 
 class MuukBuilder {
 public:
     explicit MuukBuilder(IMuukFiler& config_manager);
 
     void build(const std::vector<std::string>& args, bool is_release);
+    bool is_compiler_available() const;
 
 private:
     IMuukFiler& config_manager_;
-    std::shared_ptr<spdlog::logger> logger_;
-    NinjaGenerator ninja_generator_;
     MuukLockGenerator lock_generator_;
+    NinjaGenerator ninja_generator_;
+    std::shared_ptr<spdlog::logger> logger_;
 
     void execute_build(bool is_release) const;
-
-    bool is_compiler_available() const;
-
 };
 
-#endif // MUUKBUILDER_H
+#endif // MUUK_BUILDER_H

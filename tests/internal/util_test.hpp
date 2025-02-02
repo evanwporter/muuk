@@ -97,69 +97,57 @@ TEST(UtilStringTest, ConvertToUTF8) {
     EXPECT_FALSE(utf8_str.empty());
 }
 
-// **Mocked Tests for HTTP & Zip Extraction** (Avoid real file downloads or extractions)
+// ** Test Case: Normalize Paths **
+TEST(UtilPathTest, NormalizePath) {
+    std::string path = "C:\\Users\\Test\\..\\Project\\file.txt";
+    std::string normalized = util::normalize_path(path);
 
-// // **Mock File Download**
-// class MockFileDownloader {
-// public:
-//     MOCK_METHOD(void, download_file, (const std::string&, const std::string&), ());
-// };
+#ifdef _WIN32
+    EXPECT_EQ(normalized, "C:/Users/Project/file.txt");
+#else
+    EXPECT_EQ(normalized, "/Users/Project/file.txt");
+#endif
+}
 
-// TEST(UtilDownloadTest, DownloadFile) {
-//     // Mock file download
-//     MockFileDownloader mockDownloader;
-//     EXPECT_CALL(mockDownloader, download_file(_, _)).Times(1);
+// ** Test Case: Execute Non-Existent Command **
+TEST(UtilCommandTest, ExecuteInvalidCommand) {
+    int result = util::execute_command("invalid_command_that_does_not_exist");
+    EXPECT_NE(result, 0);  // Expect a failure result
+}
 
-//     try {
-//         util::download_file("https://example.com/file.zip", "test.zip");
-//     }
-//     catch (...) {
-//         // Ignore actual download failures
-//     }
-// }
+// ** Test Case: Remove Non-Existent Path **
+TEST(UtilPathTest, RemoveNonExistentPath) {
+    std::string path = "non_existent_folder";
+    EXPECT_NO_THROW(util::remove_path(path));
+}
 
-// // **Mock GitHub JSON Fetch**
-// class MockJsonFetcher {
-// public:
-//     MOCK_METHOD(nlohmann::json, fetch_json, (const std::string&), ());
-// };
+// ** Test Case: Ensure UTF-8 Validity Check Handles Edge Cases **
+TEST(UtilStringTest, UTF8EdgeCases) {
+    std::string valid_utf8 = "Hello, 世界";
+    std::string invalid_utf8 = std::string("\xFF\xFF\xFF");
 
-// TEST(UtilNetworkTest, FetchJson) {
-//     MockJsonFetcher mockFetcher;
-//     nlohmann::json fake_response = { {"tag_name", "v1.2.3"} };
+    EXPECT_TRUE(util::is_valid_utf8(valid_utf8));
+    EXPECT_FALSE(util::is_valid_utf8(invalid_utf8));
+}
 
-//     EXPECT_CALL(mockFetcher, fetch_json(_))
-//         .WillOnce(Return(fake_response));
+// ** Test Case: Match Wildcards with Edge Cases **
+TEST(UtilPatternTest, WildcardMatchingEdgeCases) {
+    EXPECT_TRUE(util::match_pattern("src/main.cpp", "src/*.cpp"));
+    EXPECT_FALSE(util::match_pattern("src/main.cpp", "build/*.cpp"));
+    EXPECT_TRUE(util::match_pattern("build/debug/file.log", "build/**/*.log"));
+}
 
-//     try {
-//         nlohmann::json result = util::fetch_json("https://api.github.com/repos/user/repo/releases/latest");
-//         EXPECT_EQ(result["tag_name"], "v1.2.3");
-//     }
-//     catch (...) {
-//         // Ignore actual HTTP failures
-//     }
-// }
+// ** Test Case: Ensure .gitignore Exists With Edge Cases **
+TEST_F(UtilTest, EnsureGitignoreCreationEdgeCases) {
+    std::string path = test_directory + "/subfolder";
 
-// // **Mock ZIP Extraction**
-// class MockZipExtractor {
-// public:
-//     MOCK_METHOD(void, extract_zip, (const std::string&, const std::string&), ());
-// };
+    util::ensure_directory_exists(path, true);
+    std::string gitignore_path = path + "/.gitignore";
 
-// TEST(UtilZipTest, ExtractZip) {
-//     MockZipExtractor mockExtractor;
-//     EXPECT_CALL(mockExtractor, extract_zip(_, _)).Times(1);
+    EXPECT_TRUE(fs::exists(gitignore_path));
 
-//     try {
-//         util::extract_zip("test.zip", "output_folder");
-//     }
-//     catch (...) {
-//         // Ignore extraction failures
-//     }
-// }
-
-// // **Main Function for Google Test**
-// int main(int argc, char** argv) {
-//     ::testing::InitGoogleTest(&argc, argv);
-//     return RUN_ALL_TESTS();
-// }
+    std::ifstream file(gitignore_path);
+    std::string content;
+    std::getline(file, content);
+    EXPECT_EQ(content, "*");
+}

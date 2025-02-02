@@ -1,201 +1,208 @@
 #include "../include/muuklockgen.h"
 #include "../include/logger.h"
-#include <fstream>
-#include <filesystem>
-#include <iostream>
 
-namespace fs = std::filesystem;
-
-// **Constructor: Initializes the logger**
-MuukLockGenerator::MuukLockGenerator(const std::string& modules_path, const std::string& lockfile_path, const std::string& root_toml)
-    : modules_dir(modules_path), lockfile(lockfile_path), root_toml_path(root_toml) {
-
-    logger_ = Logger::get_logger("muukbuilder_logger");
-
+Package::Package(const std::string& name,
+    const std::string& version,
+    const std::string& base_path,
+    const std::string& package_type)
+    : name(name), version(version), base_path(base_path), package_type(package_type) {
 }
 
-void MuukLockGenerator::generateLockFile() {
-    logger_->info("Starting lockfile generation...");
+void Package::merge(const Package& child_pkg) {
+    std::cout << "Merging " << child_pkg.name << " into " << name << std::endl;
 
-    loadPackages();
-    resolveDependencies();
-    writeLockFile();
-
-    logger_->info("Lockfile generation complete.");
+    for (const auto& path : child_pkg.include) {
+        include.insert((fs::path(child_pkg.base_path) / path).lexically_normal().string());
+    }
+    libflags.insert(child_pkg.libflags.begin(), child_pkg.libflags.end());
+    lflags.insert(child_pkg.lflags.begin(), child_pkg.lflags.end());
+    dependencies.insert(child_pkg.dependencies.begin(), child_pkg.dependencies.end());
 }
 
-void MuukLockGenerator::loadPackages() {
-    logger_->info("Loading packages from TOML files...");
+toml::table Package::serialize() const {
+    toml::table data;
+    toml::array include_array, libflags_array, lflags_array, sources_array;
 
-    auto parsePackage = [&](const std::string& path, bool isRoot = false) {
-        logger_->info("Parsing package file: {}", path);
+    for (const auto& path : include) include_array.push_back((fs::path(base_path) / path).lexically_normal().string());
+    for (const auto& flag : libflags) libflags_array.push_back(flag);
+    for (const auto& flag : lflags) lflags_array.push_back(flag);
+    for (const auto& source : sources) sources_array.push_back((fs::path(base_path) / source).lexically_normal().string());
 
-        if (!fs::exists(path)) {
-            logger_->error("TOML file '{}' does not exist!", path);
-            return;
-        }
+    data.insert("include", include_array);
+    data.insert("libflags", libflags_array);
+    data.insert("lflags", lflags_array);
+    data.insert("sources", sources_array);
+    data.insert("base_path", base_path);
 
-        toml::table data;
-        try {
-            data = toml::parse_file(path);
-        }
-        catch (const std::exception& e) {
-            logger_->error("Error parsing TOML file '{}': {}", path, e.what());
-            return;
-        }
-
-        std::string name = data["package"]["name"].value_or("");
-        if (isRoot) base_package = name;
-        logger_->info("Processing package: {}", name);
-
-        fs::path module_dir = fs::path(path).parent_path();
-        auto resolvePath = [&](const std::string& val) {
-            std::string resolved = (module_dir / val).lexically_normal().string();
-            std::replace(resolved.begin(), resolved.end(), '\\', '/'); // Convert all backslashes to forward slashes
-            return resolved;
-            };
-
-        auto getArray = [&](const char* key, bool resolve) {
-            std::vector<std::string> vec;
-            if (auto arr = data["build"][key].as_array()) {
-                for (const auto& val : *arr) {
-                    std::string entry = val.value_or("");
-                    vec.push_back(resolve ? resolvePath(entry) : entry);
-                }
-            }
-            return vec;
-            };
-
-        Package pkg{
-            getArray("include", true),
-            getArray("sources", true),
-            getArray("libflags", false),
-            getArray("lflags", false)
-        };
-
-        if (auto deps = data["dependencies"].as_table()) {
-            for (const auto& [key, _] : *deps) {
-                pkg.dependencies.push_back(std::string(key.str()));
-            }
-        }
-
-        logger_->info("  Includes: {}", pkg.include.size());
-        logger_->info("  Sources: {}", pkg.sources.size());
-        logger_->info("  Libflags: {}", pkg.libflags.size());
-        logger_->info("  Lflags: {}", pkg.lflags.size());
-        logger_->info("  Dependencies: {}", pkg.dependencies.size());
-
-        logger_->info("  Found {} includes, {} sources, {} dependencies",
-            pkg.include.size(), pkg.sources.size(), pkg.dependencies.size());
-
-        packages[name] = std::move(pkg);
-        };
-
-    if (fs::exists(root_toml_path)) {
-        parsePackage(root_toml_path, true);
-    }
-
-    for (const auto& entry : fs::directory_iterator(modules_dir)) {
-        if (fs::is_directory(entry) && fs::exists(entry.path() / "muuk.toml")) {
-            parsePackage((entry.path() / "muuk.toml").string());
-        }
-    }
-
-    logger_->info("Package loading complete.");
+    return data;
 }
 
-void MuukLockGenerator::resolveDependencies() {
-    logger_->info("Resolving package dependencies...");
+MuukLockGenerator::MuukLockGenerator(const std::string& base_path) : base_path_(base_path) {
+    logger_ = Logger::get_logger("muuklockgen_logger");
+    logger_->info("MuukLockGenerator initialized with base path: {}", base_path_);
 
-    std::unordered_map<std::string, int> dependency_count;
-    std::unordered_map<std::string, std::vector<std::string>> graph;
-
-    for (const auto& [name, pkg] : packages) {
-        dependency_count[name] = pkg.dependencies.size();
-        for (const auto& dep : pkg.dependencies) graph[dep].push_back(name);
-    }
-
-    std::set<std::string> resolved;
-    if (!base_package.empty()) {
-        build_order.push_back(base_package);
-        resolved.insert(base_package);
-    }
-
-    while (resolved.size() < packages.size()) {
-        for (auto it = dependency_count.begin(); it != dependency_count.end();) {
-            if (resolved.count(it->first) || it->second > 0) {
-                ++it;
-                continue;
-            }
-            build_order.push_back(it->first);
-            resolved.insert(it->first);
-            for (const auto& dependent : graph[it->first]) dependency_count[dependent]--;
-            it = dependency_count.erase(it);
-        }
-    }
-
-    logger_->info("Resolved {} packages.", build_order.size());
+    resolved_packages_["library"] = {};
+    resolved_packages_["build"] = {};
 }
 
-void MuukLockGenerator::writeLockFile() {
-    logger_->info("Writing lockfile: {}", lockfile);
-
-    std::ofstream out(lockfile);
-    if (!out) {
-        logger_->error("Error: Could not open '{}' for writing!", lockfile);
+void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
+    logger_->info("Attempting to parse muuk.toml: {}", path);
+    if (!fs::exists(path)) {
+        logger_->error("Error: '{}' not found!", path);
         return;
     }
 
-    std::unordered_map<std::string, std::set<std::string>> resolved_includes;
-    std::set<std::string> accumulated_lflags;
-    std::set<std::string> base_package_includes;
+    MuukFiler muuk_filer(path);
+    auto data = muuk_filer.get_config();
 
-    for (const auto& pkg_name : build_order) {
-        auto& pkg = packages[pkg_name];
-        std::set<std::string> includes(pkg.include.begin(), pkg.include.end());
+    logger_->info("Loaded TOML file successfully");
 
-        for (const auto& dep : pkg.dependencies) {
-            if (resolved_includes.find(dep) != resolved_includes.end()) {
-                includes.insert(resolved_includes[dep].begin(), resolved_includes[dep].end());
+    if (!data.contains("package") || !data["package"].is_table()) {
+        logger_->error("Missing 'package' section in TOML file.");
+        return;
+    }
+
+    std::string package_name = *data["package"]["name"].value<std::string>();
+    std::string package_version = *data["package"]["version"].value<std::string>();
+
+    logger_->info("Parsing package: {} (version: {})", package_name, package_version);
+
+    auto package = std::make_shared<Package>(std::string(package_name), std::string(package_version),
+        fs::path(path).parent_path().string(), "library");
+    if (data.contains("library")) {
+        const auto& library_node = data["library"];
+        if (const toml::table* library_table = library_node.as_table()) {
+            if (library_table->contains(package_name)) {
+                logger_->info("Found 'library' entry for package: {}", package_name);
+                parse_section(*library_table->at(package_name).as_table(), *package);
             }
         }
-
-        resolved_includes[pkg_name] = includes;
-        accumulated_lflags.insert(pkg.lflags.begin(), pkg.lflags.end());
-
-        if (pkg_name != base_package) {
-            base_package_includes.insert(includes.begin(), includes.end());
+        else {
+            logger_->warn("No 'library' section found in TOML for {}", package_name);
         }
     }
 
-    if (!base_package.empty()) {
-        resolved_includes[base_package].insert(base_package_includes.begin(), base_package_includes.end());
+    resolved_packages_["library"][package_name] = package;
+
+    if (is_base && data.contains("build") && data["build"].is_table()) {
+        for (const auto& [build_name, build_info] : *data["build"].as_table()) {
+            logger_->info("Found build target: {}", build_name.str());
+            auto build_package = std::make_shared<Package>(std::string(build_name.str()),
+                std::string(package_version),
+                fs::path(path).parent_path().string(), "build");
+            parse_section(*build_info.as_table(), *build_package);
+            resolved_packages_["build"][std::string(build_name.str())] = build_package;
+        }
+    }
+}
+
+void MuukLockGenerator::parse_section(const toml::table& section, Package& package) {
+    logger_->info("Parsing section for package: {}", package.name);
+
+    if (section.contains("include")) {
+        for (const auto& inc : *section["include"].as_array()) {
+            package.include.insert(*inc.value<std::string>());
+            logger_->info("  Added include path: {}", *inc.value<std::string>());
+        }
     }
 
-    bool first = true;
-    for (const auto& pkg_name : build_order) {
-        if (!first) out << "\n";
-        first = false;
+    if (section.contains("sources")) {
+        for (const auto& src : *section["sources"].as_array()) {
+            package.sources.push_back(*src.value<std::string>());
+            logger_->info("  Added source file: {}", *src.value<std::string>());
+        }
+    }
 
-        auto& pkg = packages[pkg_name];
-        out << "[" << pkg_name << "]\n";
+    if (section.contains("libflags")) {
+        for (const auto& flag : *section["libflags"].as_array()) {
+            package.libflags.insert(*flag.value<std::string>());
+            logger_->info("  Added libflag: {}", *flag.value<std::string>());
+        }
+    }
 
-        auto writeArray = [&](const char* key, const std::vector<std::string>& values) {
-            if (!values.empty()) { // Ensure empty arrays are not skipped
-                out << key << " = [";
-                for (size_t i = 0; i < values.size(); ++i) {
-                    out << "\"" << values[i] << "\"" << (i + 1 < values.size() ? ", " : "");
+    if (section.contains("lflags")) {
+        for (const auto& flag : *section["lflags"].as_array()) {
+            package.lflags.insert(*flag.value<std::string>());
+            logger_->info("  Added lflag: {}", *flag.value<std::string>());
+        }
+    }
+
+    if (section.contains("dependencies")) {
+        for (const auto& [dep_name, dep_version] : *section["dependencies"].as_table()) {
+            package.dependencies[std::string(dep_name.str())] = *dep_version.value<std::string>();
+            logger_->info("  Added dependency: {} ({})", dep_name.str(), *dep_version.value<std::string>());
+        }
+    }
+}
+
+void MuukLockGenerator::resolve_dependencies(const std::string& package_name) {
+    logger_->info("Resolving dependencies for: {}", package_name);
+
+    auto package = resolved_packages_["library"].count(package_name)
+        ? resolved_packages_["library"][package_name]
+        : resolved_packages_["build"].count(package_name)
+            ? resolved_packages_["build"][package_name]
+            : nullptr;
+
+            if (!package) {
+                logger_->warn("Package '{}' not found, attempting to search for dependencies", package_name);
+                search_and_parse_dependency(package_name);
+                package = resolved_packages_["library"][package_name];
+                if (!package) {
+                    logger_->error("Error: Package '{}' not found after search.", package_name);
+                    return;
                 }
-                out << "]\n";
             }
-            };
 
-        std::vector<std::string> includes(resolved_includes[pkg_name].begin(), resolved_includes[pkg_name].end());
-        writeArray("include", includes);
-        writeArray("sources", pkg.sources);
-        writeArray("libflags", pkg.libflags);
-        writeArray("lflags", pkg.lflags);
+            for (const auto& [dep_name, dep_version] : package->dependencies) {
+                logger_->info("Resolving dependency '{}' for '{}'", dep_name, package_name);
+                resolve_dependencies(dep_name);
+                if (resolved_packages_["library"].count(dep_name)) {
+                    logger_->info("Merging '{}' into '{}'", dep_name, package_name);
+                    package->merge(*resolved_packages_["library"][dep_name]);
+                }
+            }
+}
+
+void MuukLockGenerator::search_and_parse_dependency(const std::string& package_name) {
+    fs::path modules_dir = fs::path("modules"); // Use relative path
+
+    if (!fs::exists(modules_dir)) return;
+
+    for (const auto& dir_entry : fs::directory_iterator(modules_dir)) {
+        if (dir_entry.is_directory() && dir_entry.path().filename().string().find(package_name) != std::string::npos) {
+            fs::path dep_path = dir_entry.path() / "muuk.toml";
+            if (fs::exists(dep_path)) {
+                parse_muuk_toml(dep_path.string());
+                return;
+            }
+        }
+    }
+}
+
+void MuukLockGenerator::generate_lockfile(const std::string& output_path) {
+    logger_->info("Generating muuk.lock.toml...");
+
+    std::ofstream lockfile(output_path);
+    if (!lockfile) {
+        logger_->error("Failed to open lockfile: {}", output_path);
+        return;
     }
 
-    logger_->info("Lockfile '{}' successfully written.", lockfile);
+    toml::table lock_data;
+    for (const auto& [pkg_type, packages] : resolved_packages_) {
+        logger_->info("Processing package type: {}", pkg_type);
+        toml::table pkg_table;
+        for (const auto& [pkg_name, pkg] : packages) {
+            logger_->info("  Serializing package: {}", pkg_name);
+            pkg_table.insert(pkg_name, pkg->serialize());
+        }
+        lock_data.insert(pkg_type, pkg_table);
+    }
+
+    logger_->info("Writing lockfile to: {}", output_path);
+    lockfile << lock_data;
+    lockfile.close();
+
+    logger_->info("muuk.lock.toml generation complete!");
 }

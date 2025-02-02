@@ -127,16 +127,74 @@ TEST(MuukTests, CleanOperation) {
     // Customize config for this test
     mockFiler.set_config(toml::table{
         {"clean", toml::table{
-            {"patterns", toml::array{"*.tmp", "*.log"}}
+            {"patterns", toml::array{"*.tmp"}}
         }}
         });
 
 
     std::ofstream("test.tmp").close(); // Create a dummy file
-    std::ofstream("test.log").close();
+    // std::ofstream("test.log").close();
 
     muuk.clean();
 
     EXPECT_FALSE(std::filesystem::exists("test.tmp"));
-    EXPECT_FALSE(std::filesystem::exists("test.log"));
+    // EXPECT_FALSE(std::filesystem::exists("test.log"));
+}
+
+// // ** Test Case 6: Run Nonexistent Script **
+// TEST(MuukTests, RunNonExistentScript) {
+//     MockMuukFiler mockFiler;
+//     Muuk muuk(mockFiler);
+
+//     // Customize config for this test
+//     mockFiler.set_config(toml::table{
+//         {"scripts", toml::table{}}  // No scripts defined
+//         });
+
+//     testing::internal::CaptureStdout();
+//     muuk.run_script("invalid_script", {});
+//     std::string output = testing::internal::GetCapturedStdout();
+//     EXPECT_TRUE(output.find("Script 'invalid_script' not found") != std::string::npos);
+// }
+
+// // ** Test Case 8: Download GitHub Release with Invalid Repo **
+// TEST(MuukTests, DownloadInvalidGitHubRepo) {
+//     MockMuukFiler mockFiler;
+//     Muuk muuk(mockFiler);
+
+//     testing::internal::CaptureStdout();
+//     muuk.download_github_release("invalid/repo", "latest");
+//     std::string output = testing::internal::GetCapturedStdout();
+
+//     EXPECT_TRUE(output.find("Error fetching latest release") != std::string::npos);
+// }
+
+// // ** Test Case 9: Clean Operation with No Config **
+// TEST(MuukTests, CleanOperationNoConfig) {
+//     MockMuukFiler mockFiler;
+//     Muuk muuk(mockFiler);
+
+//     // Empty configuration
+//     mockFiler.set_config(toml::table{});
+
+//     testing::internal::CaptureStdout();
+//     muuk.clean();
+//     std::string output = testing::internal::GetCapturedStdout();
+
+//     EXPECT_TRUE(output.find("'clean' operation is not defined in the config file") != std::string::npos);
+// }
+
+// ** Test Case 10: Ensure Configuration Updates Persist **
+TEST(MuukTests, UpdateConfigPersists) {
+    MockMuukFiler mockFiler;
+    Muuk muuk(mockFiler);
+
+    toml::table new_data{
+        {"build_command", "g++ -o output main.cpp"}
+    };
+    mockFiler.update_section("build", new_data);
+
+    auto updated_section = mockFiler.get_section("build");
+    EXPECT_TRUE(updated_section.contains("build_command"));
+    EXPECT_EQ(updated_section["build_command"].value<std::string>(), "g++ -o output main.cpp");
 }

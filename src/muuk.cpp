@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <cstdlib>
 #include <iostream>
+#include <glob.hpp>
 
 namespace fs = std::filesystem;
 
@@ -48,38 +49,17 @@ void Muuk::clean() const {
 
     try {
         // Collect all matching files first
-        for (const auto& entry : fs::recursive_directory_iterator(current_dir, fs::directory_options::skip_permission_denied)) {
-            try {
-                std::string file_path = entry.path().string();
+        for (const auto& pattern : *clean_patterns) {
+            if (pattern.is_string()) {
+                std::string pattern_str = *pattern.value<std::string>();
+                std::vector<std::string> matched_files = glob::glob(pattern_str, current_dir.string());
 
-                // Ensure path contains only valid ASCII characters
-                for (char& c : file_path) {
-                    if (static_cast<unsigned char>(c) > 127) {
-                        c = '?';
-                    }
+                for (const auto& file_path : matched_files) {
+                    files_to_delete.push_back(fs::path(file_path));
                 }
-
-                // Handle invalid UTF-8 paths
-                if (!util::is_valid_utf8(file_path)) {
-                    logger_->warn("[muuk::clean] Skipping file with invalid encoding: {}", file_path);
-                    continue;
-                }
-
-                logger_->debug("[muuk::clean] Checking file: {}", file_path);
-
-                for (const auto& pattern : *clean_patterns) {
-                    if (pattern.is_string()) {
-                        std::string pattern_str = *pattern.value<std::string>();
-                        if (util::match_pattern(file_path, pattern_str)) {
-                            files_to_delete.push_back(entry.path());
-                        }
-                    }
-                }
-            }
-            catch (const std::filesystem::filesystem_error& e) {
-                logger_->warn("[muuk::clean] Skipping path due to filesystem error: {}", e.what());
             }
         }
+
 
         // Delete collected files
         for (const auto& file : files_to_delete) {

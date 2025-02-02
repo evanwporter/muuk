@@ -40,3 +40,37 @@ toml::table MockMuukFiler::get_section(const std::string& section) const {
 void MockMuukFiler::update_section(const std::string& section, const toml::table& data) {
     config_.insert_or_assign(section, data);
 }
+
+
+void MockMuukFiler::set_value(const std::string& section, const std::string& key, const toml::node& value) {
+    if (!has_section(section)) {
+        config_.insert(section, toml::table{});
+    }
+    auto& section_table = *config_.get_as<toml::table>(section);
+    section_table.insert_or_assign(key, value);
+}
+
+void MockMuukFiler::remove_key(const std::string& section, const std::string& key) {
+    if (has_section(section)) {
+        auto& section_table = *config_.get_as<toml::table>(section);
+        section_table.erase(key);
+    }
+}
+
+
+void MockMuukFiler::remove_section(const std::string& section) {
+    config_.erase(section);
+}
+
+void MockMuukFiler::append_to_array(const std::string& section, const std::string& key, const toml::node& value) {
+    if (!has_section(section)) {
+        config_.insert(section, toml::table{});
+    }
+
+    auto& section_table = *config_.get_as<toml::table>(section);
+    if (!section_table.contains(key) || !section_table[key].is_array()) {
+        section_table.insert_or_assign(key, toml::array{});
+    }
+
+    section_table[key].as_array()->push_back(value);
+}

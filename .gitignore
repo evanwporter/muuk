@@ -13,3 +13,4 @@ __pycache__/
 build.ninja
 github_api_response.json
 .ninja_log
+meson.build

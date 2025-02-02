@@ -186,5 +186,18 @@ namespace util {
         }
     }
 
+    std::string normalize_path(const std::string& path) {
+        try {
+            std::filesystem::path fs_path = std::filesystem::absolute(std::filesystem::path(path));
+            std::string normalized = fs_path.lexically_normal().string();
+            std::replace(normalized.begin(), normalized.end(), '\\', '/');
+
+            return normalized;
+        }
+        catch (const std::exception& e) {
+            return path; // Fallback if an error occurs
+        }
+    }
+
 
 } // namespace util

@@ -1,25 +1,30 @@
 #include "../include/muukbuilder.h"
-#include "../include/util.h"
-#include "../include/logger.h"
-
 
 MuukBuilder::MuukBuilder(IMuukFiler& config_manager)
     : config_manager_(config_manager),
-    lock_generator_("modules", "muuk.lock.toml", "muuk.toml"),
-    ninja_generator_() {
+    lock_generator_("./"), // Base path for MuukLockGenerator
+    ninja_generator_("muuk.lock.toml", "debug") { // Default build type
     logger_ = Logger::get_logger("muukbuilder_logger");
 }
 
 void MuukBuilder::build(const std::vector<std::string>& args, bool is_release) {
-
     std::string build_type = is_release ? "release" : "debug";
     logger_->info("[muukbuilder::build] Generating lockfile...");
 
-    lock_generator_.generateLockFile();
+    // Generate lock file using MuukLockGenerator
+    lock_generator_.parse_muuk_toml("muuk.toml", true);
+
+    for (const auto& [build_name, _] : lock_generator_.get_resolved_packages().at("build")) {
+        lock_generator_.resolve_dependencies(build_name);
+    }
+
+    lock_generator_.generate_lockfile("muuk.lock.toml");
 
     logger_->info("[muukbuilder::build] Generating Ninja build script...");
 
-    ninja_generator_.GenerateNinjaFile("muuk.lock.toml");
+    // Generate Ninja file using NinjaGenerator
+    ninja_generator_ = NinjaGenerator("muuk.lock.toml", build_type);
+    ninja_generator_.generate_ninja_file();
 
     logger_->info("[muukbuilder::build] Starting Ninja build...");
 
@@ -29,7 +34,7 @@ void MuukBuilder::build(const std::vector<std::string>& args, bool is_release) {
 void MuukBuilder::execute_build(bool is_release) const {
     std::string build_type = is_release ? "Release" : "Debug";
 
-    // **Use Ninja to execute the build**
+    // Use Ninja to execute the build
     std::string ninja_command = "ninja";
     logger_->info("[muukbuilder::build] Running {} build: {}", build_type, ninja_command);
 

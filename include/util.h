@@ -26,6 +26,7 @@ namespace util {
     std::string to_utf8(const std::wstring& wstr);
     bool is_valid_utf8(const std::string& str);
 
+    std::string normalize_path(const std::string& path);
 
 
 } // namespace Utils
