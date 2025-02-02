@@ -1,0 +1,57 @@
+[muuk]
+include = [
+    "include",
+    "modules/gabime-spdlog-v1.15.0/include",
+    "modules/google-googletest-v1.15.2/googletest",
+    "modules/google-googletest-v1.15.2/googletest/include",
+    "modules/kuba---zip-v0.3.3/src",
+    "modules/nlohmann-json-v3.11.3/single_include",
+    "modules/p-ranav-argparse-v3.2/include",
+]
+sources = [
+    "src/main.cpp",
+    "src/muuk.cpp",
+    "src/util.cpp",
+    "src/logger.cpp",
+    "src/muukfiler.cpp",
+    "src/muukbuilder.cpp",
+    "src/ninjagen.cpp",
+    "src/muuklockgen.cpp",
+]
+libflags = ["/std:c++20", "/utf-8", "/EHsc"]
+lflags = ["/std:c++20", "/utf-8", "/EHsc"]
+
+[spdlog]
+include = ["modules/gabime-spdlog-v1.15.0/include"]
+sources = [
+    "modules/gabime-spdlog-v1.15.0/src/async.cpp",
+    "modules/gabime-spdlog-v1.15.0/src/cfg.cpp",
+    "modules/gabime-spdlog-v1.15.0/src/spdlog.cpp",
+    "modules/gabime-spdlog-v1.15.0/src/color_sinks.cpp",
+    "modules/gabime-spdlog-v1.15.0/src/stdout_sinks.cpp",
+    "modules/gabime-spdlog-v1.15.0/src/bundled_fmtlib_format.cpp",
+]
+libflags = ["-DSPDLOG_COMPILED_LIB", "-DSPDLOG_USE_STD_FORMAT", "/std:c++20"]
+lflags = ["-DSPDLOG_COMPILED_LIB", "-DSPDLOG_USE_STD_FORMAT", "/std:c++20"]
+
+[zip]
+include = ["modules/kuba---zip-v0.3.3/src"]
+sources = ["modules/kuba---zip-v0.3.3/src/zip.c"]
+
+[gtest]
+include = [
+    "modules/google-googletest-v1.15.2/googletest",
+    "modules/google-googletest-v1.15.2/googletest/include",
+]
+sources = [
+    "modules/google-googletest-v1.15.2/googletest/src/gtest_main.cc",
+    "modules/google-googletest-v1.15.2/googletest/src/gtest-all.cc",
+]
+libflags = ["/std:c++20", "/EHsc"]
+lflags = ["/std:c++20", "/EHsc"]
+
+[json]
+include = ["modules/nlohmann-json-v3.11.3/single_include"]
+
+[argparse]
+include = ["modules/p-ranav-argparse-v3.2/include"]

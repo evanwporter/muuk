@@ -1,0 +1,15 @@
+subprojects/
+logs/
+obj/
+__pycache__/
+
+*.log
+*.obj
+*.exe
+*.ilk
+*.pdb
+*.lib
+
+build.ninja
+github_api_response.json
+.ninja_log
