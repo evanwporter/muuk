@@ -15,7 +15,6 @@
 #include "../include/muukfiler.h"
 #include "../include/logger.h"
 
-
 namespace fs = std::filesystem;
 
 int main(int argc, char* argv[]) {
@@ -23,6 +22,10 @@ int main(int argc, char* argv[]) {
     auto logger = Logger::get_logger("main_logger");
 
     argparse::ArgumentParser program("muuk");
+
+    program.add_argument("--muuk-path")
+        .help("Specify the path to muuk.toml")
+        .default_value(std::string("muuk.toml"));
 
     argparse::ArgumentParser clean_command("clean", "Clean the project");
     clean_command.add_argument("clean_args")
@@ -60,44 +63,44 @@ int main(int argc, char* argv[]) {
     program.add_subparser(download_command);
 
     if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " <command> [<script> --<arg>=<value> ...]\n";
+        std::cerr << "Usage: " << argv[0] << " <command> [--muuk-path <path>] [other options]\n";
         return 1;
     }
 
-    MuukFiler muukFiler("muuk.toml");
-
-    Muuk muuk(muukFiler);
-
-    MuukBuilder muukBuilder(muukFiler);
-
-    // Command mapping
-    std::unordered_map<std::string, std::function<void()>> command_map = {
-        {"clean", [&]() { muuk.clean(); }},
-        {"run", [&]() {
-            const auto script = run_command.present<std::string>("script");
-            const auto extra_args = run_command.get<std::vector<std::string>>("extra_args");
-
-            if (!script.has_value()) {
-                std::cerr << "Error: No script name provided for the 'run' command.\n";
-                return;
-            }
-            muuk.run_script(script.value(), extra_args);
-        }},
-        {"build", [&]() {
-            bool is_release = build_command.get<bool>("--release");
-            const auto build_args = build_command.get<std::vector<std::string>>("build_args");
-            muukBuilder.build(build_args, is_release);
-        }},
-        {"install", [&]() {
-            const auto url = download_command.get<std::string>("url");
-            const auto version = download_command.get<std::string>("--version");
-            muuk.download_github_release(url, version);
-        }}
-    };
-
     try {
-        // Parse the arguments
         program.parse_args(argc, argv);
+        std::string muuk_path = program.get<std::string>("--muuk-path");
+
+        logger->info("[muuk] Using muuk configuration from: {}", muuk_path);
+
+        MuukFiler muukFiler(muuk_path);
+        Muuk muuk(muukFiler);
+        MuukBuilder muukBuilder(muukFiler);
+
+        // Command mapping
+        std::unordered_map<std::string, std::function<void()>> command_map = {
+            {"clean", [&]() { muuk.clean(); }},
+            {"run", [&]() {
+                const auto script = run_command.present<std::string>("script");
+                const auto extra_args = run_command.get<std::vector<std::string>>("extra_args");
+
+                if (!script.has_value()) {
+                    std::cerr << "Error: No script name provided for the 'run' command.\n";
+                    return;
+                }
+                muuk.run_script(script.value(), extra_args);
+            }},
+            {"build", [&]() {
+                bool is_release = build_command.get<bool>("--release");
+                const auto build_args = build_command.get<std::vector<std::string>>("build_args");
+                muukBuilder.build(build_args, is_release);
+            }},
+            {"install", [&]() {
+                const auto url = download_command.get<std::string>("url");
+                const auto version = download_command.get<std::string>("--version");
+                muuk.download_github_release(url, version);
+            }}
+        };
 
         // Check if any known subcommand was used
         bool command_found = false;

@@ -6,10 +6,11 @@ Package::Package(const std::string& name,
     const std::string& base_path,
     const std::string& package_type)
     : name(name), version(version), base_path(base_path), package_type(package_type) {
+    logger_ = Logger::get_logger("muuklockgen_package_logger");
 }
 
 void Package::merge(const Package& child_pkg) {
-    std::cout << "Merging " << child_pkg.name << " into " << name << std::endl;
+    logger_->info("[MuukLockGenerator::merger] Merging {} into {}", child_pkg.name, name);
 
     for (const auto& path : child_pkg.include) {
         include.insert((fs::path(child_pkg.base_path) / path).lexically_normal().string());
@@ -53,6 +54,7 @@ void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
     }
 
     MuukFiler muuk_filer(path);
+
     auto data = muuk_filer.get_config();
 
     logger_->info("Loaded TOML file successfully");
@@ -87,8 +89,9 @@ void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
     if (is_base && data.contains("build") && data["build"].is_table()) {
         for (const auto& [build_name, build_info] : *data["build"].as_table()) {
             logger_->info("Found build target: {}", build_name.str());
-            auto build_package = std::make_shared<Package>(std::string(build_name.str()),
-                std::string(package_version),
+
+            auto build_package = std::make_shared<Package>(
+                std::string(build_name.str()), std::string(package_version),
                 fs::path(path).parent_path().string(), "build");
             parse_section(*build_info.as_table(), *build_package);
             resolved_packages_["build"][std::string(build_name.str())] = build_package;

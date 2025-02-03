@@ -1,4 +1,6 @@
 #include "../include/util.h"
+#include "../include/logger.h"
+
 #include <filesystem>
 #include <fstream>
 #include <regex>
@@ -8,6 +10,7 @@
 #include <codecvt>
 #include <locale>
 #include <spdlog/spdlog.h>
+#include <regex>
 #include <spdlog/sinks/basic_file_sink.h>
 
 extern "C" {
@@ -18,8 +21,7 @@ namespace fs = std::filesystem;
 
 namespace util {
 
-    // Initialize spdlog logger
-    auto logger = spdlog::basic_logger_mt("util_logger", "logs/util.log");
+    auto logger = Logger::get_logger("util_logger");
 
     // Ensure directory exists and optionally create .gitignore
     void ensure_directory_exists(const std::string& dir_path, bool gitignore) {
@@ -116,18 +118,29 @@ namespace util {
     }
 
     void download_file(const std::string& url, const std::string& output_path) {
-        // Ensure output_path is a proper file path, not a directory
-        std::string command = "wget --quiet --output-document=" + output_path +
-            " --no-check-certificate " + url;
+        std::string command;
+
+        if (util::command_exists("wget")) {
+            command = "wget --quiet --output-document=" + output_path +
+                " --no-check-certificate " + url;
+        }
+        else if (util::command_exists("curl")) {
+            command = "curl -L -o " + output_path + " " + url;
+        }
+        else {
+            spdlog::error("[util::download_file] Neither wget nor curl is available on the system.");
+            throw std::runtime_error("No suitable downloader found. Install wget or curl.");
+        }
 
         spdlog::info("[util::download_file] Executing download command: {}", command);
 
         int result = util::execute_command(command.c_str());
         if (result != 0) {
-            spdlog::error("[util::download_file] Failed to download file from {}. wget exited with code: {}", url, result);
+            spdlog::error("[util::download_file] Failed to download file from {}. Command exited with code: {}", url, result);
             throw std::runtime_error("File download failed.");
         }
     }
+
 
     int execute_command(const std::string& command) {
         logger->info("[util::execute_command] Executing command: {}", command);
@@ -186,6 +199,15 @@ namespace util {
         }
     }
 
+    bool command_exists(const std::string& command) {
+#ifdef _WIN32
+        std::string check_command = "where " + command + " >nul 2>&1";
+#else
+        std::string check_command = "which " + command + " >/dev/null 2>&1";
+#endif
+        return (std::system(check_command.c_str()) == 0);
+    }
+
     std::string normalize_path(const std::string& path) {
         try {
             std::filesystem::path fs_path = std::filesystem::absolute(std::filesystem::path(path));
@@ -199,5 +221,82 @@ namespace util {
         }
     }
 
+    std::string to_linux_path(const std::string& path) {
+        std::string normalized = path;
+        std::replace(normalized.begin(), normalized.end(), '\\', '/');
+        return normalized;
+    }
+
+    // Normalize a vector of flags
+    std::string normalize_flags(const std::vector<std::string>& flags) {
+        std::string normalized;
+        for (const auto& flag : flags) {
+            normalized += " " + normalize_flag(flag);
+        }
+        return normalized;
+    }
+
+    std::string normalize_flag(const std::string& flag) {
+        static const std::unordered_map<std::string, std::string> msvc_to_gcc = {
+            {"/I", "-I"}, {"/Fe", "-o"}, {"/Fo", "-o"},
+            {"/c", "-c"}, {"/W0", "-w"}, {"/W1", "-Wall"}, {"/W2", "-Wall -Wextra"},
+            {"/W3", "-Wall -Wextra -Wpedantic"}, {"/W4", "-Wall -Wextra -Wpedantic -Wconversion"},
+            {"/EHsc", "-fexceptions"}, {"/Zi", "-g"}, {"/O2", "-O2"},
+            {"/O3", "-O3"}, {"/GL", "-flto"}, {"/link", "-Wl,"}, {"/utf-8", "-finput-charset=UTF-8"}
+        };
+
+        static const std::unordered_map<std::string, std::string> gcc_to_msvc = {
+            {"-I", "/I"}, {"-o", "/Fe"}, {"-c", "/c"},
+            {"-w", "/W0"}, {"-Wall", "/W3"}, {"-Wextra", "/W4"},
+            {"-Wpedantic", "/W4"}, {"-Wconversion", "/W4"},
+            {"-fexceptions", "/EHsc"}, {"-g", "/Zi"}, {"-O2", "/O2"},
+            {"-O3", "/O3"}, {"-flto", "/GL"}, {"-Wl,", "/link"},
+            {"-finput-charset=UTF-8", "/utf-8"}
+        };
+
+        static const std::regex std_pattern(R"((?:\/std:c\+\+|-std=c\+\+)(\d+))");
+
+        std::smatch match;
+
+        std::string normalized_flag = flag;
+
+        if (flag.starts_with("/D")) {
+            return "-D" + flag.substr(2);
+        }
+        else if (flag.starts_with("-D")) {
+            return "/D" + flag.substr(2);
+        }
+
+        if (flag[0] != '/' && flag[0] != '-') {
+#ifdef _WIN32
+            normalized_flag = "/" + flag;
+#else
+            normalized_flag = "-" + flag;
+#endif
+        }
+
+#ifdef _WIN32
+        auto lookup = gcc_to_msvc.find(normalized_flag);
+        if (lookup != gcc_to_msvc.end()) {
+            return lookup->second;
+        }
+#else
+        auto lookup = msvc_to_gcc.find(normalized_flag);
+        if (lookup != msvc_to_gcc.end()) {
+            return lookup->second;
+        }
+#endif
+
+        // Handle C++ standard flag conversion
+        if (std::regex_match(flag, match, std_pattern)) {
+#ifdef _WIN32
+            return "/std:c++" + match[1].str();
+#else
+            return "-std=c++" + match[1].str();
+#endif
+        }
+
+        return normalized_flag;
+    }
 
 } // namespace util

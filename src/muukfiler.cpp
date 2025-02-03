@@ -112,7 +112,6 @@ toml::table MuukFiler::load_or_create_config() {
     }
 }
 
-
 void MuukFiler::save_config() {
     std::ofstream config_stream(config_file_);
     if (!config_stream) {
@@ -165,6 +164,85 @@ void MuukFiler::save_config() {
 
     config_stream.close();
 }
+
+bool MuukFiler::contains_key(toml::table& table, std::string& key) {
+    return table.contains(key);
+}
+
+std::string MuukFiler::format_error(const std::string& error_message) {
+    std::ostringstream oss;
+    oss << "[Error] " << error_message
+        << "\n[Config File]: " << config_file_
+        << "\n[Current muuk.toml Configuration]:\n"
+        << config_;
+    return oss.str();
+}
+
+void MuukFiler::validate_muuk() {
+    logger_->info("[muuk::validate] Validating {} structure...", config_file_);
+
+    if (!has_section("package")) {
+        throw std::runtime_error(format_error("Missing required [package] section."));
+    }
+
+    const toml::table& package_section = get_section("package");
+    if (!package_section.contains("name") || !package_section["name"].is_string()) {
+        throw std::runtime_error("Invalid TOML: [package] section must have a 'name' key of type string.");
+    }
+
+    std::string package_name = *package_section["name"].value<std::string>();
+
+    // Check for required [library.{package.name}] section
+    std::string library_section_name = "library";
+    if (!has_section(library_section_name)) {
+        throw std::runtime_error("Invalid TOML: Missing required [library] section.");
+    }
+
+    const toml::table& library_section = get_section(library_section_name);
+    if (!library_section.contains(package_name) || !library_section.at(package_name).is_table()) {
+        throw std::runtime_error("Invalid TOML: Missing required [library." + package_name + "] section.");
+    }
+
+    // Get the library.{package.name} subtable safely
+    const toml::table& library_package_section = *library_section.at(package_name).as_table();
+
+    // Ensure library.include exists and is an array of strings (Required)
+    validate_array_of_strings(library_package_section, "include");
+
+    // Optional: Validate other fields if present
+    validate_array_of_strings(library_package_section, "sources");
+    validate_array_of_strings(library_package_section, "lflags");
+    validate_array_of_strings(library_package_section, "libflags");
+
+    // Validate [clean] section (optional)
+    if (has_section("clean")) {
+        const toml::table& clean_section = get_section("clean");
+        validate_array_of_strings(clean_section, "patterns");
+    }
+
+    logger_->info("[muuk::validate] muuk.toml validation successful!");
+}
+
+void MuukFiler::validate_array_of_strings(const toml::table& section, const std::string& key, bool required) {
+    if (!section.contains(key)) {
+        if (required) {
+            throw std::runtime_error("Invalid TOML: Missing required key [" + key + "] in section.");
+        }
+        return;
+    }
+
+    const toml::array* value = section.at(key).as_array();
+    if (!value) {
+        throw std::runtime_error("Invalid TOML: [" + key + "] must be an array.");
+    }
+
+    for (const auto& item : *value) {
+        if (!item.is_string()) {
+            throw std::runtime_error("Invalid TOML: [" + key + "] must be an array of strings.");
+        }
+    }
+}
+
 
 toml::table MuukFiler::get_default_config() const {
     return toml::table{

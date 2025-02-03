@@ -24,6 +24,9 @@ private:
     MuukBuilder muuk_builder_;
 
     void add_dependency(const std::string& author, const std::string& repo_name, const std::string& version);
+
+    void validate_toml(MuukFiler& muuk_filer);
+
 };
 
 #endif // MUUK_HPP

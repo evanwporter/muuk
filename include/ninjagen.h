@@ -27,7 +27,7 @@ private:
     fs::path build_dir_;
     std::unique_ptr<MuukFiler> muuk_filer_;
     toml::table config_;
-    std::shared_ptr<spdlog::logger> logger_;  // Logger instance
+    std::shared_ptr<spdlog::logger> logger_;
 
     void write_ninja_header(std::ofstream& out);
     std::pair<std::map<std::string, std::vector<std::string>>, std::vector<std::string>> compile_objects(std::ofstream& out);

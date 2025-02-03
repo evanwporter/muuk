@@ -17,7 +17,6 @@ public:
     virtual toml::table get_section(const std::string& section) const = 0;
     virtual void update_section(const std::string& section, const toml::table& data) = 0;
 
-    // **New Functionalities**
     virtual void set_value(const std::string& section, const std::string& key, const toml::node& value) = 0;
     virtual void remove_key(const std::string& section, const std::string& key) = 0;
     virtual void remove_section(const std::string& section) = 0;
@@ -35,11 +34,15 @@ public:
     toml::table get_section(const std::string& section) const override;
     void update_section(const std::string& section, const toml::table& data) override;
 
-    // **New Functionalities**
     void set_value(const std::string& section, const std::string& key, const toml::node& value) override;
     void remove_key(const std::string& section, const std::string& key) override;
     void remove_section(const std::string& section) override;
     void append_to_array(const std::string& section, const std::string& key, const toml::node& value) override;
+
+    void track_section_order();
+    void save_config();
+
+    bool contains_key(toml::table& table, std::string& key);
 
 private:
     std::string config_file_;
@@ -48,9 +51,14 @@ private:
     std::shared_ptr<spdlog::logger> logger_;
 
     toml::table load_or_create_config();
-    void save_config();
     toml::table get_default_config() const;
-    void track_section_order();
+
+    void validate_muuk();
+    void validate_array_of_strings(const toml::table& section, const std::string& key, bool required = false);
+
+    std::string format_error(const std::string& error_message);
+
+
 };
 
 // Mock Class for Testing

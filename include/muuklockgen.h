@@ -33,6 +33,9 @@ public:
     std::set<std::string> lflags;
     std::vector<std::string> sources;
     std::map<std::string, std::string> dependencies;
+
+private:
+    std::shared_ptr<spdlog::logger> logger_;
 };
 
 class MuukLockGenerator {

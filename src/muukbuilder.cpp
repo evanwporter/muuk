@@ -52,8 +52,7 @@ bool MuukBuilder::is_compiler_available() const {
     const char* compilers[] = { "cl", "gcc", "c++", "g++", "clang++" };
 
     for (const char* compiler : compilers) {
-        std::string check_command = std::string(compiler) + " --version >nul 2>&1";
-        if (util::execute_command(check_command.c_str()) == 0) {
+        if (util::command_exists(compiler)) {
             logger_->info("[muukbuilder::check] Found compiler: {}", compiler);
             return true;
         }
@@ -62,3 +61,4 @@ bool MuukBuilder::is_compiler_available() const {
     logger_->error("[muukbuilder::check] No compatible C++ compiler found on PATH. Install MSVC, GCC, or Clang.");
     return false;
 }
+

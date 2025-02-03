@@ -2,7 +2,6 @@
 name = "muuk"
 version = "1.0.0"
 
-# The Shared Library (library.muuk) - Used by both executables
 [library.muuk]
 include = ["include", "modules/glob/include"]
 lflags = ["/std:c++20", "/utf-8", "/EHsc"]
@@ -24,7 +23,6 @@ zip = "v0.3.3"
 json = "v3.11.3"
 argparse = "v3.2"
 
-# The Main Executable (binary.muuk)
 [build.bin]
 dependencies = { "muuk" = "v1.0.0" }
 sources = ["src/main.cpp"]
@@ -34,3 +32,6 @@ dependencies = { "muuk" = "v1.0.0", "googletest" = "v1.15.2" }
 sources = ["tests/internal/muuk_test.cpp"]
 executable = "muuk_tests"
 include = []
+
+[clean]
+patterns = ["*.obj", "*.lib", "*.pdb"]

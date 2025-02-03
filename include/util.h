@@ -27,7 +27,13 @@ namespace util {
     bool is_valid_utf8(const std::string& str);
 
     std::string normalize_path(const std::string& path);
+    std::string to_linux_path(const std::string& path);
 
+
+    bool command_exists(const std::string& command);
+
+    std::string normalize_flag(const std::string& flag);
+    std::string normalize_flags(const std::vector<std::string>& flags);
 
 } // namespace Utils
 
