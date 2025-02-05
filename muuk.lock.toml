@@ -3,10 +3,10 @@ base_path = ''
 include = [
     'include',
     'modules/gabime-spdlog-v1.15.1/include',
-    'modules/glob/include',
     'modules/kuba---zip-v0.3.3/src',
     'modules/nlohmann-json-v3.11.3/single_include',
-    'modules/p-ranav-argparse-v3.2/include'
+    'modules/p-ranav-argparse-v3.2/include',
+    'modules/p-ranav-glob-v0.0.1/single_include'
 ]
 lflags = [ '/DSPDLOG_COMPILED_LIB', '/DSPDLOG_USE_STD_FORMAT', '/EHsc', '/std:c++20', '/utf-8' ]
 libflags = [ '/DSPDLOG_COMPILED_LIB', '/DSPDLOG_USE_STD_FORMAT', '/EHsc', '/std:c++20', '/utf-8' ]
@@ -17,14 +17,14 @@ base_path = ''
 include = [
     'include',
     'modules/gabime-spdlog-v1.15.1/include',
-    'modules/glob/include',
     'modules/google-googletest-v1.15.2/googlemock',
     'modules/google-googletest-v1.15.2/googlemock/include',
     'modules/google-googletest-v1.15.2/googletest',
     'modules/google-googletest-v1.15.2/googletest/include',
     'modules/kuba---zip-v0.3.3/src',
     'modules/nlohmann-json-v3.11.3/single_include',
-    'modules/p-ranav-argparse-v3.2/include'
+    'modules/p-ranav-argparse-v3.2/include',
+    'modules/p-ranav-glob-v0.0.1/single_include'
 ]
 lflags = [ '/DSPDLOG_COMPILED_LIB', '/DSPDLOG_USE_STD_FORMAT', '/EHsc', '/std:c++20', '/utf-8' ]
 libflags = [ '/DSPDLOG_COMPILED_LIB', '/DSPDLOG_USE_STD_FORMAT', '/EHsc', '/std:c++20', '/utf-8' ]
@@ -33,6 +33,13 @@ sources = [ 'tests/internal/muuk_test.cpp' ]
 [library.argparse]
 base_path = 'modules/p-ranav-argparse-v3.2'
 include = [ 'modules/p-ranav-argparse-v3.2/include' ]
+lflags = [ '/EHsc', '/std:c++20', '/utf-8' ]
+libflags = [ '/EHsc', '/std:c++20', '/utf-8' ]
+sources = []
+
+[library.glob]
+base_path = 'modules/p-ranav-glob-v0.0.1'
+include = [ 'modules/p-ranav-glob-v0.0.1/single_include' ]
 lflags = [ '/EHsc', '/std:c++20', '/utf-8' ]
 libflags = [ '/EHsc', '/std:c++20', '/utf-8' ]
 sources = []
@@ -64,10 +71,10 @@ base_path = ''
 include = [
     'include',
     'modules/gabime-spdlog-v1.15.1/include',
-    'modules/glob/include',
     'modules/kuba---zip-v0.3.3/src',
     'modules/nlohmann-json-v3.11.3/single_include',
-    'modules/p-ranav-argparse-v3.2/include'
+    'modules/p-ranav-argparse-v3.2/include',
+    'modules/p-ranav-glob-v0.0.1/single_include'
 ]
 lflags = [ '/DSPDLOG_COMPILED_LIB', '/DSPDLOG_USE_STD_FORMAT', '/EHsc', '/std:c++20', '/utf-8' ]
 libflags = [ '/DSPDLOG_COMPILED_LIB', '/DSPDLOG_USE_STD_FORMAT', '/EHsc', '/std:c++20', '/utf-8' ]
@@ -78,8 +85,7 @@ sources = [
     'src/muukfiler.cpp',
     'src/muukbuilder.cpp',
     'src/ninjagen.cpp',
-    'src/muuklockgen.cpp',
-    'modules/glob/src/glob.cpp'
+    'src/muuklockgen.cpp'
 ]
 
 [library.spdlog]

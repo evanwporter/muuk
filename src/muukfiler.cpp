@@ -119,53 +119,10 @@ void MuukFiler::save_config() {
     if (!config_stream) {
         throw std::runtime_error("Unable to write to config file: " + config_file_);
     }
-
-    for (const auto& section : section_order_) {
-        if (!config_.contains(section)) continue;  // Skip deleted sections
-
-        config_stream << "[" << section << "]\n";
-        auto& tbl = *config_.get_as<toml::table>(section);
-        for (const auto& [key, value] : tbl) {
-            if (value.is_string()) {
-                config_stream << key << " = \"" << *value.value<std::string>() << "\"\n";
-            }
-            else if (value.is_integer()) {
-                config_stream << key << " = " << *value.value<int64_t>() << "\n";
-            }
-            else if (value.is_floating_point()) {
-                config_stream << key << " = " << *value.value<double>() << "\n";
-            }
-            else if (value.is_boolean()) {
-                config_stream << key << " = " << (*value.value<bool>() ? "true" : "false") << "\n";
-            }
-            else if (value.is_array()) {
-                config_stream << key << " = [";
-                auto& arr = *value.as_array();
-                bool first = true;
-                for (const auto& item : arr) {
-                    if (!first) config_stream << ", ";
-                    first = false;
-                    if (item.is_string()) {
-                        config_stream << "\"" << *item.value<std::string>() << "\"";
-                    }
-                    else if (item.is_integer()) {
-                        config_stream << *item.value<int64_t>();
-                    }
-                    else if (item.is_floating_point()) {
-                        config_stream << *item.value<double>();
-                    }
-                    else if (item.is_boolean()) {
-                        config_stream << (*item.value<bool>() ? "true" : "false");
-                    }
-                }
-                config_stream << "]\n";
-            }
-        }
-        config_stream << "\n";  // Add newline between sections
-    }
-
+    config_stream << config_;
     config_stream.close();
 }
+
 
 bool MuukFiler::contains_key(toml::table& table, std::string& key) {
     return table.contains(key);

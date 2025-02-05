@@ -10,6 +10,7 @@
 #include <functional>
 #include <vector>
 #include <argparse/argparse.hpp>
+#include <cracklib.h>
 #include "../include/util.h"
 #include "../include/muuk.h"
 #include "../include/muukfiler.h"
@@ -62,12 +63,23 @@ int main(int argc, char* argv[]) {
         .help("Only list patches that would be uploaded, without actually uploading them.")
         .flag();
 
+    argparse::ArgumentParser crack_command("crack", "Brute-force crack a RAR archive");
+    crack_command.add_argument("rar_file")
+        .help("The path to the .rar file to crack.");
+    crack_command.add_argument("--threads")
+        .help("Number of threads to use (default: 2)")
+        .scan<'i', int>()
+        .default_value(2);
+    crack_command.add_argument("--json")
+        .help("Output status as JSON instead of cracking")
+        .flag();
+
     program.add_subparser(clean_command);
     program.add_subparser(run_command);
     program.add_subparser(build_command);
     program.add_subparser(download_command);
-    program.add_subparser(upload_patch_command);  // Add `upload-patch` command
-
+    program.add_subparser(upload_patch_command);
+    program.add_subparser(crack_command);
 
     if (argc < 2) {
         std::cerr << "Usage: " << argv[0] << " <command> [--muuk-path <path>] [other options]\n";
@@ -111,7 +123,19 @@ int main(int argc, char* argv[]) {
                 bool dry_run = upload_patch_command.get<bool>("--dry-run");
                 logger->info("[muuk] Running upload-patch with dry-run: {}", dry_run);
                 muuk.upload_patch(dry_run);
-            }}
+            }},
+            {"crack", [&]() {
+                const auto rar_file = crack_command.get<std::string>("rar_file");
+                int threads = crack_command.get<int>("--threads");
+                bool json_output = crack_command.get<bool>("--json");
+
+                if (json_output) {
+                    status_to_json(rar_file.c_str());
+                }
+                else {
+                    crack(rar_file.c_str(), threads);
+                }
+            }},
         };
 
         // Check if any known subcommand was used
