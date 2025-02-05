@@ -215,3 +215,18 @@ void MuukLockGenerator::generate_lockfile(const std::string& output_path) {
 
     logger_->info("muuk.lock.toml generation complete!");
 }
+
+std::optional<std::shared_ptr<Package>> MuukLockGenerator::find_package(const std::string& package_name) {
+    // Search in library packages
+    if (resolved_packages_["library"].count(package_name)) {
+        return resolved_packages_["library"][package_name];
+    }
+
+    // Search in build packages
+    if (resolved_packages_["build"].count(package_name)) {
+        return resolved_packages_["build"][package_name];
+    }
+
+    // Package not found
+    return std::nullopt;
+}
