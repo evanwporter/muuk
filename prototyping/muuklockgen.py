@@ -15,7 +15,6 @@ class Package:
         self.dependencies = {}
 
     def merge(self, child_pkg):
-        """Merge child package's includes, libflags, and lflags into this package."""
         print(f"Merging {child_pkg.name} into {self.name}")
 
         updated_paths = lambda paths: {
@@ -32,7 +31,6 @@ class Package:
         # print(self.serialize())
 
     def serialize(self):
-        """Convert package details into a dictionary format for TOML output."""
         return {
             "include": [
                 os.path.normpath(os.path.join(self.base_path, path))
@@ -54,7 +52,6 @@ class MuukParser:
         self.resolved_packages = {"library": {}, "build": {}}
 
     def parse_muuk_toml(self, path, is_base=False):
-        """Parse a muuk.toml file and extract package information."""
         if not os.path.exists(path):
             print(f"Error: {path} not found!")
             return
@@ -118,7 +115,6 @@ class MuukParser:
                 package.merge(self.resolved_packages["library"][dep_name])
 
     def _search_and_parse_dependency(self, package_name):
-        """Searches the modules directory for a missing package and attempts to parse it."""
         modules_dir = os.path.join(self.base_path, "modules")
         for mod_dir in os.listdir(modules_dir):
             if package_name in mod_dir:
@@ -128,7 +124,6 @@ class MuukParser:
                     return
 
     def generate_lockfile(self, output_path):
-        """Generate the muuk.lock.toml file from resolved packages."""
         print("Generating muuk.lock.toml...")
         lock_data = {
             pkg_type: {pkg_name: pkg.serialize() for pkg_name, pkg in packages.items()}
@@ -139,11 +134,9 @@ class MuukParser:
         print(f"muuk.lock.toml written to {output_path}")
 
 
-# Usage example:
 base_path = "./"
 muuk_parser = MuukParser(base_path)
 
-# Parse the main muuk.toml
 muuk_toml_path = os.path.join(base_path, "muuk.toml")
 if os.path.exists(muuk_toml_path):
     muuk_parser.parse_muuk_toml(muuk_toml_path, is_base=True)
@@ -151,12 +144,10 @@ else:
     print(f"Error: {muuk_toml_path} does not exist!")
 
 print("RESOLVED PKGS", muuk_parser.resolved_packages)
-# Resolve dependencies for all packages
 for package_name in list(muuk_parser.resolved_packages["build"].keys()):
     print(package_name)
     muuk_parser.resolve_dependencies(package_name)
 
-# Generate the lock file
 muuk_parser.generate_lockfile(os.path.join(base_path, "muuk.lock.toml"))
 
 print("muuk.lock.toml generation complete!")

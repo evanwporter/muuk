@@ -1,105 +1,206 @@
-import os
 import subprocess
-import shutil
+import os
 import pytest
-
-# Test directory and files
-TEST_DIR = os.path.dirname(os.path.abspath(__file__))
-MUUK_TOML = os.path.join(TEST_DIR, "test_data", "muuk.toml")
-
-
-@pytest.fixture(scope="module")
-def setup_muuk_toml():
-    """Fixture to create a temporary muuk.toml file for testing."""
-    test_toml_content = """\
-[package]
-name = "test_project"
-version = "1.0.0"
-
-[scripts]
-hello = "echo Hello, World!"
-fail_script = "invalid_command"
-
-[clean]
-patterns = ["*.tmp"]
-"""
-
-    # Ensure test_data directory exists
-    os.makedirs(os.path.join(TEST_DIR, "test_data"), exist_ok=True)
-
-    # Write muuk.toml for testing
-    with open(MUUK_TOML, "w") as f:
-        f.write(test_toml_content)
-
-    yield  # Let the test run
-
-    # Cleanup after tests
-    os.remove(MUUK_TOML)
+import tempfile
+import shutil
+import random
+import string
 
 
-def run_muuk_command(*args):
-    """Helper function to execute muuk and return output."""
-    cmd = ["../muuk"] + list(args)  # Adjust the path if needed
-    result = subprocess.run(cmd, cwd=TEST_DIR, capture_output=True, text=True)
-    return result.returncode, result.stdout, result.stderr
+MUUK_EXECUTABLE = "builddir/muuk"
 
 
-def test_muuk_help():
-    """Test `muuk --help`."""
-    returncode, stdout, stderr = run_muuk_command("--help")
-    assert returncode == 0
-    assert "usage" in stdout.lower()
+@pytest.mark.parametrize(
+    "args",
+    [
+        [],  # No arguments
+        ["invalid_command"],  # Invalid command
+        ["--muuk-path", "non_existent_file.toml"],  # Non-existent config
+        ["build", "--release", "--unknown-flag"],  # Unknown flag
+        ["install"],  # Missing required argument
+        ["run"],  # Missing script name
+        ["upload-patch", "--dry-run", "--invalid"],  # Invalid flag for upload-patch
+    ],
+)
+def test_invalid_arguments(args):
+    result = subprocess.run([MUUK_EXECUTABLE] + args, capture_output=True, text=True)
+    assert result.returncode != 0, f"Expected failure, but got success: {result.stdout}"
 
 
-def test_muuk_clean_no_files(setup_muuk_toml):
-    """Test `muuk clean` when there are no files to remove."""
-    returncode, stdout, stderr = run_muuk_command("clean")
-    assert returncode == 0
-    assert "clean operation completed" in stdout.lower()
+def test_empty_muuk_toml():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        muuk_path = os.path.join(temp_dir, "muuk.toml")
+        open(muuk_path, "w").close()  # Create an empty file
+
+        result = subprocess.run(
+            [MUUK_EXECUTABLE, "--muuk-path", muuk_path, "build"],
+            capture_output=True,
+            text=True,
+        )
+        assert (
+            result.returncode != 0
+        ), "Program should fail when provided with an empty config file"
 
 
-def test_muuk_clean_with_files(setup_muuk_toml):
-    """Test `muuk clean` when there are matching files."""
-    tmp_file = os.path.join(TEST_DIR, "test_data", "temp.tmp")
+def test_invalid_toml():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        muuk_path = os.path.join(temp_dir, "muuk.toml")
+        with open(muuk_path, "w") as f:
+            f.write("invalid_toml = [unclosed_string")  # Malformed TOML
 
-    # Create a temporary file that should be cleaned
-    with open(tmp_file, "w") as f:
-        f.write("Temporary file content")
-
-    assert os.path.exists(tmp_file)
-
-    returncode, stdout, stderr = run_muuk_command("clean")
-
-    assert returncode == 0
-    assert not os.path.exists(tmp_file)  # File should be deleted
-
-
-def test_muuk_run_valid_script(setup_muuk_toml):
-    """Test `muuk run hello`."""
-    returncode, stdout, stderr = run_muuk_command("run", "hello")
-    assert returncode == 0
-    assert "Hello, World!" in stdout
+        result = subprocess.run(
+            [MUUK_EXECUTABLE, "--muuk-path", muuk_path, "build"],
+            capture_output=True,
+            text=True,
+        )
+        assert (
+            result.returncode != 0
+        ), "Program should fail when provided with malformed TOML"
 
 
-def test_muuk_run_invalid_script(setup_muuk_toml):
-    """Test `muuk run fail_script` with a non-existent command."""
-    returncode, stdout, stderr = run_muuk_command("run", "fail_script")
-    assert returncode != 0
-    assert "not found" in stderr.lower() or "command not found" in stderr.lower()
-
-
-def test_muuk_build(setup_muuk_toml):
-    """Test `muuk build`."""
-    returncode, stdout, stderr = run_muuk_command("build")
-    assert returncode == 0 or returncode == 1  # Build may fail if setup isn't complete
-    assert "starting build operation" in stdout.lower()
-
-
-def test_muuk_install_invalid_repo(setup_muuk_toml):
-    """Test `muuk install` with an invalid GitHub repo."""
-    returncode, stdout, stderr = run_muuk_command("install", "invalid/repo")
-    assert returncode != 0
-    assert (
-        "error fetching latest release" in stdout.lower()
-        or "invalid repository format" in stderr.lower()
+def test_missing_muuk_toml():
+    result = subprocess.run(
+        [MUUK_EXECUTABLE, "--muuk-path", "non_existent.toml", "build"],
+        capture_output=True,
+        text=True,
     )
+    assert (
+        result.returncode != 0
+    ), "Program should fail when the configuration file is missing"
+
+
+def test_permission_error():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        muuk_path = os.path.join(temp_dir, "muuk.toml")
+        with open(muuk_path, "w") as f:
+            f.write("[package]\nname = 'test'\nversion = '1.0.0'")  # Valid TOML
+
+        os.chmod(muuk_path, 0o000)  # Remove all permissions
+
+        result = subprocess.run(
+            [MUUK_EXECUTABLE, "--muuk-path", muuk_path, "build"],
+            capture_output=True,
+            text=True,
+        )
+
+        os.chmod(muuk_path, 0o644)  # Restore permissions for cleanup
+
+        assert (
+            result.returncode != 0
+        ), "Program should fail when it cannot read the config file"
+
+
+def test_large_muuk_toml():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        muuk_path = os.path.join(temp_dir, "muuk.toml")
+        with open(muuk_path, "w") as f:
+            f.write("[package]\nname = 'test'\nversion = '1.0.0'\n")
+            for i in range(100000):
+                f.write(
+                    f"entry{i} = '{''.join(random.choices(string.ascii_letters, k=50))}'\n"
+                )
+
+        result = subprocess.run(
+            [MUUK_EXECUTABLE, "--muuk-path", muuk_path, "build"],
+            capture_output=True,
+            text=True,
+        )
+        assert (
+            result.returncode != 0
+        ), "Program should fail or handle large TOML files correctly"
+
+
+def test_random_binary_input():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        muuk_path = os.path.join(temp_dir, "muuk.toml")
+        with open(muuk_path, "wb") as f:
+            f.write(os.urandom(1024))  # Write random binary data
+
+        result = subprocess.run(
+            [MUUK_EXECUTABLE, "--muuk-path", muuk_path, "build"],
+            capture_output=True,
+            text=True,
+        )
+        assert (
+            result.returncode != 0
+        ), "Program should fail when given a binary input file"
+
+
+def test_circular_dependency():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        muuk_path = os.path.join(temp_dir, "muuk.toml")
+        with open(muuk_path, "w") as f:
+            f.write(
+                """
+            [package]
+            name = "test"
+            version = "1.0.0"
+
+            [library.test]
+            dependencies = { test = "1.0.0" }  # Circular dependency
+            """
+            )
+
+        result = subprocess.run(
+            [MUUK_EXECUTABLE, "--muuk-path", muuk_path, "build"],
+            capture_output=True,
+            text=True,
+        )
+        assert (
+            result.returncode != 0
+        ), "Program should detect and handle circular dependencies"
+
+
+@pytest.mark.parametrize(
+    "garbage_input",
+    [
+        "???",
+        "!!invalid!!",
+        "DROP TABLE users;",
+        '{"key": "value"}',  # JSON instead of TOML
+        "<xml><error></xml>",  # XML instead of TOML
+    ],
+)
+def test_garbage_inputs(garbage_input):
+    with tempfile.TemporaryDirectory() as temp_dir:
+        muuk_path = os.path.join(temp_dir, "muuk.toml")
+        with open(muuk_path, "w") as f:
+            f.write(garbage_input)
+
+        result = subprocess.run(
+            [MUUK_EXECUTABLE, "--muuk-path", muuk_path, "build"],
+            capture_output=True,
+            text=True,
+        )
+        assert (
+            result.returncode != 0
+        ), f"Program should fail with garbage input: {garbage_input}"
+
+
+def test_no_disk_space():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        muuk_path = os.path.join(temp_dir, "muuk.toml")
+        with open(muuk_path, "w") as f:
+            f.write("[package]\nname = 'test'\nversion = '1.0.0'")
+
+        # Mock "no disk space" by mounting a full tmpfs (Linux only)
+        if shutil.which("mount"):
+            subprocess.run(
+                ["mount", "-t", "tmpfs", "-o", "size=1K", "tmpfs", temp_dir],
+                check=False,
+            )
+
+        result = subprocess.run(
+            [MUUK_EXECUTABLE, "--muuk-path", muuk_path, "build"],
+            capture_output=True,
+            text=True,
+        )
+
+        if shutil.which("umount"):
+            subprocess.run(["umount", temp_dir], check=False)
+
+        assert result.returncode != 0, "Program should fail when there is no disk space"
+
+
+if __name__ == "__main__":
+    pytest.main()
