@@ -4,7 +4,7 @@
 #include <memory>
 #include <iostream>
 
-#define LOG_TO_CONSOLE
+// #define LOG_TO_CONSOLE
 
 std::shared_ptr<spdlog::logger> Logger::global_logger;
 std::once_flag Logger::init_flag;

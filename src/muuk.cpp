@@ -120,7 +120,7 @@ void Muuk::build(const std::vector<std::string>& args) const {
 }
 
 void Muuk::download_github_release(const std::string& repo, const std::string& version) {
-    logger_->info("[muuk::install] Adding GitHub repository as a submodule. Repository: {}, Version: {}", repo, version);
+    logger_->info("[muuk::install] Downloading GitHub release. Repository: {}, Version: {}", repo, version);
 
     size_t slash_pos = repo.find('/');
     if (slash_pos == std::string::npos) {
@@ -132,7 +132,7 @@ void Muuk::download_github_release(const std::string& repo, const std::string& v
     std::string repo_name = repo.substr(slash_pos + 1);
     std::string resolved_version = version;
 
-    // If version is "latest", fetch the latest commit or tag
+    // If version is "latest", fetch the latest release version
     if (version == "latest") {
         std::string api_url = "https://api.github.com/repos/" + author + "/" + repo_name + "/releases/latest";
         logger_->info("[muuk::install] Fetching latest release from: {}", api_url);
@@ -144,8 +144,8 @@ void Muuk::download_github_release(const std::string& repo, const std::string& v
                 logger_->info("[muuk::install] Resolved latest version: {} of {}/{}", resolved_version, author, repo_name);
             }
             else {
-                logger_->warn("[muuk::install] No release found, defaulting to latest commit.");
-                resolved_version = "latest";  // Default to latest commit if no release is found
+                logger_->error("[muuk::install] Failed to fetch latest release version of {}/{}", author, repo_name);
+                return;
             }
         }
         catch (const std::exception& e) {
@@ -154,46 +154,49 @@ void Muuk::download_github_release(const std::string& repo, const std::string& v
         }
     }
 
-    // Ensure the "modules" directory exists
+    // Construct the GitHub release download URL
+    std::string archive_url = "https://github.com/" + author + "/" + repo_name + "/archive/refs/tags/" + resolved_version + ".zip";
+
     const std::string modules_folder = "modules";
     util::ensure_directory_exists(modules_folder, true);
 
-    std::string submodule_path = modules_folder + "/" + repo_name;
+    std::string zip_path = modules_folder + "/tmp.zip";
+    std::string expected_extracted_folder = modules_folder + "/" + repo_name + "-" + resolved_version;
+    std::string renamed_folder = modules_folder + "/" + author + "-" + repo_name + "-" + resolved_version;
 
-    // Check if submodule already exists
-    if (fs::exists(submodule_path)) {
-        logger_->info("[muuk::install] Submodule '{}' already exists. Running update instead.", repo_name);
-        util::execute_command("git submodule update --remote --recursive " + submodule_path);
-    }
-    else {
-        // Add the submodule
-        std::string git_url = "https://github.com/" + author + "/" + repo_name + ".git";
-        std::string add_command = "git submodule add " + git_url + " " + submodule_path;
-        logger_->info("[muuk::install] Running command: {}", add_command);
+    try {
+        logger_->info("[muuk::install] Downloading file from URL: {}", archive_url);
+        util::download_file(archive_url, zip_path);
 
-        int result = util::execute_command(add_command);
-        if (result != 0) {
-            logger_->error("[muuk::install] Failed to add submodule '{}'", repo_name);
-            return;
+        logger_->info("Extracting downloaded file: {}", zip_path);
+        util::extract_zip(zip_path, modules_folder);
+
+        // Detect the extracted folder
+        bool renamed = false;
+        for (const auto& entry : fs::directory_iterator(modules_folder)) {
+            if (entry.is_directory() && entry.path().filename().string().find(repo_name) == 0) {
+                fs::rename(entry.path(), renamed_folder);
+                logger_->info("[muuk::install] Renamed extracted folder '{}' to '{}'", entry.path().string(), renamed_folder);
+                renamed = true;
+                break;
+            }
         }
 
-        // Initialize and update submodule
-        util::execute_command("git submodule update --init --recursive " + submodule_path);
-    }
-
-    // Checkout specific version if needed
-    if (resolved_version != "latest") {
-        std::string checkout_command = "cd " + submodule_path + " && git checkout " + resolved_version;
-        logger_->info("[muuk::install] Checking out version '{}': {}", resolved_version, checkout_command);
-
-        int checkout_result = util::execute_command(checkout_command);
-        if (checkout_result != 0) {
-            logger_->warn("[muuk::install] Failed to checkout version '{}'. Sticking to the latest commit.", resolved_version);
+        if (!renamed) {
+            logger_->error("[muuk::install] Could not find the expected extracted folder: {}", expected_extracted_folder);
         }
-    }
 
-    add_dependency(author, repo_name, resolved_version);
+        // Clean up ZIP file
+        util::remove_path(zip_path);
+
+        download_patch(author, repo_name, resolved_version);
+        add_dependency(author, repo_name, resolved_version);
+    }
+    catch (const std::exception& e) {
+        logger_->error("[muuk::install] Error downloading GitHub repository: {}", e.what());
+    }
 }
+
 
 void Muuk::add_dependency(const std::string& author, const std::string& repo_name, const std::string& version) {
     logger_->info("[muuk::install] Adding/updating dependency: {}-{} - Version: {}", author, repo_name, version);
@@ -236,17 +239,17 @@ void Muuk::download_patch(const std::string& author, const std::string& repo_nam
     std::string temp_patch_path = modules_folder + "/" + patch_name;
     std::string final_patch_path = module_folder + "/muuk.toml";
 
-    // Ensure the module folder exists
-    if (!fs::exists(module_folder)) {
-        logger_->error("[muuk::patch] Target module folder '{}' does not exist. Cannot apply patch.", module_folder);
-        return;
-    }
+    util::ensure_directory_exists(module_folder);
 
     try {
         logger_->info("[muuk::patch] Downloading patch from {}", patch_url);
-        util::download_file(patch_url, temp_patch_path);
+        util::download_file(patch_url, temp_patch_path);  // Since download_file returns void, no direct error handling
 
-        // Move and rename patch
+        if (!fs::exists(temp_patch_path)) {
+            logger_->warn("[muuk::patch] Patch file '{}' was not found after download. Skipping.", temp_patch_path);
+            return;
+        }
+
         fs::rename(temp_patch_path, final_patch_path);
         logger_->info("[muuk::patch] Patch successfully applied to '{}'", final_patch_path);
     }
