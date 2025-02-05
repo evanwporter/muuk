@@ -123,11 +123,11 @@ NinjaGenerator::compile_objects(std::ofstream& out) {
                 }
             }
 
-            if (pkg_table->contains("libflags")) {
-                auto libflags = pkg_table->at("libflags").as_array();
-                if (libflags) {
+            if (pkg_table->contains("cflags")) {
+                auto cflags_array = pkg_table->at("cflags").as_array();
+                if (cflags_array) {
                     std::vector<std::string> flag_list;
-                    for (const auto& flag : *libflags) {
+                    for (const auto& flag : *cflags_array) {
                         flag_list.push_back(*flag.value<std::string>());
                     }
                     cflags_common += util::normalize_flags(flag_list);

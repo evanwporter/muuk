@@ -30,8 +30,8 @@ public:
     std::string package_type; // "library" or "build"
 
     std::set<std::string> include;
-    std::set<std::string> libflags;
-    std::set<std::string> lflags;
+    std::set<std::string> cflags;
+    std::set<std::string> gflags;
     std::vector<std::string> sources;
     std::map<std::string, std::string> dependencies;
 
@@ -45,7 +45,7 @@ public:
 
     void parse_muuk_toml(const std::string& path, bool is_base = false);
     void resolve_dependencies(const std::string& package_name);
-    void generate_lockfile(const std::string& output_path);
+    void generate_lockfile(const std::string& output_path, bool is_release = false);
 
     const std::map<std::string, std::map<std::string, std::shared_ptr<Package>>>& get_resolved_packages() const {
         return resolved_packages_;

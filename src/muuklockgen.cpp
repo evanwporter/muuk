@@ -16,21 +16,18 @@ void Package::merge(const Package& child_pkg) {
     for (const auto& path : child_pkg.include) {
         include.insert((fs::path(child_pkg.base_path) / path).lexically_normal().string());
     }
-    libflags.insert(child_pkg.libflags.begin(), child_pkg.libflags.end());
-    lflags.insert(child_pkg.lflags.begin(), child_pkg.lflags.end());
+    cflags.insert(child_pkg.cflags.begin(), child_pkg.cflags.end());
     dependencies.insert(child_pkg.dependencies.begin(), child_pkg.dependencies.end());
 }
 
 toml::table Package::serialize() const {
     toml::table data;
-    toml::array include_array, libflags_array, lflags_array, sources_array;
+    toml::array include_array, cflags_array, sources_array;
 
     // Add include paths
     for (const auto& path : include) include_array.push_back((fs::path(base_path) / path).lexically_normal().string());
 
-    for (const auto& flag : libflags) libflags_array.push_back(flag);
-
-    for (const auto& flag : lflags) lflags_array.push_back(flag);
+    for (const auto& flag : cflags) cflags_array.push_back(flag);
 
     for (const auto& source : sources) {
         fs::path source_path = fs::path(base_path) / source;
@@ -55,8 +52,7 @@ toml::table Package::serialize() const {
     }
 
     data.insert("include", include_array);
-    data.insert("libflags", libflags_array);
-    data.insert("lflags", lflags_array);
+    data.insert("cflags", cflags_array);
     data.insert("sources", sources_array);
     data.insert("base_path", base_path);
 
@@ -141,17 +137,17 @@ void MuukLockGenerator::parse_section(const toml::table& section, Package& packa
         }
     }
 
-    if (section.contains("libflags")) {
-        for (const auto& flag : *section["libflags"].as_array()) {
-            package.libflags.insert(*flag.value<std::string>());
-            logger_->info("  Added libflag: {}", *flag.value<std::string>());
+    if (section.contains("cflags")) {
+        for (const auto& flag : *section["cflags"].as_array()) {
+            package.cflags.insert(*flag.value<std::string>());
         }
     }
 
-    if (section.contains("lflags")) {
-        for (const auto& flag : *section["lflags"].as_array()) {
-            package.lflags.insert(*flag.value<std::string>());
-            logger_->info("  Added lflag: {}", *flag.value<std::string>());
+    if (section.contains("gflags")) {
+        for (const auto& flag : *section["gflags"].as_array()) {
+            package.gflags.insert(*flag.value<std::string>());
+            package.cflags.insert(*flag.value<std::string>());
+
         }
     }
 
@@ -214,7 +210,7 @@ void MuukLockGenerator::search_and_parse_dependency(const std::string& package_n
     }
 }
 
-void MuukLockGenerator::generate_lockfile(const std::string& output_path) {
+void MuukLockGenerator::generate_lockfile(const std::string& output_path, bool is_release) {
     logger_->info("Generating muuk.lock.toml...");
 
     std::ofstream lockfile(output_path);
@@ -223,18 +219,88 @@ void MuukLockGenerator::generate_lockfile(const std::string& output_path) {
         return;
     }
 
+    std::set<std::string> gflags;
+
+    logger_->info("Extracting global flags from build packages...");
+    for (const auto& [pkg_name, pkg] : resolved_packages_["build"]) {
+        logger_->info("Extracting gflags from build package: {}", pkg_name);
+
+        std::string build_gflags_str;
+        for (const auto& flag : pkg->gflags) {
+            build_gflags_str += flag + " ";
+            gflags.insert(flag);
+        }
+
+        if (!build_gflags_str.empty()) {
+            logger_->info("  → Flags from '{}': {}", pkg_name, build_gflags_str);
+        }
+        else {
+            logger_->info("  → No flags found in '{}'", pkg_name);
+        }
+    }
+
+    if (!is_release) {
+        logger_->info("Applying debug-specific flags...");
+        gflags.insert("-g");
+        // gflags.insert("-O2");
+        gflags.insert("-DDEBUG");
+        gflags.insert("/W4");
+        // gflags.insert("-fsanitize=address");
+        // gflags.insert("-fsanitize=undefined");
+        // gflags.insert("-fno-omit-frame-pointer");
+#ifdef __linux__
+        gflags.insert("-rdynamic");
+#endif
+    }
+    else {
+        logger_->info("Applying release-specific flags...");
+#ifdef _MSC_VER
+        gflags.insert("/O2");   // Full optimization
+        gflags.insert("/DNDEBUG");
+        gflags.insert("/GL");   // Whole program optimization
+        gflags.insert("/Oi");   // Enable intrinsic functions
+        gflags.insert("/Gy");   // Function-level linking
+#else
+        gflags.insert("-O3");   // Max optimization
+        gflags.insert("-DNDEBUG");
+        gflags.insert("-march=native");
+        gflags.insert("-mtune=native");
+#endif
+    }
+
+    // #ifdef DEBUG
+    std::string gflags_str;
+    for (const auto& flag : gflags) {
+        gflags_str += flag + " ";
+    }
+
+    logger_->info("Applying global flags to all library packages: {}", gflags_str);
+    // #endif
+
+
+    for (auto& [pkg_name, pkg] : resolved_packages_["library"]) {
+        if (pkg->cflags.empty()) {
+            logger_->info("Package '{}' has no cflags defined. Initializing cflags set before applying gflags.", pkg_name);
+        }
+
+        pkg->cflags.insert(gflags.begin(), gflags.end());
+
+        logger_->info("Applied gflags to package: {}", pkg_name);
+    }
+
     toml::table lock_data;
     for (const auto& [pkg_type, packages] : resolved_packages_) {
-        logger_->info("Processing package type: {}", pkg_type);
         toml::table pkg_table;
         for (const auto& [pkg_name, pkg] : packages) {
-            logger_->info("  Serializing package: {}", pkg_name);
             pkg_table.insert(pkg_name, pkg->serialize());
+
+            if (pkg_type == "build") {
+                gflags.insert(pkg->cflags.begin(), pkg->cflags.end());
+            }
         }
         lock_data.insert(pkg_type, pkg_table);
     }
 
-    logger_->info("Writing lockfile to: {}", output_path);
     lockfile << lock_data;
     lockfile.close();
 
