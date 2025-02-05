@@ -1,5 +1,6 @@
 #include "../include/muuklockgen.h"
 #include "../include/logger.h"
+#include <glob/glob.hpp>
 
 Package::Package(const std::string& name,
     const std::string& version,
@@ -24,10 +25,34 @@ toml::table Package::serialize() const {
     toml::table data;
     toml::array include_array, libflags_array, lflags_array, sources_array;
 
+    // Add include paths
     for (const auto& path : include) include_array.push_back((fs::path(base_path) / path).lexically_normal().string());
+
     for (const auto& flag : libflags) libflags_array.push_back(flag);
+
     for (const auto& flag : lflags) lflags_array.push_back(flag);
-    for (const auto& source : sources) sources_array.push_back((fs::path(base_path) / source).lexically_normal().string());
+
+    for (const auto& source : sources) {
+        fs::path source_path = fs::path(base_path) / source;
+
+        if (source.find('*') != std::string::npos) {
+            std::vector<std::string> matched_files;
+            try {
+                std::vector<std::filesystem::path> globbed_paths = glob::glob(source_path.string());
+
+                for (const auto& path : globbed_paths) {
+                    matched_files.push_back(path.string());
+                }
+            }
+            catch (const std::exception& e) {
+                logger_->warn("[muuk::clean] Error while globbing '{}': {}", source_path.string(), e.what());
+            }
+
+        }
+        else {
+            sources_array.push_back(source_path.lexically_normal().string());
+        }
+    }
 
     data.insert("include", include_array);
     data.insert("libflags", libflags_array);
