@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
         .flag();
 
     argparse::ArgumentParser download_command("install", "Install a package from github");
-    download_command.add_argument("author/zip")
+    download_command.add_argument("url")
         .help("The author and zip file of the github repo to install");
     download_command.add_argument("--version")
         .help("The version to download (default: latest)")

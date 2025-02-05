@@ -111,7 +111,7 @@
     "editor.defaultFormatter": "ms-vscode.cpptools"
   },
   "C_Cpp.default.configurationProvider": "mesonbuild.mesonbuild",
-  "C_Cpp.default.compileCommands": "/home/evanw/muuk/builddir/compile_commands.json",
+  "C_Cpp.default.compileCommands": "c:\\Users\\evanw\\muuk\\builddir/compile_commands.json",
   "files.encoding": "utf8",
   "python.testing.pytestArgs": [
     "{workspaceFolder}/tests/external/",
