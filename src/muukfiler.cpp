@@ -9,6 +9,8 @@ MuukFiler::MuukFiler(const std::string& config_file) : config_file_(config_file)
     config_ = load_or_create_config();
     logger_ = Logger::get_logger("muuk_logger");
 
+    if (!config_file_.ends_with("muuk.lock.toml")) validate_muuk();
+
 }
 
 const toml::table& MuukFiler::get_config() const {

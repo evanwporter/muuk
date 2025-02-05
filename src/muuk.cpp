@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <glob.hpp>
+#include <unordered_set>
 
 namespace fs = std::filesystem;
 
@@ -220,4 +221,118 @@ void Muuk::add_dependency(const std::string& author, const std::string& repo_nam
 
     config_manager_.update_section("dependencies", dependencies);
     logger_->info("[muuk::install] Dependencies updated successfully.");
+}
+
+void Muuk::download_patch(const std::string& author, const std::string& repo_name, const std::string& version) {
+    logger_->info("[muuk::patch] Downloading patch for {}-{} - Version: {}", author, repo_name, version);
+
+    std::string patch_name = author + "-" + repo_name + "-" + version + ".toml";
+    std::string patch_url = "https://github.com/evanwporter/muuk-tomls/raw/main/" + patch_name;
+
+    std::string modules_folder = "modules";
+    std::string module_folder = modules_folder + "/" + author + "-" + repo_name + "-" + version;
+    std::string temp_patch_path = modules_folder + "/" + patch_name;
+    std::string final_patch_path = module_folder + "/muuk.toml";
+
+    // Ensure the module folder exists
+    if (!fs::exists(module_folder)) {
+        logger_->error("[muuk::patch] Target module folder '{}' does not exist. Cannot apply patch.", module_folder);
+        return;
+    }
+
+    try {
+        logger_->info("[muuk::patch] Downloading patch from {}", patch_url);
+        util::download_file(patch_url, temp_patch_path);
+
+        // Move and rename patch
+        fs::rename(temp_patch_path, final_patch_path);
+        logger_->info("[muuk::patch] Patch successfully applied to '{}'", final_patch_path);
+    }
+    catch (const std::exception& e) {
+        logger_->error("[muuk::patch] Error downloading patch: {}", e.what());
+    }
+}
+
+void Muuk::upload_patch(bool dry_run) {
+    logger_->info("[muuk::patch] Scanning for patches to upload...");
+
+    std::string modules_folder = "modules";
+    std::string patch_repo_path = "muuk-tomls";
+    fs::path patch_index_file = patch_repo_path + "/uploaded_patches.txt";
+
+    if (!fs::exists(patch_repo_path)) {
+        logger_->error("[muuk::patch] Patch repository directory '{}' does not exist!", patch_repo_path);
+        return;
+    }
+
+    // Read already uploaded patches (stored in `uploaded_patches.txt`)
+    std::unordered_set<std::string> uploaded_patches;
+    if (fs::exists(patch_index_file)) {
+        std::ifstream infile(patch_index_file);
+        std::string line;
+        while (std::getline(infile, line)) {
+            uploaded_patches.insert(line);
+        }
+    }
+
+    std::vector<std::string> patches_to_upload;
+
+    for (const auto& entry : fs::directory_iterator(modules_folder)) {
+        if (!fs::is_directory(entry.path())) continue;
+
+        std::string module_name = entry.path().filename().string();
+        std::string patch_file = entry.path().string() + "/muuk.toml";
+        std::string patch_target = patch_repo_path + "/" + module_name + ".toml";
+
+        // Check if the patch exists and hasn't been uploaded
+        if (fs::exists(patch_file) && uploaded_patches.find(module_name) == uploaded_patches.end()) {
+            patches_to_upload.push_back(module_name);
+        }
+    }
+
+    // Dry Run Mode
+    if (dry_run) {
+        if (patches_to_upload.empty()) {
+            logger_->info("[muuk::patch] No patches need to be uploaded.");
+        }
+        else {
+            logger_->info("[muuk::patch] The following patches would be uploaded:");
+            for (const auto& patch : patches_to_upload) {
+                logger_->info(" - {}", patch);
+            }
+        }
+        return;
+    }
+
+    // Actual Upload
+    for (const auto& module_name : patches_to_upload) {
+        logger_->info("[muuk::patch] Uploading patch for module '{}'", module_name);
+        std::string patch_file = modules_folder + "/" + module_name + "/muuk.toml";
+        std::string patch_target = patch_repo_path + "/" + module_name + ".toml";
+
+        try {
+            // Copy patch to repo
+            fs::copy(patch_file, patch_target, fs::copy_options::overwrite_existing);
+            logger_->info("[muuk::patch] Patch copied to '{}'", patch_target);
+
+            // Git commit and push
+            std::string git_add = "cd " + patch_repo_path + " && git add " + patch_target;
+            std::string git_commit = "cd " + patch_repo_path + " && git commit -m 'Added patch for " + module_name + "'";
+            std::string git_push = "cd " + patch_repo_path + " && git push origin main";
+
+            util::execute_command(git_add.c_str());
+            util::execute_command(git_commit.c_str());
+            util::execute_command(git_push.c_str());
+
+            // Record uploaded patch
+            std::ofstream outfile(patch_index_file, std::ios::app);
+            outfile << module_name << "\n";
+            outfile.close();
+
+            logger_->info("[muuk::patch] Patch for '{}' uploaded successfully.", module_name);
+        }
+        catch (const std::exception& e) {
+            logger_->error("[muuk::patch] Error uploading patch '{}': {}", module_name, e.what());
+        }
+    }
 }

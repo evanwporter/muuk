@@ -10,6 +10,7 @@
 #include <set>
 #include <vector>
 #include <memory>
+#include <unordered_set>
 
 namespace fs = std::filesystem;
 
@@ -55,8 +56,13 @@ private:
     std::map<std::string, std::map<std::string, std::shared_ptr<Package>>> resolved_packages_;
     std::shared_ptr<spdlog::logger> logger_;
 
+    std::unordered_set<std::string> visited;
+
     void parse_section(const toml::table& section, Package& package);
     void search_and_parse_dependency(const std::string& package_name);
+
+    std::optional<std::shared_ptr<Package>> find_package(const std::string& package_name);
+
 };
 
 #endif // MUUK_PARSER_H

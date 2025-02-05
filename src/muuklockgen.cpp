@@ -64,8 +64,8 @@ void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
         return;
     }
 
-    std::string package_name = *data["package"]["name"].value<std::string>();
-    std::string package_version = *data["package"]["version"].value<std::string>();
+    std::string package_name = data["package"]["name"].value_or<std::string>("unknown");
+    std::string package_version = data["package"]["version"].value_or<std::string>("0.0.0");
 
     logger_->info("Parsing package: {} (version: {})", package_name, package_version);
 
@@ -139,6 +139,12 @@ void MuukLockGenerator::parse_section(const toml::table& section, Package& packa
 }
 
 void MuukLockGenerator::resolve_dependencies(const std::string& package_name) {
+    if (visited.count(package_name)) {
+        logger_->warn("Circular dependency detected for '{}'. Skipping resolution.", package_name);
+        return;
+    }
+
+    visited.insert(package_name);
     logger_->info("Resolving dependencies for: {}", package_name);
 
     auto package = resolved_packages_["library"].count(package_name)

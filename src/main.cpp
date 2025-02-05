@@ -50,17 +50,24 @@ int main(int argc, char* argv[]) {
         .help("Build in release mode (optimized)")
         .flag();
 
-    argparse::ArgumentParser download_command("install", "Download and extract a .tar.gz file");
-    download_command.add_argument("url")
-        .help("The URL of the .tar.gz file to download");
+    argparse::ArgumentParser download_command("install", "Install a package from github");
+    download_command.add_argument("author/zip")
+        .help("The author and zip file of the github repo to install");
     download_command.add_argument("--version")
         .help("The version to download (default: latest)")
         .default_value(std::string("latest"));
+
+    argparse::ArgumentParser upload_patch_command("upload-patch", "Upload missing patches.");
+    upload_patch_command.add_argument("--dry-run")
+        .help("Only list patches that would be uploaded, without actually uploading them.")
+        .flag();
 
     program.add_subparser(clean_command);
     program.add_subparser(run_command);
     program.add_subparser(build_command);
     program.add_subparser(download_command);
+    program.add_subparser(upload_patch_command);  // Add `upload-patch` command
+
 
     if (argc < 2) {
         std::cerr << "Usage: " << argv[0] << " <command> [--muuk-path <path>] [other options]\n";
@@ -99,6 +106,11 @@ int main(int argc, char* argv[]) {
                 const auto url = download_command.get<std::string>("url");
                 const auto version = download_command.get<std::string>("--version");
                 muuk.download_github_release(url, version);
+            }},
+            {"upload-patch", [&]() {
+                bool dry_run = upload_patch_command.get<bool>("--dry-run");
+                logger->info("[muuk] Running upload-patch with dry-run: {}", dry_run);
+                muuk.upload_patch(dry_run);
             }}
         };
 

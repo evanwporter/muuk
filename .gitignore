@@ -2,6 +2,7 @@ subprojects/
 logs/
 obj/
 __pycache__/
+build/
 
 *.log
 *.obj

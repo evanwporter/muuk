@@ -182,7 +182,7 @@ void NinjaGenerator::link_executable(std::ofstream& out,
     const std::vector<std::string>& libraries,
     const std::string& build_name) {
 
-    fs::path exe_output = build_dir_ / (build_name + ".exe");
+    fs::path exe_output = build_dir_ / build_name / (build_name + EXE_EXT);
     std::string normalized_exe = util::to_linux_path(exe_output.string());
 
     logger_->info("[NinjaGenerator:link_executable] Linking executable for '{}': {}", build_name, normalized_exe);
