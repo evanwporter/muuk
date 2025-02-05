@@ -1,0 +1,6 @@
+kuba---zip-v0.3.3
+gabime-spdlog-v1.15.1
+google-googletest-v1.15.2
+nlohmann-json-v3.11.3
+glob
+p-ranav-argparse-v3.2

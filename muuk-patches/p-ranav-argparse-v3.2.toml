@@ -1,0 +1,8 @@
+[package]
+name = 'argparse'
+version = 'v3.2'
+
+[library.argparse]
+include = ['include']
+libflags = ["/std:c++20", "/EHsc", "/utf-8"]
+lflags = ["/std:c++20", "/EHsc", "/utf-8"]

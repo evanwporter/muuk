@@ -1,0 +1,8 @@
+[package]
+name = 'glob'
+
+[build]
+include = ['include']
+lflags = ['/std:c++20', '/utf-8', '/EHsc']
+libflags = ['/std:c++20', '/utf-8', '/EHsc']
+sources = ['src/glob.cpp']
