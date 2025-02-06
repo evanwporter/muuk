@@ -7,7 +7,7 @@ MuukBuilder::MuukBuilder(IMuukFiler& config_manager)
     logger_ = Logger::get_logger("muukbuilder_logger");
 }
 
-void MuukBuilder::build(const std::vector<std::string>& args, bool is_release) {
+void MuukBuilder::build(bool is_release, std::string& target_build) {
     std::string build_type = is_release ? "release" : "debug";
     logger_->info("[muukbuilder::build] Generating lockfile...");
 
@@ -24,7 +24,7 @@ void MuukBuilder::build(const std::vector<std::string>& args, bool is_release) {
 
     // Generate Ninja file using NinjaGenerator
     ninja_generator_ = NinjaGenerator("muuk.lock.toml", build_type);
-    ninja_generator_.generate_ninja_file();
+    ninja_generator_.generate_ninja_file(target_build);
 
     logger_->info("[muukbuilder::build] Starting Ninja build...");
 

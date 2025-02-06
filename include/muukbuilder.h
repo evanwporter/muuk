@@ -14,7 +14,7 @@ class MuukBuilder {
 public:
     explicit MuukBuilder(IMuukFiler& config_manager);
 
-    void build(const std::vector<std::string>& args, bool is_release);
+    void build(bool is_release, std::string& target_build);
     bool is_compiler_available() const;
 
 private:

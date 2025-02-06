@@ -16,7 +16,7 @@ namespace fs = std::filesystem;
 class NinjaGenerator {
 public:
     NinjaGenerator(const std::string& lockfile_path, const std::string& build_type);
-    void generate_ninja_file();
+    void generate_ninja_file(const std::string& target_build);
 
 private:
     std::string lockfile_path_;
