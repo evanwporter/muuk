@@ -10,7 +10,7 @@
 #include <functional>
 #include <vector>
 #include <argparse/argparse.hpp>
-#include <cracklib.h>
+#include <cracklib.hpp>
 #include "../include/util.h"
 #include "../include/muuk.h"
 #include "../include/muukfiler.h"
@@ -43,13 +43,13 @@ int main(int argc, char* argv[]) {
         .default_value(std::vector<std::string>{});
 
     argparse::ArgumentParser build_command("build", "Build the project");
-    build_command.add_argument("build_args")
-        .remaining()
-        .help("Build arguments passed to the build system")
-        .default_value(std::vector<std::string>{});
     build_command.add_argument("--release")
         .help("Build in release mode (optimized)")
         .flag();
+    build_command.add_argument("-t", "--target-build")
+        .help("Specify a specific build target")
+        .default_value(std::string(""))
+        .nargs(1);
 
     argparse::ArgumentParser download_command("install", "Install a package from github");
     download_command.add_argument("url")
@@ -111,8 +111,8 @@ int main(int argc, char* argv[]) {
             }},
             {"build", [&]() {
                 bool is_release = build_command.get<bool>("--release");
-                const auto build_args = build_command.get<std::vector<std::string>>("build_args");
-                muukBuilder.build(build_args, is_release);
+                std::string target_build = build_command.get<std::string>("--target-build");
+                muukBuilder.build(is_release, target_build);
             }},
             {"install", [&]() {
                 const auto url = download_command.get<std::string>("url");
@@ -129,12 +129,7 @@ int main(int argc, char* argv[]) {
                 int threads = crack_command.get<int>("--threads");
                 bool json_output = crack_command.get<bool>("--json");
 
-                if (json_output) {
-                    status_to_json(rar_file.c_str());
-                }
-                else {
-                    crack(rar_file.c_str(), threads);
-                }
+                crack(rar_file.c_str(), threads);
             }},
         };
 

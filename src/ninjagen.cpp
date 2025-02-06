@@ -21,7 +21,7 @@ NinjaGenerator::NinjaGenerator(const std::string& lockfile_path, const std::stri
     logger_->info("[NinjaGenerator] Initializing NinjaGenerator with lockfile: '{}' and build type: '{}'", lockfile_path_, build_type_);
 }
 
-void NinjaGenerator::generate_ninja_file() {
+void NinjaGenerator::generate_ninja_file(const std::string& target_build) {
     muuk_filer_ = std::make_unique<MuukFiler>(lockfile_path_);
     config_ = muuk_filer_->get_config();
 
@@ -73,7 +73,7 @@ void NinjaGenerator::write_ninja_header(std::ofstream& out) {
         << "  description = Archiving $out\n\n"
 
         << "rule link\n"
-        << "  command = $linker $in /Fe$out $lflags $libraries\n"
+        << "  command = $linker $in /OUT:$out $lflags $libraries\n"
         << "  description = Linking $out\n\n";
 #else
     out << "rule compile\n"
