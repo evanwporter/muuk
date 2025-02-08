@@ -44,7 +44,18 @@ void MuukBuilder::execute_build(bool is_release) const {
         logger_->error("[muukbuilder::build] {} build failed with error code: {}", build_type, result);
     }
     else {
-        logger_->info("[muukbuilder::build] {} build completed successfully.", build_type);
+        logger_->info("[MuukBuilder::execute_build] {} build completed successfully.", build_type);
+
+        std::string compdb_command = "ninja -t compdb > build/compile_commands.json";
+        logger_->info("[MuukBuilder::execute_build] Generating compile_commands.json...");
+        int compdb_result = util::execute_command(compdb_command.c_str());
+
+        if (compdb_result != 0) {
+            logger_->error("[MuukBuilder::execute_build] Failed to generate compile_commands.json");
+        }
+        else {
+            logger_->info("[MuukBuilder::execute_build] Successfully generated compile_commands.json");
+        }
     }
 }
 

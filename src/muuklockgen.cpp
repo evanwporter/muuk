@@ -1,5 +1,6 @@
 #include "../include/muuklockgen.h"
 #include "../include/logger.h"
+#include "../include/util.h"
 #include <glob/glob.hpp>
 
 Package::Package(const std::string& name,
@@ -22,7 +23,7 @@ void Package::merge(const Package& child_pkg) {
 
 toml::table Package::serialize() const {
     toml::table data;
-    toml::array include_array, cflags_array, sources_array;
+    toml::array include_array, cflags_array, sources_array, modules_array;
 
     // Add include paths
     for (const auto& path : include) include_array.push_back((fs::path(base_path) / path).lexically_normal().string());
@@ -51,10 +52,13 @@ toml::table Package::serialize() const {
         }
     }
 
+    for (const auto& module : modules) modules_array.push_back(module);
+
     data.insert("include", include_array);
     data.insert("cflags", cflags_array);
     data.insert("sources", sources_array);
     data.insert("base_path", base_path);
+    data.insert("modules", modules_array);
 
     return data;
 }
@@ -65,6 +69,8 @@ MuukLockGenerator::MuukLockGenerator(const std::string& base_path) : base_path_(
 
     resolved_packages_["library"] = {};
     resolved_packages_["build"] = {};
+
+    module_parser_ = std::make_unique<MuukModuleParser>(base_path);
 }
 
 void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
@@ -75,7 +81,6 @@ void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
     }
 
     MuukFiler muuk_filer(path);
-
     auto data = muuk_filer.get_config();
 
     logger_->info("Loaded TOML file successfully");
@@ -92,6 +97,7 @@ void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
 
     auto package = std::make_shared<Package>(std::string(package_name), std::string(package_version),
         fs::path(path).parent_path().string(), "library");
+
     if (data.contains("library")) {
         const auto& library_node = data["library"];
         if (const toml::table* library_table = library_node.as_table()) {
@@ -157,6 +163,18 @@ void MuukLockGenerator::parse_section(const toml::table& section, Package& packa
             logger_->info("  Added dependency: {} ({})", dep_name.str(), *dep_version.value<std::string>());
         }
     }
+
+    std::vector<std::string> module_paths;
+    if (section.contains("modules")) {
+        for (const auto& mod : *section["modules"].as_array()) {
+            module_paths.push_back(*mod.value<std::string>());
+            logger_->info("  Found module source: {}", *mod.value<std::string>());
+        }
+    }
+
+    if (!module_paths.empty()) {
+        process_modules(module_paths, package);
+    }
 }
 
 void MuukLockGenerator::resolve_dependencies(const std::string& package_name) {
@@ -192,6 +210,9 @@ void MuukLockGenerator::resolve_dependencies(const std::string& package_name) {
                     package->merge(*resolved_packages_["library"][dep_name]);
                 }
             }
+
+            logger_->info("Added '{}' to resolved order list.", package_name);
+            resolved_order_.push_back(package_name);
 }
 
 void MuukLockGenerator::search_and_parse_dependency(const std::string& package_name) {
@@ -289,17 +310,21 @@ void MuukLockGenerator::generate_lockfile(const std::string& output_path, bool i
     }
 
     toml::table lock_data;
-    for (const auto& [pkg_type, packages] : resolved_packages_) {
-        toml::table pkg_table;
-        for (const auto& [pkg_name, pkg] : packages) {
-            pkg_table.insert(pkg_name, pkg->serialize());
+    for (const auto& package_name : resolved_order_) {
+        auto package_opt = find_package(package_name);
+        if (!package_opt) continue;
 
-            if (pkg_type == "build") {
-                gflags.insert(pkg->cflags.begin(), pkg->cflags.end());
-            }
-        }
-        lock_data.insert(pkg_type, pkg_table);
+        auto package = package_opt.value();
+        std::string package_type = package->package_type;
+
+        toml::table package_table = package->serialize();
+
+        lockfile << "[" << package_type << "." << package_name << "]\n";
+        lockfile << package_table << "\n\n";
+
+        logger_->info("Written package '{}' to lockfile.", package_name);
     }
+
 
     lockfile << lock_data;
     lockfile.close();
@@ -308,16 +333,25 @@ void MuukLockGenerator::generate_lockfile(const std::string& output_path, bool i
 }
 
 std::optional<std::shared_ptr<Package>> MuukLockGenerator::find_package(const std::string& package_name) {
-    // Search in library packages
     if (resolved_packages_["library"].count(package_name)) {
         return resolved_packages_["library"][package_name];
     }
 
-    // Search in build packages
     if (resolved_packages_["build"].count(package_name)) {
         return resolved_packages_["build"][package_name];
     }
-
-    // Package not found
     return std::nullopt;
+}
+
+void MuukLockGenerator::process_modules(const std::vector<std::string>& module_paths, Package& package) {
+    logger_->info("Processing modules for package: {}", package.name);
+
+    module_parser_->parseAllModules(module_paths);
+
+    std::vector<std::string> resolved_modules = module_parser_->resolveAllModules();
+
+    for (const auto& mod : resolved_modules) {
+        package.modules.push_back(mod);
+        logger_->info("Resolved and added module '{}' to package '{}'", mod, package.name);
+    }
 }
