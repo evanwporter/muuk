@@ -2,6 +2,8 @@
 #define MUUK_LOCK_GEN_H
 
 #include "../include/muukfiler.h"
+#include "../include/muukmoduleparser.hpp"
+
 #include <spdlog/spdlog.h>
 #include <filesystem>
 #include <iostream>
@@ -33,6 +35,7 @@ public:
     std::set<std::string> cflags;
     std::set<std::string> gflags;
     std::vector<std::string> sources;
+    std::vector<std::string> modules;
     std::map<std::string, std::string> dependencies;
 
 private:
@@ -57,12 +60,16 @@ private:
     std::shared_ptr<spdlog::logger> logger_;
 
     std::unordered_set<std::string> visited;
+    std::vector<std::string> resolved_order_;
 
     void parse_section(const toml::table& section, Package& package);
     void search_and_parse_dependency(const std::string& package_name);
 
+    void process_modules(const std::vector<std::string>& module_paths, Package& package);
+
     std::optional<std::shared_ptr<Package>> find_package(const std::string& package_name);
 
+    std::unique_ptr<MuukModuleParser> module_parser_;
 };
 
 #endif // MUUK_PARSER_H
