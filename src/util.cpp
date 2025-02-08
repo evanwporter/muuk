@@ -12,6 +12,8 @@
 #include <spdlog/spdlog.h>
 #include <regex>
 #include <spdlog/sinks/basic_file_sink.h>
+#include <sstream>
+#include <concepts>
 
 extern "C" {
 #include "zip.h"
@@ -297,6 +299,20 @@ namespace util {
         }
 
         return normalized_flag;
+    }
+
+    template <Streamable T>
+    std::string vectorToString(const std::vector<T>& vec, const std::string& delimiter) {
+        std::ostringstream oss;
+        if (!vec.empty()) {
+            for (size_t i = 0; i < vec.size(); ++i) {
+                oss << vec[i];
+                if (i < vec.size() - 1) {
+                    oss << delimiter;
+                }
+            }
+        }
+        return oss.str();
     }
 
 } // namespace util

@@ -35,6 +35,15 @@ namespace util {
     std::string normalize_flag(const std::string& flag);
     std::string normalize_flags(const std::vector<std::string>& flags);
 
+
+    template <typename T>
+    concept Streamable = requires(std::ostream & os, const T & value) {
+        { os << value } -> std::same_as<std::ostream&>;
+    };
+
+    template <Streamable T>
+    std::string vectorToString(const std::vector<T>& vec, const std::string& delimiter = ", ");
+
 } // namespace Utils
 
 #endif
