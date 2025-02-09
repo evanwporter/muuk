@@ -1,6 +1,8 @@
 #include "../include/muuklockgen.h"
 #include "../include/logger.h"
 #include "../include/util.h"
+#include "../include/buildconfig.h"
+
 #include <glob/glob.hpp>
 
 Package::Package(const std::string& name,
@@ -216,7 +218,7 @@ void MuukLockGenerator::resolve_dependencies(const std::string& package_name) {
 }
 
 void MuukLockGenerator::search_and_parse_dependency(const std::string& package_name) {
-    fs::path modules_dir = fs::path("modules"); // Use relative path
+    fs::path modules_dir = fs::path(DEPENDENCY_FOLDER);
 
     if (!fs::exists(modules_dir)) return;
 

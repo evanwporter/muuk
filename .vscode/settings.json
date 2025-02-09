@@ -116,7 +116,7 @@
   "files.encoding": "utf8",
   "python.testing.pytestArgs": [
     "{workspaceFolder}/tests/external/",
-    "--ignore=modules/google-googletest-v1.15.2",
+    "--ignore=deps/google-googletest-v1.15.2",
     "--ignore=subprojects/googletest-1.15.2"
   ],
   "python.testing.cwd": "${workspaceFolder}/tests/external",

@@ -1,2 +1,2 @@
 subprojects/** linguist-vendored
-modules/** linguist-vendored
+deps/** linguist-vendored

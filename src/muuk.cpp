@@ -18,6 +18,8 @@
 #include "../include/muukfiler.h"
 #include "../include/util.h"
 #include "../include/logger.h"
+#include "../include/buildconfig.h"
+
 #include <filesystem>
 #include <cstdlib>
 #include <iostream>
@@ -173,23 +175,24 @@ void Muuk::download_github_release(const std::string& repo, const std::string& v
     // Construct the GitHub release download URL
     std::string archive_url = "https://github.com/" + author + "/" + repo_name + "/archive/refs/tags/" + resolved_version + ".zip";
 
-    const std::string modules_folder = "modules";
-    util::ensure_directory_exists(modules_folder, true);
+    util::ensure_directory_exists(DEPENDENCY_FOLDER, true);
 
-    std::string zip_path = modules_folder + "/tmp.zip";
-    std::string expected_extracted_folder = modules_folder + "/" + repo_name + "-" + resolved_version;
-    std::string renamed_folder = modules_folder + "/" + author + "-" + repo_name + "-" + resolved_version;
+
+    const auto deps_path = std::string(DEPENDENCY_FOLDER);
+    std::string zip_path = deps_path + "/tmp.zip";
+    std::string expected_extracted_folder = deps_path + "/" + repo_name + "-" + resolved_version;
+    std::string renamed_folder = deps_path + "/" + author + "-" + repo_name + "-" + resolved_version;
 
     try {
         logger_->info("[muuk::install] Downloading file from URL: {}", archive_url);
         util::download_file(archive_url, zip_path);
 
         logger_->info("Extracting downloaded file: {}", zip_path);
-        util::extract_zip(zip_path, modules_folder);
+        util::extract_zip(zip_path, deps_path);
 
         // Detect the extracted folder
         bool renamed = false;
-        for (const auto& entry : fs::directory_iterator(modules_folder)) {
+        for (const auto& entry : fs::directory_iterator(deps_path)) {
             if (entry.is_directory() && entry.path().filename().string().find(repo_name) == 0) {
                 fs::rename(entry.path(), renamed_folder);
                 logger_->info("[muuk::install] Renamed extracted folder '{}' to '{}'", entry.path().string(), renamed_folder);

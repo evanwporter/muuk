@@ -11,8 +11,8 @@
 #include <filesystem>
 #include <memory>
 #include <spdlog/spdlog.h>
+#include <toml++/toml.hpp>
 
-#include "../include/toml.hpp"
 #include "../include/logger.h"
 
 namespace fs = std::filesystem;

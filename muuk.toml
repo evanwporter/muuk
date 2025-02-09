@@ -13,7 +13,7 @@ sources = [
     "src/ninjagen.cpp",
     "src/muuklockgen.cpp",
 ]
-modules = ["prototyping/modules/test_modules/bcwrdll.ixx"]
+deps = ["prototyping/deps/test_deps/bcwrdll.ixx"]
 
 [library.muuk.dependencies]
 spdlog = "v1.15.1"

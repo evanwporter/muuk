@@ -5,7 +5,7 @@
 #include <memory>
 #include <vector>
 #include <spdlog/spdlog.h>
-#include "../include/toml.hpp"
+#include <toml++/toml.hpp>
 
 class IMuukFiler {
 public:

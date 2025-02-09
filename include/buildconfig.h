@@ -30,4 +30,6 @@ constexpr const char* LIB_EXT = ".a";
 constexpr const char* EXE_EXT = "";
 #endif
 
+constexpr const char* DEPENDENCY_FOLDER = "deps";
+
 #endif // BUILD_CONFIG_H
