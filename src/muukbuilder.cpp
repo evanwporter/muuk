@@ -2,8 +2,8 @@
 
 MuukBuilder::MuukBuilder(IMuukFiler& config_manager)
     : config_manager_(config_manager),
-    lock_generator_("./"), // Base path for MuukLockGenerator
-    ninja_generator_("muuk.lock.toml", "debug") { // Default build type
+    lock_generator_("./"),
+    ninja_generator_("muuk.lock.toml", "debug") {
     logger_ = Logger::get_logger("muukbuilder_logger");
 }
 
@@ -18,7 +18,7 @@ void MuukBuilder::build(bool is_release, std::string& target_build) {
         lock_generator_.resolve_dependencies(build_name);
     }
 
-    lock_generator_.generate_lockfile("muuk.lock.toml");
+    lock_generator_.generate_lockfile("muuk.lock.toml", is_release);
 
     logger_->info("[muukbuilder::build] Generating Ninja build script...");
 
@@ -72,4 +72,3 @@ bool MuukBuilder::is_compiler_available() const {
     logger_->error("[muukbuilder::check] No compatible C++ compiler found on PATH. Install MSVC, GCC, or Clang.");
     return false;
 }
-

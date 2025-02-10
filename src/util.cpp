@@ -244,7 +244,8 @@ namespace util {
             {"/c", "-c"}, {"/W0", "-w"}, {"/W1", "-Wall"}, {"/W2", "-Wall -Wextra"},
             {"/W3", "-Wall -Wextra -Wpedantic"}, {"/W4", "-Wall -Wextra -Wpedantic -Wconversion"},
             {"/EHsc", "-fexceptions"}, {"/Zi", "-g"}, {"/O2", "-O2"},
-            {"/O3", "-O3"}, {"/GL", "-flto"}, {"/link", "-Wl,"}, {"/utf-8", "-finput-charset=UTF-8"}
+            {"/O3", "-O3"}, {"/GL", "-flto"}, {"/link", "-Wl,"}, {"/utf-8", "-finput-charset=UTF-8"},
+            {"/D", "-D"}, {"/FS", ""}
         };
 
         static const std::unordered_map<std::string, std::string> gcc_to_msvc = {
@@ -253,20 +254,19 @@ namespace util {
             {"-Wpedantic", "/W4"}, {"-Wconversion", "/W4"},
             {"-fexceptions", "/EHsc"}, {"-g", "/Zi"}, {"-O2", "/O2"},
             {"-O3", "/O3"}, {"-flto", "/GL"}, {"-Wl,", "/link"},
-            {"-finput-charset=UTF-8", "/utf-8"}
+            {"-finput-charset=UTF-8", "/utf-8"}, {"-D", "/D"},
         };
 
         static const std::regex std_pattern(R"((?:\/std:c\+\+|-std=c\+\+)(\d+))");
-
         std::smatch match;
-
         std::string normalized_flag = flag;
 
-        if (flag.starts_with("/D")) {
-            return "-D" + flag.substr(2);
-        }
-        else if (flag.starts_with("-D")) {
-            return "/D" + flag.substr(2);
+        if (flag.starts_with("/D") || flag.starts_with("-D")) {
+#ifdef _WIN32
+            return "/D" + flag.substr(2);  // MSVC uses /D
+#else
+            return "-D" + flag.substr(2);  // GCC uses -D
+#endif
         }
 
         if (flag[0] != '/' && flag[0] != '-') {
@@ -289,7 +289,7 @@ namespace util {
         }
 #endif
 
-        // Handle C++ standard flag conversion
+        // **Handle C++ standard flag conversion (-std=c++20 <-> /std:c++20)**
         if (std::regex_match(flag, match, std_pattern)) {
 #ifdef _WIN32
             return "/std:c++" + match[1].str();

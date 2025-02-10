@@ -291,14 +291,14 @@ void MuukLockGenerator::generate_lockfile(const std::string& output_path, bool i
 #endif
     }
 
-    // #ifdef DEBUG
+#ifdef DEBUG
     std::string gflags_str;
     for (const auto& flag : gflags) {
         gflags_str += flag + " ";
     }
 
     logger_->info("Applying global flags to all library packages: {}", gflags_str);
-    // #endif
+#endif
 
 
     for (auto& [pkg_name, pkg] : resolved_packages_["library"]) {

@@ -1,52 +1,52 @@
 [library.argparse]
-base_path = 'modules\p-ranav-argparse-v3.2'
+base_path = 'deps\p-ranav-argparse-v3.2'
 cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/W4', '/std:c++20', '/utf-8' ]
-include = [ 'modules\p-ranav-argparse-v3.2\include' ]
+include = [ 'deps\p-ranav-argparse-v3.2\include' ]
 modules = []
 sources = []
 
 [library.cracklib]
-base_path = 'modules\evanwporter-cracklib-v0.0.3'
+base_path = 'deps\evanwporter-cracklib-v0.0.3'
 cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/W4', '/std:c++20', '/utf-8' ]
-include = [ 'modules\evanwporter-cracklib-v0.0.3\include' ]
+include = [ 'deps\evanwporter-cracklib-v0.0.3\include' ]
 modules = []
-sources = [ 'modules\evanwporter-cracklib-v0.0.3\src\cracklib.cpp' ]
+sources = [ 'deps\evanwporter-cracklib-v0.0.3\src\cracklib.cpp' ]
 
 [library.glob]
-base_path = 'modules\p-ranav-glob-v0.3'
+base_path = 'deps\p-ranav-glob-v0.3'
 cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/W4', '/std:c++20', '/utf-8' ]
-include = [ 'modules\p-ranav-glob-v0.3\single_include' ]
+include = [ 'deps\p-ranav-glob-v0.3\single_include' ]
 modules = []
 sources = []
 
 [library.json]
-base_path = 'modules\nlohmann-json-v3.11.3'
+base_path = 'deps\nlohmann-json-v3.11.3'
 cflags = [ '-DDEBUG', '-g', '/DDEBUG', '/EHsc', '/FS', '/W4', '/std:c++20', '/utf-8' ]
-include = [ 'modules\nlohmann-json-v3.11.3\single_include' ]
+include = [ 'deps\nlohmann-json-v3.11.3\single_include' ]
 modules = []
 sources = []
 
 [library.spdlog]
-base_path = 'modules\gabime-spdlog-v1.15.1'
+base_path = 'deps\gabime-spdlog-v1.15.1'
 cflags = [ '-DDEBUG', '-g', '/DSPDLOG_COMPILED_LIB', '/DSPDLOG_USE_STD_FORMAT', '/EHsc', '/FS', '/W4', '/std:c++20', '/utf-8' ]
-include = [ 'modules\gabime-spdlog-v1.15.1\include' ]
+include = [ 'deps\gabime-spdlog-v1.15.1\include' ]
 modules = []
 sources = [
-    'modules\gabime-spdlog-v1.15.1\src\async.cpp',
-    'modules\gabime-spdlog-v1.15.1\src\cfg.cpp',
-    'modules\gabime-spdlog-v1.15.1\src\spdlog.cpp',
-    'modules\gabime-spdlog-v1.15.1\src\color_sinks.cpp',
-    'modules\gabime-spdlog-v1.15.1\src\stdout_sinks.cpp',
-    'modules\gabime-spdlog-v1.15.1\src\bundled_fmtlib_format.cpp',
-    'modules\gabime-spdlog-v1.15.1\src\file_sinks.cpp'
+    'deps\gabime-spdlog-v1.15.1\src\async.cpp',
+    'deps\gabime-spdlog-v1.15.1\src\cfg.cpp',
+    'deps\gabime-spdlog-v1.15.1\src\spdlog.cpp',
+    'deps\gabime-spdlog-v1.15.1\src\color_sinks.cpp',
+    'deps\gabime-spdlog-v1.15.1\src\stdout_sinks.cpp',
+    'deps\gabime-spdlog-v1.15.1\src\bundled_fmtlib_format.cpp',
+    'deps\gabime-spdlog-v1.15.1\src\file_sinks.cpp'
 ]
 
 [library.zip]
-base_path = 'modules\kuba---zip-v0.3.3'
+base_path = 'deps\kuba---zip-v0.3.3'
 cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/W4', '/std:c++20', '/utf-8' ]
-include = [ 'modules\kuba---zip-v0.3.3\src' ]
+include = [ 'deps\kuba---zip-v0.3.3\src' ]
 modules = []
-sources = [ 'modules\kuba---zip-v0.3.3\src\zip.c' ]
+sources = [ 'deps\kuba---zip-v0.3.3\src\zip.c' ]
 
 [library.muuk]
 base_path = ''
@@ -63,15 +63,15 @@ cflags = [
     '/utf-8'
 ]
 include = [
-    'include',
-    'modules\evanwporter-cracklib-v0.0.3\include',
-    'modules\gabime-spdlog-v1.15.1\include',
-    'modules\kuba---zip-v0.3.3\src',
-    'modules\nlohmann-json-v3.11.3\single_include',
-    'modules\p-ranav-argparse-v3.2\include',
-    'modules\p-ranav-glob-v0.3\single_include'
+    'deps\evanwporter-cracklib-v0.0.3\include',
+    'deps\gabime-spdlog-v1.15.1\include',
+    'deps\kuba---zip-v0.3.3\src',
+    'deps\nlohmann-json-v3.11.3\single_include',
+    'deps\p-ranav-argparse-v3.2\include',
+    'deps\p-ranav-glob-v0.3\single_include',
+    'include'
 ]
-modules = [ 'prototyping/modules/test_modules/bcwrdll.ixx' ]
+modules = []
 sources = [
     'src\muuk.cpp',
     'src\util.cpp',
@@ -86,47 +86,47 @@ sources = [
 base_path = ''
 cflags = [ '/DDEBUG', '/DSPDLOG_COMPILED_LIB', '/DSPDLOG_USE_STD_FORMAT', '/EHsc', '/FS', '/std:c++20', '/utf-8' ]
 include = [
-    'include',
-    'modules\evanwporter-cracklib-v0.0.3\include',
-    'modules\gabime-spdlog-v1.15.1\include',
-    'modules\kuba---zip-v0.3.3\src',
-    'modules\nlohmann-json-v3.11.3\single_include',
-    'modules\p-ranav-argparse-v3.2\include',
-    'modules\p-ranav-glob-v0.3\single_include'
+    'deps\evanwporter-cracklib-v0.0.3\include',
+    'deps\gabime-spdlog-v1.15.1\include',
+    'deps\kuba---zip-v0.3.3\src',
+    'deps\nlohmann-json-v3.11.3\single_include',
+    'deps\p-ranav-argparse-v3.2\include',
+    'deps\p-ranav-glob-v0.3\single_include',
+    'include'
 ]
 modules = []
 sources = [ 'src\main.cpp' ]
 
 [library.googletest]
-base_path = 'modules\google-googletest-v1.15.2'
+base_path = 'deps\google-googletest-v1.15.2'
 cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/W4', '/std:c++20', '/utf-8' ]
 include = [
-    'modules\google-googletest-v1.15.2\googlemock',
-    'modules\google-googletest-v1.15.2\googlemock\include',
-    'modules\google-googletest-v1.15.2\googletest',
-    'modules\google-googletest-v1.15.2\googletest\include'
+    'deps\google-googletest-v1.15.2\googlemock',
+    'deps\google-googletest-v1.15.2\googlemock\include',
+    'deps\google-googletest-v1.15.2\googletest',
+    'deps\google-googletest-v1.15.2\googletest\include'
 ]
 modules = []
 sources = [
-    'modules\google-googletest-v1.15.2\googletest\src\gtest-all.cc',
-    'modules\google-googletest-v1.15.2\googlemock\src\gmock-all.cc'
+    'deps\google-googletest-v1.15.2\googletest\src\gtest-all.cc',
+    'deps\google-googletest-v1.15.2\googlemock\src\gmock-all.cc'
 ]
 
 [build.test]
 base_path = ''
 cflags = [ '/DDEBUG', '/DSPDLOG_COMPILED_LIB', '/DSPDLOG_USE_STD_FORMAT', '/EHsc', '/FS', '/std:c++20', '/utf-8' ]
 include = [
-    'include',
-    'modules\evanwporter-cracklib-v0.0.3\include',
-    'modules\gabime-spdlog-v1.15.1\include',
-    'modules\google-googletest-v1.15.2\googlemock',
-    'modules\google-googletest-v1.15.2\googlemock\include',
-    'modules\google-googletest-v1.15.2\googletest',
-    'modules\google-googletest-v1.15.2\googletest\include',
-    'modules\kuba---zip-v0.3.3\src',
-    'modules\nlohmann-json-v3.11.3\single_include',
-    'modules\p-ranav-argparse-v3.2\include',
-    'modules\p-ranav-glob-v0.3\single_include'
+    'deps\evanwporter-cracklib-v0.0.3\include',
+    'deps\gabime-spdlog-v1.15.1\include',
+    'deps\google-googletest-v1.15.2\googlemock',
+    'deps\google-googletest-v1.15.2\googlemock\include',
+    'deps\google-googletest-v1.15.2\googletest',
+    'deps\google-googletest-v1.15.2\googletest\include',
+    'deps\kuba---zip-v0.3.3\src',
+    'deps\nlohmann-json-v3.11.3\single_include',
+    'deps\p-ranav-argparse-v3.2\include',
+    'deps\p-ranav-glob-v0.3\single_include',
+    'include'
 ]
 modules = []
 sources = [ 'tests\internal\muuk_test.cpp' ]
