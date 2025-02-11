@@ -20,7 +20,7 @@ void Package::merge(const Package& child_pkg) {
         include.insert((fs::path(child_pkg.base_path) / path).lexically_normal().string());
     }
     cflags.insert(child_pkg.cflags.begin(), child_pkg.cflags.end());
-    dependencies.insert(child_pkg.dependencies.begin(), child_pkg.dependencies.end());
+    // dependencies.insert(child_pkg.dependencies.begin(), child_pkg.dependencies.end());
 }
 
 toml::table Package::serialize() const {
@@ -195,7 +195,7 @@ void MuukLockGenerator::resolve_dependencies(const std::string& package_name) {
             : nullptr;
 
             if (!package) {
-                logger_->warn("Package '{}' not found, attempting to search for dependencies", package_name);
+                logger_->info("Package '{}' not found, attempting to search for dependencies", package_name);
                 search_and_parse_dependency(package_name);
                 package = resolved_packages_["library"][package_name];
                 if (!package) {
@@ -206,6 +206,12 @@ void MuukLockGenerator::resolve_dependencies(const std::string& package_name) {
 
             for (const auto& [dep_name, dep_version] : package->dependencies) {
                 logger_->info("Resolving dependency '{}' for '{}'", dep_name, package_name);
+
+                logger_->info("Dependencies of '{}':", package_name);
+                for (const auto& [name, version] : package->dependencies) {
+                    logger_->info("  - {} ({})", name, version);
+                }
+
                 resolve_dependencies(dep_name);
                 if (resolved_packages_["library"].count(dep_name)) {
                     logger_->info("Merging '{}' into '{}'", dep_name, package_name);
@@ -218,6 +224,7 @@ void MuukLockGenerator::resolve_dependencies(const std::string& package_name) {
 }
 
 void MuukLockGenerator::search_and_parse_dependency(const std::string& package_name) {
+    logger_->info("Searching for target package '{}'.", package_name);
     fs::path modules_dir = fs::path(DEPENDENCY_FOLDER);
 
     if (!fs::exists(modules_dir)) return;
@@ -231,6 +238,7 @@ void MuukLockGenerator::search_and_parse_dependency(const std::string& package_n
             }
         }
     }
+    logger_->warn("Dependency '{}' not found in '{}'", package_name, modules_dir.string());
 }
 
 void MuukLockGenerator::generate_lockfile(const std::string& output_path, bool is_release) {

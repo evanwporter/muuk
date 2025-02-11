@@ -168,12 +168,36 @@ void MuukFiler::validate_muuk() {
     // Ensure library.include exists and is an array of strings (Required)
     validate_array_of_strings(library_package_section, "include");
 
-    // Optional: Validate other fields if present
+    // Validate other fields if present
     validate_array_of_strings(library_package_section, "sources");
     validate_array_of_strings(library_package_section, "lflags");
     validate_array_of_strings(library_package_section, "libflags");
 
-    // Validate [clean] section (optional)
+    // Validate dependencies section
+    if (library_package_section.contains("dependencies")) {
+        const auto& dependencies = library_package_section.at("dependencies");
+        if (!dependencies.is_table()) {
+            throw std::runtime_error("Invalid TOML: [dependencies] must be a table.");
+        }
+
+        for (const auto& [dep_name, dep_value] : *dependencies.as_table()) {
+            if (dep_value.is_string()) {
+                logger_->info("Dependency '{}' has version '{}'", dep_name.str(), *dep_value.value<std::string>());
+            }
+            else if (dep_value.is_table()) {
+                const toml::table& dep_table = *dep_value.as_table();
+                if (!dep_table.contains("version") || !dep_table.at("version").is_string()) {
+                    throw std::runtime_error("Invalid TOML: Dependency '" + std::string(dep_name.str()) + "' must contain a 'version' key of type string.");
+                }
+                logger_->info("Dependency '{}' has version '{}'", dep_name.str(), *dep_table.at("version").value<std::string>());
+            }
+            else {
+                throw std::runtime_error("Invalid TOML: Dependency '" + std::string(dep_name.str()) + "' must be a string or a table with a 'version' key.");
+            }
+        }
+    }
+
+    // Validate [clean] section
     if (has_section("clean")) {
         const toml::table& clean_section = get_section("clean");
         validate_array_of_strings(clean_section, "patterns");

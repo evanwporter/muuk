@@ -7,7 +7,6 @@
 #include <iostream>
 #include <sstream>
 #include <cstdlib>
-#include <codecvt>
 #include <locale>
 #include <spdlog/spdlog.h>
 #include <regex>
@@ -97,6 +96,8 @@ namespace util {
                 target_dir.c_str(),
                 [](const char* filename, void* arg) -> int {
                     // logger->info("Extracting: {}", filename);
+                    (void)filename;
+                    (void)arg;
                     return 0;
                 },
                 nullptr
@@ -175,30 +176,48 @@ namespace util {
         buffer << json_file.rdbuf();
         json_file.close();
 
-        // Parse and return JSON data
-        return nlohmann::json::parse(buffer.str());
-
         if (std::filesystem::exists(output_file)) {
             std::filesystem::remove(output_file);
             spdlog::info("[util::fetch_json] Deleted temporary JSON response file: {}", output_file);
         }
+
+        // Parse and return JSON data
+        return nlohmann::json::parse(buffer.str());
     }
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
     std::string to_utf8(const std::wstring& wstr) {
-        std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-        return converter.to_bytes(wstr);
+#ifdef _WIN32
+        if (wstr.empty()) return "";
+
+        int size_needed = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, nullptr, 0, nullptr, nullptr);
+        std::string utf8_str(size_needed - 1, 0);
+        WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, &utf8_str[0], size_needed, nullptr, nullptr);
+        return utf8_str;
+#else
+        std::mbstate_t state{};
+        const wchar_t* src = wstr.c_str();
+        size_t len = 1 + std::wcsrtombs(nullptr, &src, 0, &state);
+        std::string dest(len, '\0');
+        std::wcsrtombs(&dest[0], &src, len, &state);
+        return dest;
+#endif
     }
 
+
     bool is_valid_utf8(const std::string& str) {
-        try {
-            std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-            std::wstring wide_str = converter.from_bytes(str);
-            std::string back_to_utf8 = converter.to_bytes(wide_str);
-            return back_to_utf8 == str;
-        }
-        catch (const std::exception&) {
-            return false;  // Invalid UTF-8 detected
-        }
+#ifdef _WIN32
+        int len = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, str.c_str(), -1, nullptr, 0);
+        return len > 0;
+#else
+        std::mbstate_t state{};
+        const char* src = str.c_str();
+        wchar_t tmp;
+        return std::mbsrtowcs(&tmp, &src, 1, &state) != static_cast<size_t>(-1);
+#endif
     }
 
     bool command_exists(const std::string& command) {
@@ -219,7 +238,12 @@ namespace util {
             return normalized;
         }
         catch (const std::exception& e) {
-            return path; // Fallback if an error occurs
+            logger->warn("[util::normalize_path] Exception during path normalizing {}", e.what());
+            return path;
+        }
+        catch (...) {
+            logger->error("[util::normalize_path] Unknown error occurred during normalize path.");
+            throw;
         }
     }
 

@@ -211,6 +211,12 @@ void NinjaGenerator::link_executable(std::ofstream& out,
         }
     }
 
+    // TODO: Only add this when its in debug mode
+    lflags += "/DEBUG ";
+
+    // // TODO: Find a better location for this
+    // lflags += "/LTCG";
+
     out << "\nbuild " << normalized_exe << ": link " << build_objs << lib_files << "\n"
         << "  lflags =" << lflags << "\n"
         << "  libraries =" << lib_files << "\n";

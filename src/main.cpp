@@ -18,6 +18,40 @@
 
 namespace fs = std::filesystem;
 
+#ifdef DEBUG
+void start_repl(std::unordered_map<std::string, std::function<void()>>& command_map) {
+    std::cout << "\n=== DEBUG REPL MODE ===\n";
+    std::cout << "Enter commands manually. Type 'exit' or press Ctrl+C to quit.\n";
+    std::cout << "Available commands: ";
+
+    // Print all available commands at the start
+    for (const auto& [cmd, _] : command_map) {
+        std::cout << cmd << " ";
+    }
+    std::cout << "\n\n";
+
+
+    while (true) {
+        std::cout << ">> ";
+        std::string command;
+        std::getline(std::cin, command);
+
+        if (command == "exit") {
+            std::cout << "Exiting REPL mode...\n";
+            break;
+        }
+
+        auto it = command_map.find(command);
+        if (it != command_map.end()) {
+            it->second();
+        }
+        else {
+            std::cout << "Unknown command: " << command << "\n";
+        }
+    }
+}
+#endif
+
 int main(int argc, char* argv[]) {
     Logger::initialize();
     auto logger = Logger::get_logger("main_logger");
@@ -27,6 +61,12 @@ int main(int argc, char* argv[]) {
     program.add_argument("--muuk-path")
         .help("Specify the path to muuk.toml")
         .default_value(std::string("muuk.toml"));
+
+#ifdef DEBUG
+    program.add_argument("--repl")
+        .help("Start REPL mode for debugging")
+        .flag();
+#endif
 
     argparse::ArgumentParser clean_command("clean", "Clean the project");
     clean_command.add_argument("clean_args")
@@ -132,6 +172,13 @@ int main(int argc, char* argv[]) {
                 crack(rar_file.c_str(), threads);
             }},
         };
+
+#ifdef DEBUG
+        if (program.get<bool>("--repl")) {
+            start_repl(command_map);
+            return 0;  // Exit after REPL
+        }
+#endif
 
         // Check if any known subcommand was used
         bool command_found = false;

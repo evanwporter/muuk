@@ -1,34 +1,46 @@
 [library.argparse]
 base_path = 'deps\p-ranav-argparse-v3.2'
-cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/W4', '/std:c++20', '/utf-8' ]
+cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
 include = [ 'deps\p-ranav-argparse-v3.2\include' ]
 modules = []
 sources = []
 
 [library.cracklib]
 base_path = 'deps\evanwporter-cracklib-v0.0.3'
-cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/W4', '/std:c++20', '/utf-8' ]
+cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
 include = [ 'deps\evanwporter-cracklib-v0.0.3\include' ]
 modules = []
 sources = [ 'deps\evanwporter-cracklib-v0.0.3\src\cracklib.cpp' ]
 
 [library.glob]
 base_path = 'deps\p-ranav-glob-v0.3'
-cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/W4', '/std:c++20', '/utf-8' ]
+cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
 include = [ 'deps\p-ranav-glob-v0.3\single_include' ]
 modules = []
 sources = []
 
 [library.json]
 base_path = 'deps\nlohmann-json-v3.11.3'
-cflags = [ '-DDEBUG', '-g', '/DDEBUG', '/EHsc', '/FS', '/W4', '/std:c++20', '/utf-8' ]
+cflags = [ '/DDEBUG', '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
 include = [ 'deps\nlohmann-json-v3.11.3\single_include' ]
 modules = []
 sources = []
 
 [library.spdlog]
 base_path = 'deps\gabime-spdlog-v1.15.1'
-cflags = [ '-DDEBUG', '-g', '/DSPDLOG_COMPILED_LIB', '/DSPDLOG_USE_STD_FORMAT', '/EHsc', '/FS', '/W4', '/std:c++20', '/utf-8' ]
+cflags = [
+    '/DNDEBUG',
+    '/DSPDLOG_COMPILED_LIB',
+    '/DSPDLOG_USE_STD_FORMAT',
+    '/EHsc',
+    '/FS',
+    '/GL',
+    '/Gy',
+    '/O2',
+    '/Oi',
+    '/std:c++20',
+    '/utf-8'
+]
 include = [ 'deps\gabime-spdlog-v1.15.1\include' ]
 modules = []
 sources = [
@@ -43,7 +55,7 @@ sources = [
 
 [library.zip]
 base_path = 'deps\kuba---zip-v0.3.3'
-cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/W4', '/std:c++20', '/utf-8' ]
+cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
 include = [ 'deps\kuba---zip-v0.3.3\src' ]
 modules = []
 sources = [ 'deps\kuba---zip-v0.3.3\src\zip.c' ]
@@ -51,14 +63,16 @@ sources = [ 'deps\kuba---zip-v0.3.3\src\zip.c' ]
 [library.muuk]
 base_path = ''
 cflags = [
-    '-DDEBUG',
-    '-g',
     '/DDEBUG',
+    '/DNDEBUG',
     '/DSPDLOG_COMPILED_LIB',
     '/DSPDLOG_USE_STD_FORMAT',
     '/EHsc',
     '/FS',
-    '/W4',
+    '/GL',
+    '/Gy',
+    '/O2',
+    '/Oi',
     '/std:c++20',
     '/utf-8'
 ]
@@ -99,7 +113,7 @@ sources = [ 'src\main.cpp' ]
 
 [library.googletest]
 base_path = 'deps\google-googletest-v1.15.2'
-cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/W4', '/std:c++20', '/utf-8' ]
+cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
 include = [
     'deps\google-googletest-v1.15.2\googlemock',
     'deps\google-googletest-v1.15.2\googlemock\include',
