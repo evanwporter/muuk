@@ -19,12 +19,13 @@ sources = [
 deps = ["prototyping/deps/test_deps/bcwrdll.ixx"]
 
 [library.muuk.dependencies]
-argparse = { version = "v3.2", git = "https://github.com/p-ranav/argparse.git", muuk_path = "deps/" }
-glob = { version = "v0.3", git = "https://github.com/p-ranav/glob.git" }
-spdlog = { version = "v1.15.1", git = "https://github.com/gabime/spdlog.git" }
-zip = { "version" = "v0.3.3", git = "https://github.com/kuba--/zip.git" }
-json = { "version" = "v3.11.3", git = "https://github.com/nlohmann/json.git" }
-cracklib = { version = "v0.0.3", git = "https://github.com/evanwporter/cracklib.git" }
+argparse = { version = "v3.2", git = "https://github.com/p-ranav/argparse.git", muuk_path = "deps/argparse.muuk.toml" }
+glob = { version = "v0.3", git = "https://github.com/p-ranav/glob.git", muuk_path = "deps/glob.muuk.toml" }
+spdlog = { version = "v1.15.1", git = "https://github.com/gabime/spdlog.git", muuk_path = "deps/spdlog.muuk.toml" }
+zip = { "version" = "v0.3.3", git = "https://github.com/kuba--/zip.git", muuk_path = "deps/zip.muuk.toml" }
+json = { "version" = "v3.11.3", git = "https://github.com/nlohmann/json.git", muuk_path = "deps/json.muuk.toml" }
+cracklib = { version = "v0.0.3", git = "https://github.com/evanwporter/cracklib.git", muuk_path = "deps/cracklib.muuk.toml" }
+tomlplusplus = { version = "v3.4.0", git = "https://github.com/marzer/tomlplusplus.git", muuk_path = "deps/tomlplusplus.muuk.toml" }
 
 [build.bin]
 dependencies = { "muuk" = "v1.0.0" }
@@ -32,7 +33,7 @@ sources = ["src/main.cpp"]
 gflags = ["/std:c++20", "/utf-8", "/EHsc", "/FS"]
 
 [build.test]
-dependencies = { "muuk" = "v1.0.0", "googletest" = { version = "v1.15.2", git = "https://github.com/google/googletest.git" } }
+dependencies = { "muuk" = "v1.0.0", "googletest" = { version = "v1.15.2", git = "https://github.com/google/googletest.git", muuk_path = "deps/googletest.muuk.toml" } }
 sources = ["tests/internal/muuk_test.cpp"]
 executable = "muuk_tests"
 include = []

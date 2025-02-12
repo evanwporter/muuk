@@ -27,7 +27,7 @@ bool MuukFiler::has_section(const std::string& section) const {
 }
 
 toml::table MuukFiler::get_section(const std::string& section) const {
-    logger_->info("Getting section {}", section);
+    // logger_->info("Getting section {}", section);
     if (has_section(section)) {
         return *config_.get_as<toml::table>(section);
     }
@@ -138,7 +138,7 @@ std::string MuukFiler::format_error(const std::string& error_message) {
 }
 
 void MuukFiler::validate_muuk() {
-    logger_->info("[muuk::validate] Validating {} structure...", config_file_);
+    // logger_->info("[muuk::validate] Validating {} structure...", config_file_);
 
     if (!has_section("package")) {
         throw std::runtime_error(format_error("Missing required [package] section."));
@@ -203,7 +203,7 @@ void MuukFiler::validate_muuk() {
         validate_array_of_strings(clean_section, "patterns");
     }
 
-    logger_->info("[muuk::validate] muuk.toml validation successful!");
+    logger_->info("[muuk::validate] muuk.toml validation successful ({})!", config_file_);
 }
 
 void MuukFiler::validate_array_of_strings(const toml::table& section, const std::string& key, bool required) {

@@ -13,6 +13,7 @@
 #include <vector>
 #include <memory>
 #include <unordered_set>
+#include <optional>
 
 namespace fs = std::filesystem;
 
@@ -36,7 +37,7 @@ public:
     std::set<std::string> gflags;
     std::vector<std::string> sources;
     std::vector<std::string> modules;
-    std::map<std::string, std::string> dependencies;
+    std::map<std::string, std::map<std::string, std::string>> dependencies;
 
 private:
     std::shared_ptr<spdlog::logger> logger_;
@@ -47,7 +48,7 @@ public:
     explicit MuukLockGenerator(const std::string& base_path);
 
     void parse_muuk_toml(const std::string& path, bool is_base = false);
-    void resolve_dependencies(const std::string& package_name);
+    void resolve_dependencies(const std::string& package_name, std::optional<std::string> search_path = std::nullopt);
     void generate_lockfile(const std::string& output_path, bool is_release = false);
 
     const std::map<std::string, std::map<std::string, std::shared_ptr<Package>>>& get_resolved_packages() const {

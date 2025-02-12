@@ -114,11 +114,7 @@
   "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
   "C_Cpp.codeAnalysis.runAutomatically": true,
   "files.encoding": "utf8",
-  "python.testing.pytestArgs": [
-    "${workspaceFolder}/tests/external/",
-    "--ignore=deps/google-googletest-v1.15.2",
-    "--ignore=subprojects/googletest-1.15.2"
-  ],
+  "python.testing.pytestArgs": ["${workspaceFolder}/tests/external/"],
   "python.testing.cwd": "${workspaceFolder}/tests/external",
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,

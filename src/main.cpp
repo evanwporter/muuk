@@ -97,6 +97,9 @@ int main(int argc, char* argv[]) {
     download_command.add_argument("--version")
         .help("The version to download (default: latest)")
         .default_value(std::string("latest"));
+    download_command.add_argument("--submodule")
+        .help("Install the package as a Git submodule instead of downloading a release.")
+        .flag();
 
     argparse::ArgumentParser upload_patch_command("upload-patch", "Upload missing patches.");
     upload_patch_command.add_argument("--dry-run")
@@ -157,20 +160,28 @@ int main(int argc, char* argv[]) {
             {"install", [&]() {
                 const auto url = download_command.get<std::string>("url");
                 const auto version = download_command.get<std::string>("--version");
-                muuk.download_github_release(url, version);
-            }},
-            {"upload-patch", [&]() {
-                bool dry_run = upload_patch_command.get<bool>("--dry-run");
-                logger->info("[muuk] Running upload-patch with dry-run: {}", dry_run);
-                muuk.upload_patch(dry_run);
-            }},
-            {"crack", [&]() {
-                const auto rar_file = crack_command.get<std::string>("rar_file");
-                int threads = crack_command.get<int>("--threads");
-                bool json_output = crack_command.get<bool>("--json");
+                bool use_submodule = download_command.get<bool>("--submodule");
 
-                crack(rar_file.c_str(), threads);
-            }},
+                if (use_submodule) {
+                    muuk.install_submodule(url);
+                }
+                else {
+                muuk.download_github_release(url, version);
+                }
+                }},
+                {"upload-patch", [&]() {
+                    bool dry_run = upload_patch_command.get<bool>("--dry-run");
+                    logger->info("[muuk] Running upload-patch with dry-run: {}", dry_run);
+                    muuk.upload_patch(dry_run);
+                }},
+                {"crack", [&]() {
+                    const auto rar_file = crack_command.get<std::string>("rar_file");
+                    int threads = crack_command.get<int>("--threads");
+                    bool json_output = crack_command.get<bool>("--json");
+
+                    crack(rar_file.c_str(), threads);
+                }
+            },
         };
 
 #ifdef DEBUG

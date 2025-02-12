@@ -1,0 +1,5 @@
+[package]
+name = "glob"
+
+[library.glob]
+include = ["glob/single_include"]

@@ -25,6 +25,7 @@
 #include <iostream>
 #include <glob/glob.hpp>
 #include <unordered_set>
+#include "muuk.h"
 
 namespace fs = std::filesystem;
 
@@ -129,12 +130,6 @@ void Muuk::run_script(const std::string& script, const std::vector<std::string>&
     else {
         logger_->info("[muuk::run] Command executed successfully.");
     }
-}
-
-
-void Muuk::build(const std::vector<std::string>& args) const {
-    logger_->info("Starting build operation.");
-    // muuk_builder_.build(args);
 }
 
 void Muuk::download_github_release(const std::string& repo, const std::string& version) {
@@ -359,4 +354,39 @@ void Muuk::upload_patch(bool dry_run) {
             logger_->error("[muuk::patch] Error uploading patch '{}': {}", module_name, e.what());
         }
     }
+}
+
+void Muuk::install_submodule(const std::string& repo) {
+    logger_->info("[muuk::install] Installing Git submodule: {}", repo);
+
+    size_t slash_pos = repo.find('/');
+    if (slash_pos == std::string::npos) {
+        logger_->error("[muuk::install] Invalid repository format. Expected <author>/<repo> but got: {}", repo);
+        return;
+    }
+
+    std::string repo_name = repo.substr(slash_pos + 1);
+    std::string submodule_path = "deps/" + repo_name;
+
+    util::ensure_directory_exists("deps");
+
+    std::string git_command = "git submodule add https://github.com/" + repo + ".git " + submodule_path;
+    logger_->info("[muuk::install] Executing: {}", git_command);
+
+    int result = util::execute_command(git_command.c_str());
+    if (result != 0) {
+        logger_->error("[muuk::install] Failed to add submodule '{}'.", repo);
+        return;
+    }
+
+    std::string init_command = "git submodule update --init --recursive " + submodule_path;
+    logger_->info("[muuk::install] Initializing submodule...");
+    result = util::execute_command(init_command.c_str());
+
+    if (result != 0) {
+        logger_->error("[muuk::install] Failed to initialize submodule '{}'.", repo);
+        return;
+    }
+
+    logger_->info("[muuk::install] Successfully added and initialized submodule at '{}'.", submodule_path);
 }

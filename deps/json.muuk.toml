@@ -1,0 +1,6 @@
+[package]
+name = 'json'
+version = "v.3.11.3"
+
+[library.json]
+include = ['json/single_include']

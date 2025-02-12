@@ -20,6 +20,8 @@ public:
 
     void upload_patch(bool dry_run = false);
 
+    void install_submodule(const std::string& repo);
+
 private:
     IMuukFiler& config_manager_;
     std::shared_ptr<spdlog::logger> logger_;
