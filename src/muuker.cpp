@@ -14,7 +14,7 @@
 //       #///####(((########                       ######&@%@##(//###     @##(&   
 // ?.:+*++ = : .        .. : ---- : .      .   ...     .. : = ++ += .. .       .
 
-#include "../include/muuk.h"
+#include "../include/muuker.hpp"
 #include "../include/muukfiler.h"
 #include "../include/util.h"
 #include "../include/logger.h"
@@ -25,15 +25,16 @@
 #include <iostream>
 #include <glob/glob.hpp>
 #include <unordered_set>
-#include "muuk.h"
+#include <format>
 
 namespace fs = std::filesystem;
 
-Muuk::Muuk(IMuukFiler& config_manager) : config_manager_(config_manager), muuk_builder_(config_manager) {
+// namespace Muuk {
+Muuker::Muuker(IMuukFiler& config_manager) : config_manager_(config_manager), muuk_builder_(config_manager) {
     logger_ = Logger::get_logger("muuk_logger");
 }
 
-void Muuk::clean() const {
+void Muuker::clean() const {
     logger_->info("[muuk::clean] Starting clean operation.");
 
     if (!config_manager_.has_section("clean")) {
@@ -101,7 +102,7 @@ void Muuk::clean() const {
     logger_->info("[muuk::clean] Clean operation completed.");
 }
 
-void Muuk::run_script(const std::string& script, const std::vector<std::string>& args) const {
+void Muuker::run_script(const std::string& script, const std::vector<std::string>& args) const {
     logger_->info("[muuk::run] Running script: {}", script);
 
     const auto& config = config_manager_.get_config();
@@ -132,7 +133,7 @@ void Muuk::run_script(const std::string& script, const std::vector<std::string>&
     }
 }
 
-void Muuk::download_github_release(const std::string& repo, const std::string& version) {
+void Muuker::download_github_release(const std::string& repo, const std::string& version) {
     logger_->info("[muuk::install] Downloading GitHub release. Repository: {}, Version: {}", repo, version);
 
     size_t slash_pos = repo.find('/');
@@ -171,7 +172,6 @@ void Muuk::download_github_release(const std::string& repo, const std::string& v
     std::string archive_url = "https://github.com/" + author + "/" + repo_name + "/archive/refs/tags/" + resolved_version + ".zip";
 
     util::ensure_directory_exists(DEPENDENCY_FOLDER, true);
-
 
     const auto deps_path = std::string(DEPENDENCY_FOLDER);
     std::string zip_path = deps_path + "/tmp.zip";
@@ -212,7 +212,7 @@ void Muuk::download_github_release(const std::string& repo, const std::string& v
 }
 
 
-void Muuk::add_dependency(const std::string& author, const std::string& repo_name, const std::string& version) {
+void Muuker::add_dependency(const std::string& author, const std::string& repo_name, const std::string& version) {
     logger_->info("[muuk::install] Adding/updating dependency: {}-{} - Version: {}", author, repo_name, version);
 
     if (!config_manager_.has_section("dependencies")) {
@@ -242,7 +242,7 @@ void Muuk::add_dependency(const std::string& author, const std::string& repo_nam
     logger_->info("[muuk::install] Dependencies updated successfully.");
 }
 
-void Muuk::download_patch(const std::string& author, const std::string& repo_name, const std::string& version) {
+void Muuker::download_patch(const std::string& author, const std::string& repo_name, const std::string& version) {
     logger_->info("[muuk::patch] Downloading patch for {}-{} - Version: {}", author, repo_name, version);
 
     std::string patch_name = author + "-" + repo_name + "-" + version + ".toml";
@@ -272,7 +272,7 @@ void Muuk::download_patch(const std::string& author, const std::string& repo_nam
     }
 }
 
-void Muuk::upload_patch(bool dry_run) {
+void Muuker::upload_patch(bool dry_run) {
     logger_->info("[muuk::patch] Scanning for patches to upload...");
 
     std::string modules_folder = "modules";
@@ -356,7 +356,7 @@ void Muuk::upload_patch(bool dry_run) {
     }
 }
 
-void Muuk::install_submodule(const std::string& repo) {
+void Muuker::install_submodule(const std::string& repo) {
     logger_->info("[muuk::install] Installing Git submodule: {}", repo);
 
     size_t slash_pos = repo.find('/');
@@ -365,6 +365,7 @@ void Muuk::install_submodule(const std::string& repo) {
         return;
     }
 
+    std::string author = repo.substr(0, slash_pos);
     std::string repo_name = repo.substr(slash_pos + 1);
     std::string submodule_path = "deps/" + repo_name;
 
@@ -388,5 +389,221 @@ void Muuk::install_submodule(const std::string& repo) {
         return;
     }
 
+    // Retrieve the latest tag/version of the submodule
+    std::string get_version_cmd = "cd " + submodule_path + " && git describe --tags --abbrev=0";
+    std::string version = "";// = util::execute_command(get_version_cmd);
+
+    if (version.empty()) {
+        version = "latest"; // Fallback in case no tags are found
+    }
+
+    logger_->info("[muuk::install] Submodule '{}' installed with version '{}'.", repo_name, version);
+
+    // Update muuk.toml
+    update_muuk_toml_with_submodule(author, repo_name, version);
+
     logger_->info("[muuk::install] Successfully added and initialized submodule at '{}'.", submodule_path);
+}
+
+
+void Muuker::update_muuk_toml_with_submodule(const std::string& author, const std::string& repo_name, const std::string& version) {
+    logger_->info("[muuk::update_muuk_toml] Updating muuk.toml with new submodule: {}/{} - Version: {}", author, repo_name, version);
+
+    if (!config_manager_.has_section("library.muuk.dependencies")) {
+        logger_->info("[muuk::update_muuk_toml] Creating 'library.muuk.dependencies' section in config.");
+        config_manager_.update_section("library.muuk.dependencies", toml::table{});
+    }
+
+    toml::table dependencies = config_manager_.get_section("library.muuk.dependencies");
+    std::string key = repo_name;
+    std::string muuk_path = "deps/" + repo_name + ".muuk.toml";
+    std::string git_url = "https://github.com/" + author + "/" + repo_name + ".git";
+
+    toml::table dependency_entry;
+    dependency_entry.insert_or_assign("version", version);
+    dependency_entry.insert_or_assign("git", git_url);
+    dependency_entry.insert_or_assign("muuk_path", muuk_path);
+
+    dependencies.insert_or_assign(key, dependency_entry);
+
+    config_manager_.update_section("library.muuk.dependencies", dependencies);
+    logger_->info("[muuk::update_muuk_toml] muuk.toml updated successfully.");
+}
+
+void Muuker::remove_package(const std::string& package_name) {
+    logger_->info("[muuk::remove] Attempting to remove package: {}", package_name);
+
+    if (!config_manager_.has_section("library.muuk.dependencies")) {
+        logger_->error("[muuk::remove] No dependencies section found in muuk.toml.");
+        return;
+    }
+
+    toml::table dependencies = config_manager_.get_section("library.muuk.dependencies");
+
+    if (!dependencies.contains(package_name)) {
+        logger_->error("[muuk::remove] Package '{}' not found in dependencies.", package_name);
+        return;
+    }
+
+    auto package_entry = dependencies.get_as<toml::table>(package_name);
+    std::string muuk_path, git_url;
+    if (package_entry) {
+        if (package_entry->contains("muuk_path")) {
+            muuk_path = package_entry->get("muuk_path")->value_or("");
+        }
+        if (package_entry->contains("git")) {
+            git_url = package_entry->get("git")->value_or("");
+        }
+    }
+
+    dependencies.erase(package_name);
+    config_manager_.update_section("library.muuk.dependencies", dependencies);
+    logger_->info("[muuk::remove] Removed '{}' from muuk.toml.", package_name);
+
+    // Determine package directory
+    fs::path package_dir = fs::path("deps") / package_name;
+
+    // If it's a Git submodule, deinitialize and remove it
+    if (!git_url.empty()) {
+        logger_->info("[muuk::remove] Detected '{}' as a Git submodule. Removing submodule...", package_name);
+
+        std::string git_remove_submodule = "git submodule deinit -f " + package_dir.string();
+        std::string git_rm_submodule = "git rm -f " + package_dir.string();
+        std::string git_clean = "rm -rf .git/modules/" + package_name;
+
+        util::execute_command(git_remove_submodule.c_str());
+        util::execute_command(git_rm_submodule.c_str());
+        util::execute_command(git_clean.c_str());
+
+        logger_->info("[muuk::remove] Successfully removed Git submodule '{}'.", package_name);
+    }
+
+    if (util::path_exists(package_dir.string())) {
+        try {
+            util::remove_path(package_dir.string());
+            logger_->info("[muuk::remove] Deleted package directory: {}", package_dir.string());
+        }
+        catch (const std::exception& e) {
+            logger_->error("[muuk::remove] Failed to delete directory '{}': {}", package_dir.string(), e.what());
+        }
+    }
+    else {
+        logger_->warn("[muuk::remove] Package directory '{}' does not exist.", package_dir.string());
+    }
+
+    logger_->info("[muuk::remove] Package '{}' removal completed.", package_name);
+}
+
+std::string Muuker::get_package_name() const {
+    logger_->info("[muuk::get_package_name] Retrieving package name.");
+
+    if (!config_manager_.has_section("package")) {
+        logger_->error("[muuk::get_package_name] No 'package' section found in the configuration.");
+        return "";
+    }
+
+    auto package_section = config_manager_.get_section("package");
+    auto package_name = package_section.get("name");
+
+    if (!package_name || !package_name->is_string()) {
+        logger_->error("[muuk::get_package_name] 'package.name' is not found or is not a valid string.");
+        return "";
+    }
+
+    std::string name = *package_name->value<std::string>();
+    logger_->info("[muuk::get_package_name] Found package name: {}", name);
+    return name;
+}
+
+void Muuker::init_project() {
+    logger_->info("[muuk::init] Initializing a new muuk.toml configuration...");
+
+    std::string project_name, author, version, license, include_path;
+
+    std::cout << "Enter project name: ";
+    std::getline(std::cin, project_name);
+
+    std::cout << "Enter author name: ";
+    std::getline(std::cin, author);
+
+    std::cout << "Enter project version (default: 0.1.0): ";
+    std::getline(std::cin, version);
+    if (version.empty()) version = "0.1.0";
+
+    std::cout << "Enter license (e.g., MIT, GPL, Apache, Unlicensed, default: MIT): ";
+    std::getline(std::cin, license);
+    if (license.empty()) license = "MIT";
+
+    std::cout << "Enter include path (default: include/): ";
+    std::getline(std::cin, include_path);
+    if (include_path.empty()) include_path = "include/";
+
+    toml::table config;
+    config.insert_or_assign("package", toml::table{
+        {"name", project_name},
+        {"author", author},
+        {"version", version},
+        {"license", license}
+        });
+
+    config.insert_or_assign("build", toml::table{
+        {"include_path", include_path}
+        });
+
+    config.insert_or_assign("dependencies", toml::table{});
+
+    std::ofstream config_file("muuk.toml");
+    if (!config_file) {
+        logger_->error("[muuk::init] Failed to create muuk.toml.");
+        return;
+    }
+
+    config_file << config;
+    config_file.close();
+
+    logger_->info("[muuk::init] Successfully created muuk.toml!");
+    std::cout << "\nSuccessfully initialized muuk project!\n";
+}
+
+void Muuker::generate_license(const std::string& license, const std::string& author) {
+    std::string license_text;
+
+    if (license == "MIT") {
+        license_text = std::format(R"(MIT License
+
+Copyright (c) {0} {1}
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.)", util::current_year(), author);
+    }
+    else if (license == "GPL") {
+        license_text = "GNU GENERAL PUBLIC LICENSE\nVersion 3, 29 June 2007...";
+    }
+    else {
+        license_text = std::format(R"(Unlicensed
+
+All rights reserved. {0} {1} reserves all rights to the software.
+)", util::current_year(), author);
+    }
+
+    std::ofstream license_file("LICENSE");
+    if (license_file) {
+        license_file << license_text;
+        logger_->info("[muuk] Generated LICENSE file.");
+    }
 }

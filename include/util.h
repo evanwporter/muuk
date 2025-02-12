@@ -55,6 +55,10 @@ namespace util {
         return oss.str();
     }
 
+    std::string execute_command_get_out(const std::string& command);
+
+    int current_year();
+
 } // namespace Utils
 
 #endif

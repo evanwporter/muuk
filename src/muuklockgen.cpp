@@ -4,6 +4,7 @@
 #include "../include/buildconfig.h"
 
 #include <glob/glob.hpp>
+#include "muuklockgen.h"
 
 Package::Package(const std::string& name,
     const std::string& version,
@@ -14,18 +15,26 @@ Package::Package(const std::string& name,
 }
 
 void Package::merge(const Package& child_pkg) {
-    logger_->info("[MuukLockGenerator::merger] Merging {} into {}", child_pkg.name, name);
+    if (&child_pkg == nullptr) {
+        logger_->error("[MuukLockGenerator] 'child_pkg' is NULL or corrupted. Cannot merge into '{}'", name);
+        return;
+    }
+
+    logger_->info("[MuukLockGenerator] Merging {} into {}", child_pkg.name, name);
 
     for (const auto& path : child_pkg.include) {
         include.insert((fs::path(child_pkg.base_path) / path).lexically_normal().string());
     }
     cflags.insert(child_pkg.cflags.begin(), child_pkg.cflags.end());
+
+    system_include.insert(child_pkg.system_include.begin(), child_pkg.system_include.end());
+
     // dependencies.insert(child_pkg.dependencies.begin(), child_pkg.dependencies.end());
 }
 
 toml::table Package::serialize() const {
     toml::table data;
-    toml::array include_array, cflags_array, sources_array, modules_array;
+    toml::array include_array, cflags_array, sources_array, modules_array, libs_array;
 
     for (const auto& path : include) include_array.push_back((fs::path(base_path) / path).lexically_normal().string());
 
@@ -53,6 +62,10 @@ toml::table Package::serialize() const {
         }
     }
 
+    for (const auto& lib : libs) {
+        libs_array.push_back(lib);
+    }
+
     for (const auto& module : modules) modules_array.push_back(module);
 
     data.insert("include", include_array);
@@ -60,6 +73,7 @@ toml::table Package::serialize() const {
     data.insert("sources", sources_array);
     data.insert("base_path", base_path);
     data.insert("modules", modules_array);
+    data.insert("libs", libs_array);
 
     return data;
 }
@@ -203,6 +217,13 @@ void MuukLockGenerator::parse_section(const toml::table& section, Package& packa
         }
     }
 
+    if (section.contains("libs")) {
+        for (const auto& lib : *section["libs"].as_array()) {
+            package.libs.push_back(*lib.value<std::string>());
+            logger_->debug(" Added library: {}", *lib.value<std::string>());
+        }
+    }
+
     std::vector<std::string> module_paths;
     if (section.contains("modules")) {
         for (const auto& mod : *section["modules"].as_array()) {
@@ -276,12 +297,18 @@ void MuukLockGenerator::resolve_dependencies(const std::string& package_name, st
                     logger_->info("Using defined muuk_path for dependency '{}': {}", dep_name, dep_search_path);
                 }
 
-                // Resolve dependency, passing the search path if available
-                resolve_dependencies(dep_name, dep_search_path.empty() ? std::nullopt : std::optional<std::string>{ dep_search_path });
-
+                if (dep_info.count("system")) {
+                    resolve_system_dependency(dep_name, package);
+                }
+                else {
+                    // Resolve dependency, passing the search path if available
+                    resolve_dependencies(dep_name, dep_search_path.empty() ? std::nullopt : std::optional<std::string>{ dep_search_path });
+                }
                 if (resolved_packages_["library"].count(dep_name)) {
                     logger_->info("Merging '{}' into '{}'", dep_name, package_name);
-                    package->merge(*resolved_packages_["library"][dep_name]);
+                    if (package) {
+                        package->merge(*resolved_packages_["library"][dep_name]);
+                    }
                 }
             }
 
@@ -377,6 +404,11 @@ void MuukLockGenerator::generate_lockfile(const std::string& output_path, bool i
 
 
     for (auto& [pkg_name, pkg] : resolved_packages_["library"]) {
+        if (!pkg) {
+            logger_->error("Package '{}' is null! Skipping.", pkg_name);
+            continue;
+        }
+
         if (pkg->cflags.empty()) {
             logger_->info("Package '{}' has no cflags defined. Initializing cflags set before applying gflags.", pkg_name);
         }
@@ -430,5 +462,62 @@ void MuukLockGenerator::process_modules(const std::vector<std::string>& module_p
     for (const auto& mod : resolved_modules) {
         package.modules.push_back(mod);
         logger_->info("Resolved and added module '{}' to package '{}'", mod, package.name);
+    }
+}
+
+void MuukLockGenerator::resolve_system_dependency(const std::string& package_name, std::optional<std::shared_ptr<Package>> package) {
+    logger_->info("Checking system dependency: '{}'", package_name);
+
+    std::string include_path, lib_path;
+
+    // Special handling for Python
+    if (package_name == "python" || package_name == "python3") {
+#ifdef _WIN32
+        include_path = util::execute_command("python -c \"import sysconfig; print(sysconfig.get_path('include'))\"");
+        lib_path = util::execute_command("python -c \"import sysconfig; print(sysconfig.get_config_var('LIBDIR'))\"");
+#else
+        include_path = util::execute_command("python3 -c \"import sysconfig; print(sysconfig.get_path('include'))\"");
+        lib_path = util::execute_command("python3 -c \"import sysconfig; print(sysconfig.get_config_var('LIBDIR'))\"");
+#endif
+    }
+    // Special handling for Boost
+    else if (package_name == "boost") {
+#ifdef _WIN32
+        include_path = util::execute_command("where boostdep");
+        lib_path = util::execute_command("where boost");
+#else
+        include_path = util::execute_command("boostdep --include-path");
+        lib_path = util::execute_command("boostdep --lib-path");
+#endif
+    }
+    else {
+#ifdef _WIN32
+        logger_->warn("System dependency '{}' resolution on Windows is not fully automated. Consider setting paths manually.", package_name);
+#else
+        include_path = util::execute_command("pkg-config --cflags-only-I " + package_name + " | sed 's/-I//' | tr -d '\n'");
+        lib_path = util::execute_command("pkg-config --libs-only-L " + package_name + " | sed 's/-L//' | tr -d '\n'");
+#endif
+    }
+
+    if (!include_path.empty() && util::path_exists(include_path)) {
+        system_include_paths_.insert(include_path);
+        if (package) (*package)->include.insert(include_path);
+        logger_->info("  - Found Include Path: {}", include_path);
+    }
+    else {
+        logger_->warn("  - Include path for '{}' not found.", package_name);
+    }
+
+    if (!lib_path.empty() && fs::exists(lib_path)) {
+        system_library_paths_.insert(lib_path);
+        if (package) (*package)->libs.push_back(lib_path);
+        logger_->info("  - Found Library Path: {}", lib_path);
+    }
+    else {
+        logger_->warn("  - Library path for '{}' not found.", package_name);
+    }
+
+    if (include_path.empty() && lib_path.empty()) {
+        logger_->error("Failed to resolve system dependency '{}'. Consider installing it or specifying paths manually.", package_name);
     }
 }

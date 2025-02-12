@@ -33,10 +33,12 @@ public:
     std::string package_type; // "library" or "build"
 
     std::set<std::string> include;
+    std::set<std::string> system_include;
     std::set<std::string> cflags;
     std::set<std::string> gflags;
     std::vector<std::string> sources;
     std::vector<std::string> modules;
+    std::vector<std::string> libs;
     std::map<std::string, std::map<std::string, std::string>> dependencies;
 
 private:
@@ -59,9 +61,13 @@ private:
     std::string base_path_;
     std::map<std::string, std::map<std::string, std::shared_ptr<Package>>> resolved_packages_;
     std::shared_ptr<spdlog::logger> logger_;
+    std::unique_ptr<MuukModuleParser> module_parser_;
 
     std::unordered_set<std::string> visited;
     std::vector<std::string> resolved_order_;
+
+    std::set<std::string> system_include_paths_;
+    std::set<std::string> system_library_paths_;
 
     void parse_section(const toml::table& section, Package& package);
     void search_and_parse_dependency(const std::string& package_name);
@@ -70,7 +76,7 @@ private:
 
     std::optional<std::shared_ptr<Package>> find_package(const std::string& package_name);
 
-    std::unique_ptr<MuukModuleParser> module_parser_;
+    void resolve_system_dependency(const std::string& package_name, std::optional<std::shared_ptr<Package>> package);
 };
 
 #endif // MUUK_PARSER_H

@@ -13,6 +13,9 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #include <sstream>
 #include <concepts>
+#include <array>
+#include <cstdio>
+#include <chrono>
 
 extern "C" {
 #include "zip.h"
@@ -310,7 +313,7 @@ namespace util {
         auto lookup = msvc_to_gcc.find(normalized_flag);
         if (lookup != msvc_to_gcc.end()) {
             return lookup->second;
-        }
+    }
 #endif
 
         // **Handle C++ standard flag conversion (-std=c++20 <-> /std:c++20)**
@@ -323,9 +326,41 @@ namespace util {
         }
 
         return normalized_flag;
-    }
+}
 
     template std::string vectorToString<std::string>(const std::vector<std::string>&, const std::string&);
 
+    std::string execute_command_get_out(const std::string& command) {
+        logger->info("[util::execute_command_with_output] Executing command: {}", command);
+
+        std::array<char, 128> buffer;
+        std::string result;
+
+#ifdef _WIN32
+        std::unique_ptr<FILE, decltype(&_pclose)> pipe(_popen(command.c_str(), "r"), _pclose);
+#else
+        std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(command.c_str(), "r"), pclose);
+#endif
+
+        if (!pipe) {
+            logger->error("[util::execute_command_with_output] Failed to execute command: {}", command);
+            throw std::runtime_error("Failed to execute command: " + command);
+        }
+
+        while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+            result += buffer.data();
+        }
+
+        logger->info("[util::execute_command_with_output] Command output:\n{}", result);
+        return result;
+    }
+
+    int current_year() {
+        std::time_t t = std::time(nullptr);
+        std::tm* now = std::localtime(&t);
+        return now->tm_year + 1900;
+    }
+
 } // namespace util
+
 

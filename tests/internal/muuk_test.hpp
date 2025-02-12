@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
-#include "mockmuukfiler.cpp"
 #include <iostream>
-#include "../../include/muuk.h"
+#include "../../include/muuker.hpp"
 #include "../../include/logger.h"
 #include "../../include/util.h"
+#include "../../include/muukfiler.h"
 
 class MuukTests : public ::testing::Test {
 protected:
@@ -20,7 +20,7 @@ protected:
 // ** Test Case 1: Configuration Retrieval **
 TEST(MuukTests, GetConfig) {
     MockMuukFiler mockFiler;
-    Muuk muuk(mockFiler);
+    Muuker muuk(mockFiler);
 
     const auto& config = mockFiler.get_config();
     EXPECT_TRUE(config.contains("scripts"));
@@ -30,7 +30,7 @@ TEST(MuukTests, GetConfig) {
 // ** Test Case 2: Has Section **
 TEST(MuukTests, HasSection) {
     MockMuukFiler mockFiler;
-    Muuk muuk(mockFiler);
+    Muuker muuk(mockFiler);
 
     EXPECT_TRUE(mockFiler.has_section("scripts"));
     EXPECT_FALSE(mockFiler.has_section("nonexistent"));
@@ -39,7 +39,7 @@ TEST(MuukTests, HasSection) {
 // ** Test Case 3: Get Section **
 TEST(MuukTests, GetSection) {
     MockMuukFiler mockFiler;
-    Muuk muuk(mockFiler);
+    Muuker muuk(mockFiler);
 
     auto section = mockFiler.get_section("scripts");
     EXPECT_FALSE(section.empty());
@@ -48,7 +48,7 @@ TEST(MuukTests, GetSection) {
 // ** Test Case 4: Update Section **
 TEST(MuukTests, UpdateSection) {
     MockMuukFiler mockFiler;
-    Muuk muuk(mockFiler);
+    Muuker muuk(mockFiler);
 
     toml::table new_data{
         {"new_script", "echo New Script"}
@@ -62,7 +62,7 @@ TEST(MuukTests, UpdateSection) {
 // **Test Case 5: Run Script Successfully * *
 TEST(MuukTests, RunScript) {
     MockMuukFiler mockFiler;
-    Muuk muuk(mockFiler);
+    Muuker muuk(mockFiler);
     auto logger_ = Logger::get_logger("muuk_logger");
 
     // logger_->info("Modding config");
@@ -106,7 +106,7 @@ TEST(MuukTests, RunScript) {
 // // ** Test Case 6: Run Nonexistent Script **
 // TEST(MuukTests, RunNonExistentScript) {
 //     MockMuukFiler mockFiler;
-//     Muuk muuk(mockFiler);
+//     Muuker muuk(mockFiler);
 
 //     // Customize config for this test
 //     mockFiler.set_config(toml::table{
@@ -122,7 +122,7 @@ TEST(MuukTests, RunScript) {
 // ** Test Case 7: Clean Operation with Matching Files **
 TEST(MuukTests, CleanOperation) {
     MockMuukFiler mockFiler;
-    Muuk muuk(mockFiler);
+    Muuker muuk(mockFiler);
 
     // Customize config for this test
     mockFiler.set_config(toml::table{
@@ -144,7 +144,7 @@ TEST(MuukTests, CleanOperation) {
 // // ** Test Case 6: Run Nonexistent Script **
 // TEST(MuukTests, RunNonExistentScript) {
 //     MockMuukFiler mockFiler;
-//     Muuk muuk(mockFiler);
+//     Muuker muuk(mockFiler);
 
 //     // Customize config for this test
 //     mockFiler.set_config(toml::table{
@@ -160,7 +160,7 @@ TEST(MuukTests, CleanOperation) {
 // // ** Test Case 8: Download GitHub Release with Invalid Repo **
 // TEST(MuukTests, DownloadInvalidGitHubRepo) {
 //     MockMuukFiler mockFiler;
-//     Muuk muuk(mockFiler);
+//     Muuker muuk(mockFiler);
 
 //     testing::internal::CaptureStdout();
 //     muuk.download_github_release("invalid/repo", "latest");
@@ -172,7 +172,7 @@ TEST(MuukTests, CleanOperation) {
 // // ** Test Case 9: Clean Operation with No Config **
 // TEST(MuukTests, CleanOperationNoConfig) {
 //     MockMuukFiler mockFiler;
-//     Muuk muuk(mockFiler);
+//     Muuker muuk(mockFiler);
 
 //     // Empty configuration
 //     mockFiler.set_config(toml::table{});
@@ -187,7 +187,7 @@ TEST(MuukTests, CleanOperation) {
 // ** Test Case 10: Ensure Configuration Updates Persist **
 TEST(MuukTests, UpdateConfigPersists) {
     MockMuukFiler mockFiler;
-    Muuk muuk(mockFiler);
+    Muuker muuk(mockFiler);
 
     toml::table new_data{
         {"build_command", "g++ -o output main.cpp"}

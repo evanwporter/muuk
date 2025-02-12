@@ -2,6 +2,7 @@
 base_path = 'deps'
 cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
 include = [ 'deps\argparse\include' ]
+libs = []
 modules = []
 sources = []
 
@@ -9,6 +10,7 @@ sources = []
 base_path = 'deps'
 cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
 include = [ 'deps\cracklib\include' ]
+libs = []
 modules = []
 sources = [ 'deps\cracklib\src\cracklib.cpp' ]
 
@@ -16,6 +18,7 @@ sources = [ 'deps\cracklib\src\cracklib.cpp' ]
 base_path = 'deps'
 cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
 include = [ 'deps\glob\single_include' ]
+libs = []
 modules = []
 sources = []
 
@@ -23,6 +26,7 @@ sources = []
 base_path = 'deps'
 cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
 include = [ 'deps\json\single_include' ]
+libs = []
 modules = []
 sources = []
 
@@ -42,6 +46,7 @@ cflags = [
     '/utf-8'
 ]
 include = [ 'deps\spdlog\include' ]
+libs = []
 modules = []
 sources = [
     'deps\spdlog\src\async.cpp',
@@ -57,6 +62,7 @@ sources = [
 base_path = 'deps'
 cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
 include = [ 'deps\tomlplusplus\include' ]
+libs = []
 modules = []
 sources = []
 
@@ -64,6 +70,7 @@ sources = []
 base_path = 'deps'
 cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
 include = [ 'deps\zip\src' ]
+libs = []
 modules = []
 sources = [ 'deps\zip\src\zip.c' ]
 
@@ -92,9 +99,10 @@ include = [
     'deps\zip\src',
     'include'
 ]
+libs = []
 modules = []
 sources = [
-    'src\muuk.cpp',
+    'src\muuker.cpp',
     'src\util.cpp',
     'src\logger.cpp',
     'src\muukfiler.cpp',
@@ -116,6 +124,7 @@ include = [
     'deps\zip\src',
     'include'
 ]
+libs = []
 modules = []
 sources = [ 'src\main.cpp' ]
 
@@ -128,6 +137,7 @@ include = [
     'deps\googletest\googletest',
     'deps\googletest\googletest\include'
 ]
+libs = []
 modules = []
 sources = [ 'deps\googletest\googletest\src\gtest-all.cc', 'deps\googletest\googlemock\src\gmock-all.cc' ]
 
@@ -148,6 +158,7 @@ include = [
     'deps\zip\src',
     'include'
 ]
+libs = []
 modules = []
-sources = [ 'tests\internal\muuk_test.cpp' ]
+sources = [ 'tests\internal\muuk_test.cpp', 'tests\internal\mockmuukfiler.cpp' ]
 

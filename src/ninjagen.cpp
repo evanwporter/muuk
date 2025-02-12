@@ -26,20 +26,20 @@ void NinjaGenerator::generate_ninja_file(const std::string& target_build) {
     config_ = muuk_filer_->get_config();
 
     if (config_.empty()) {
-        logger_->error("[NinjaGenerator:generate_ninja_file] Error: No TOML data loaded.");
+        logger_->error("[NinjaGenerator] Error: No TOML data loaded.");
         return;
     }
 
     fs::create_directories(build_dir_);
-    logger_->info("[NinjaGenerator:generate_ninja_file] Created build directory: {}", build_dir_.string());
+    logger_->info("[NinjaGenerator] Created build directory: {}", build_dir_.string());
 
     std::ofstream out(ninja_file_);
     if (!out) {
-        logger_->error("[NinjaGenerator:generate_ninja_file] Failed to create Ninja build file '{}'", ninja_file_);
+        logger_->error("[NinjaGenerator] Failed to create Ninja build file '{}'", ninja_file_);
         throw std::runtime_error("Failed to create Ninja build file.");
     }
 
-    logger_->info("[NinjaGenerator:generate_ninja_file] Generating Ninja build rules...");
+    logger_->info("[NinjaGenerator] Generating Ninja build rules...");
     write_ninja_header(out);
 
     auto [objects, libraries] = compile_objects(out);
@@ -52,11 +52,11 @@ void NinjaGenerator::generate_ninja_file(const std::string& target_build) {
         }
     }
 
-    logger_->info("[NinjaGenerator:generate_ninja_file] Ninja build file '{}' generated successfully!", ninja_file_);
+    logger_->info("[NinjaGenerator] Ninja build file '{}' generated successfully!", ninja_file_);
 }
 
 void NinjaGenerator::write_ninja_header(std::ofstream& out) {
-    logger_->info("[NinjaGenerator:write_ninja_header] Writing Ninja header...");
+    logger_->info("[NinjaGenerator] Writing Ninja header...");
 
     out << "# Auto-generated Ninja build file\n\n"
         << "cxx = " << COMPILER << "\n"
@@ -102,7 +102,7 @@ NinjaGenerator::compile_objects(std::ofstream& out) {
         if (!packages_table) continue;
 
         for (const auto& [pkg_name, pkg_info] : *packages_table) {
-            logger_->info("[NinjaGenerator:compile_objects] Processing package: {}", pkg_name.str());
+            logger_->info("[NinjaGenerator] Processing package: {}", pkg_name.str());
             fs::path module_dir = build_dir_ / std::string(pkg_name.str());
             fs::create_directories(module_dir);
 
@@ -142,7 +142,7 @@ NinjaGenerator::compile_objects(std::ofstream& out) {
                         std::string obj_path = util::to_linux_path((module_dir / fs::path(src_path).stem()).string() + ".obj");
                         obj_files.push_back(obj_path);
 
-                        logger_->info("[NinjaGenerator:compile_objects] Compiling: {} -> {}", src_path, obj_path);
+                        logger_->info("Compiling: {} -> {}", src_path, obj_path);
                         out << "build " << obj_path << ": compile " << src_path << "\n";
                         out << "  cflags =" << cflags_common << "\n";
                     }
@@ -161,15 +161,29 @@ void NinjaGenerator::archive_libraries(std::ofstream& out,
     std::vector<std::string>& libraries) {
 
     for (const auto& [pkg_name, obj_files] : objects) {
-        if (obj_files.empty()) continue;
-
         fs::path lib_name = build_dir_ / pkg_name / (pkg_name + ".lib");
         std::string normalized_lib = util::to_linux_path(lib_name.string());
 
-        logger_->info("[NinjaGenerator:archive_libraries] Creating library: {}", normalized_lib);
+        std::vector<std::string> input_files = obj_files;
+
+        if (config_["library"].as_table() && config_["library"][pkg_name].as_table()) {
+            auto lib_entries = config_["library"][pkg_name]["libs"].as_array();
+            if (lib_entries) {
+                for (const auto& lib : *lib_entries) {
+                    input_files.push_back(util::to_linux_path(*lib.value<std::string>()));
+                }
+            }
+        }
+
+        if (input_files.empty()) {
+            logger_->warn("[NinjaGenerator] Skipping library '{}' because it has no sources or linked libraries.", pkg_name);
+            continue;
+        }
+
+        logger_->info("[NinjaGenerator] Creating library: {}", normalized_lib);
         out << "build " << normalized_lib << ": archive";
-        for (const auto& obj : obj_files) {
-            out << " " << util::to_linux_path(obj);
+        for (const auto& file : input_files) {
+            out << " " << file;
         }
         out << "\n";
 
@@ -185,7 +199,7 @@ void NinjaGenerator::link_executable(std::ofstream& out,
     fs::path exe_output = build_dir_ / build_name / (build_name + EXE_EXT);
     std::string normalized_exe = util::to_linux_path(exe_output.string());
 
-    logger_->info("[NinjaGenerator:link_executable] Linking executable for '{}': {}", build_name, normalized_exe);
+    logger_->info("[NinjaGenerator] Linking executable for '{}': {}", build_name, normalized_exe);
 
     std::string build_objs;
     if (objects.find(build_name) != objects.end()) {

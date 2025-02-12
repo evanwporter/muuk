@@ -12,11 +12,12 @@
 #include <argparse/argparse.hpp>
 #include <cracklib.hpp>
 #include "../include/util.h"
-#include "../include/muuk.h"
+#include "../include/muuker.hpp"
 #include "../include/muukfiler.h"
 #include "../include/logger.h"
 
 namespace fs = std::filesystem;
+// using namespace Muuk;
 
 #ifdef DEBUG
 void start_repl(std::unordered_map<std::string, std::function<void()>>& command_map) {
@@ -101,6 +102,10 @@ int main(int argc, char* argv[]) {
         .help("Install the package as a Git submodule instead of downloading a release.")
         .flag();
 
+    argparse::ArgumentParser remove_command("remove", "Remove an installed package or submodule");
+    remove_command.add_argument("package_name")
+        .help("The name of the package to remove");
+
     argparse::ArgumentParser upload_patch_command("upload-patch", "Upload missing patches.");
     upload_patch_command.add_argument("--dry-run")
         .help("Only list patches that would be uploaded, without actually uploading them.")
@@ -117,12 +122,17 @@ int main(int argc, char* argv[]) {
         .help("Output status as JSON instead of cracking")
         .flag();
 
+    argparse::ArgumentParser init_command("init", "Initialize a new muuk.toml configuration file");
+
     program.add_subparser(clean_command);
     program.add_subparser(run_command);
     program.add_subparser(build_command);
     program.add_subparser(download_command);
+    program.add_subparser(remove_command);
     program.add_subparser(upload_patch_command);
     program.add_subparser(crack_command);
+    program.add_subparser(init_command);
+
 
     if (argc < 2) {
         std::cerr << "Usage: " << argv[0] << " <command> [--muuk-path <path>] [other options]\n";
@@ -136,7 +146,7 @@ int main(int argc, char* argv[]) {
         logger->info("[muuk] Using muuk configuration from: {}", muuk_path);
 
         MuukFiler muukFiler(muuk_path);
-        Muuk muuk(muukFiler);
+        Muuker muuk(muukFiler);
         MuukBuilder muukBuilder(muukFiler);
 
         // Command mapping
@@ -168,20 +178,32 @@ int main(int argc, char* argv[]) {
                 else {
                 muuk.download_github_release(url, version);
                 }
-                }},
-                {"upload-patch", [&]() {
-                    bool dry_run = upload_patch_command.get<bool>("--dry-run");
-                    logger->info("[muuk] Running upload-patch with dry-run: {}", dry_run);
-                    muuk.upload_patch(dry_run);
-                }},
-                {"crack", [&]() {
-                    const auto rar_file = crack_command.get<std::string>("rar_file");
-                    int threads = crack_command.get<int>("--threads");
-                    bool json_output = crack_command.get<bool>("--json");
+            }},
+            {"remove", [&]() {
+                const auto package_name = remove_command.get<std::string>("package_name");
 
-                    crack(rar_file.c_str(), threads);
+                if (package_name.empty()) {
+                    std::cerr << "Error: Package name required for 'remove' command.\n";
+                    return;
                 }
-            },
+
+                muuk.remove_package(package_name);
+            }},
+            {"upload-patch", [&]() {
+                bool dry_run = upload_patch_command.get<bool>("--dry-run");
+                logger->info("[muuk] Running upload-patch with dry-run: {}", dry_run);
+                muuk.upload_patch(dry_run);
+            }},
+            {"crack", [&]() {
+                const auto rar_file = crack_command.get<std::string>("rar_file");
+                int threads = crack_command.get<int>("--threads");
+                bool json_output = crack_command.get<bool>("--json");
+
+                crack(rar_file.c_str(), threads);
+            }},
+            {"init", [&]() {
+                muuk.init_project();
+            }},
         };
 
 #ifdef DEBUG
