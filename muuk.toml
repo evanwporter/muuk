@@ -21,7 +21,7 @@ libs = []
 
 [library.muuk.dependencies]
 argparse = { version = "v3.2", git = "https://github.com/p-ranav/argparse.git", muuk_path = "deps/argparse.muuk.toml" }
-glob = { version = "v0.3", git = "https://github.com/p-ranav/glob.git", muuk_path = "deps/glob.muuk.toml" }
+glob = { version = "v0.3", git = "https://github.com/evanwporter/glob.git", muuk_path = "deps/glob/muuk.toml" }
 spdlog = { version = "v1.15.1", git = "https://github.com/gabime/spdlog.git", muuk_path = "deps/spdlog.muuk.toml" }
 zip = { "version" = "v0.3.3", git = "https://github.com/kuba--/zip.git", muuk_path = "deps/zip.muuk.toml" }
 json = { "version" = "v3.11.3", git = "https://github.com/nlohmann/json.git", muuk_path = "deps/json.muuk.toml" }

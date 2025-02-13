@@ -2,4 +2,5 @@
 name = "glob"
 
 [library.glob]
-include = ["glob/single_include"]
+include = ["glob/include"]
+sources = ["glob/source/*.cpp"]

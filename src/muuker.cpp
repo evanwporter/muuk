@@ -74,10 +74,10 @@ void Muuker::clean() const {
             if (pattern.is_string()) {
                 std::string pattern_str = *pattern.value<std::string>();
                 std::string full_pattern = (fs::path(current_dir) / pattern_str).string();
-                std::vector<std::filesystem::path> matched_files = glob::glob(full_pattern);
+                std::vector<std::string> matched_files = glob::glob(full_pattern);
 
                 for (const auto& file_path : matched_files) {
-                    files_to_delete.push_back(file_path);
+                    files_to_delete.push_back(fs::path(file_path));
                 }
             }
         }

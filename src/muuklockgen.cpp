@@ -4,7 +4,6 @@
 #include "../include/buildconfig.h"
 
 #include <glob/glob.hpp>
-#include "muuklockgen.h"
 
 Package::Package(const std::string& name,
     const std::string& version,
@@ -44,12 +43,13 @@ toml::table Package::serialize() const {
         fs::path source_path = fs::path(base_path) / source;
 
         if (source.find('*') != std::string::npos) {
-            std::vector<std::string> matched_files;
             try {
-                std::vector<std::filesystem::path> globbed_paths = glob::glob(source_path.string());
+                logger_->info("Globbing {}...", source_path.string());
+                std::vector<std::string> globbed_paths = glob::glob(source_path.string());
 
                 for (const auto& path : globbed_paths) {
-                    matched_files.push_back(path.string());
+                    logger_->info("  - Globbed file: {}", path);
+                    sources_array.push_back(path);
                 }
             }
             catch (const std::exception& e) {
