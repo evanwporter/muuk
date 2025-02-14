@@ -41,6 +41,8 @@ public:
 
     bool has_section(const std::string& section) const;
 
+    std::vector<std::string> parse_section_order();
+
 private:
     std::string config_file_;
     toml::table config_;

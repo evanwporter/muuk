@@ -59,6 +59,10 @@ namespace util {
 
     int current_year();
 
+    std::string trim_whitespace(const std::string& str);
+
+    std::string join_strings(const std::vector<std::string>& strings, const std::string& delimiter);
+
 } // namespace Utils
 
 #endif

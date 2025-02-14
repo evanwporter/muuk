@@ -1,5 +1,5 @@
-#include "../include/util.h"
 #include "../include/logger.h"
+#include "../include/util.h"
 
 #include <filesystem>
 #include <fstream>
@@ -367,7 +367,7 @@ namespace util {
         auto lookup = msvc_to_gcc.find(normalized_flag);
         if (lookup != msvc_to_gcc.end()) {
             return lookup->second;
-        }
+    }
 #endif
 
         // **Handle C++ standard flag conversion (-std=c++20 <-> /std:c++20)**
@@ -380,7 +380,7 @@ namespace util {
         }
 
         return normalized_flag;
-    }
+}
 
     template std::string vectorToString<std::string>(const std::vector<std::string>&, const std::string&);
 
@@ -421,6 +421,30 @@ namespace util {
         return time_info.tm_year + 1900;
     }
 
+    std::string trim_whitespace(const std::string& str) {
+        auto start = str.begin();
+        while (start != str.end() && std::isspace(*start)) {
+            ++start;
+        }
+
+        auto end = str.end();
+        do {
+            --end;
+        } while (end > start && std::isspace(*end));
+
+        return std::string(start, end + 1);
+    }
+
+    std::string join_strings(const std::vector<std::string>& strings, const std::string& delimiter) {
+        if (strings.empty()) return "";
+
+        std::ostringstream result;
+        for (size_t i = 0; i < strings.size(); ++i) {
+            if (i > 0) result << delimiter;
+            result << strings[i];
+        }
+        return result.str();
+    }
 
 } // namespace util
 

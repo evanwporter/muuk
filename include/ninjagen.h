@@ -33,9 +33,12 @@ private:
     std::shared_ptr<spdlog::logger> logger_;
 
     void write_ninja_header(std::ofstream& out);
-    std::pair<std::map<std::string, std::vector<std::string>>, std::vector<std::string>> compile_objects(std::ofstream& out);
-    void archive_libraries(std::ofstream& out, const std::map<std::string, std::vector<std::string>>& objects, std::vector<std::string>& libraries);
-    void link_executable(std::ofstream& out, const std::map<std::string, std::vector<std::string>>& objects, const std::vector<std::string>& libraries, const std::string& build_name);
+    std::pair<std::unordered_map<std::string, std::vector<std::string>>, std::vector<std::string>> compile_objects(std::ofstream& out, const std::unordered_map<std::string, std::vector<std::string>>& dependencies_map, const std::unordered_map<std::string, std::vector<std::string>>& modules_map);
+    // std::pair<std::unordered_map<std::string, std::vector<std::string>>, std::vector<std::string>> compile_objects(std::ofstream& out);
+    void archive_libraries(std::ofstream& out, const std::unordered_map<std::string, std::vector<std::string>>& objects, std::vector<std::string>& libraries);
+    void link_executable(std::ofstream& out, const std::unordered_map<std::string, std::vector<std::string>>& objects, const std::vector<std::string>& libraries, const std::string& build_name);
+
+    std::string gather_cflags(const toml::table& pkg_table);
 };
 
 #endif // NINJA_GENERATOR_H

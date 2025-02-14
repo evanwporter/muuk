@@ -39,6 +39,8 @@ public:
     std::vector<std::string> sources;
     std::vector<std::string> modules;
     std::vector<std::string> libs;
+
+    std::set<std::string> deps;
     std::map<std::string, std::map<std::string, std::string>> dependencies;
 
 private:

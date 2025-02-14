@@ -91,6 +91,7 @@ public:
     Module parseCppModule(const std::string& file_path) {
         logger_->info("[MuukModuleParser::parseCppModule] Parsing C++ module file: {}", file_path);
 
+        // TODO: it gives an error if the module is in the same dir as the one the program is run from
         std::ifstream file(file_path);
         if (!file) {
             logger_->error("[MuukModuleParser::parseCppModule] Error reading file: {}", file_path);

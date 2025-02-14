@@ -1,0 +1,13 @@
+[package]
+name = "moduletest"
+version = "1.0.0"
+
+
+[library.moduletest]
+include = []
+modules = ["modules/module_math.ixx", "modules/module_utils.ixx"]
+
+[build.bin]
+dependencies = { "moduletest" = "v1.0.0" }
+sources = ["main.cpp"]
+gflags = ["/std:c++20", "/utf-8", "/EHsc", "/FS"]

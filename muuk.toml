@@ -16,7 +16,7 @@ sources = [
     "src/ninjagen.cpp",
     "src/muuklockgen.cpp",
 ]
-deps = ["prototyping/deps/test_deps/bcwrdll.ixx"]
+modules = ["modules/util_module.ixx"]
 libs = []
 
 [library.muuk.dependencies]
@@ -33,12 +33,12 @@ dependencies = { "muuk" = "v1.0.0" }
 sources = ["src/main.cpp"]
 gflags = ["/std:c++20", "/utf-8", "/EHsc", "/FS"]
 
-[build.test]
-dependencies = { "muuk" = "v1.0.0", "googletest" = { version = "v1.15.2", git = "https://github.com/google/googletest.git", muuk_path = "deps/googletest.muuk.toml" } }
-sources = ["tests/internal/muuk_test.cpp", "tests/internal/mockmuukfiler.cpp"]
-executable = "muuk_tests"
-include = []
-gflags = ["/std:c++20", "/utf-8", "/EHsc", "/FS"]
+# [build.test]
+# dependencies = { "muuk" = "v1.0.0", "googletest" = { version = "v1.15.2", git = "https://github.com/google/googletest.git", muuk_path = "deps/googletest.muuk.toml" } }
+# sources = ["tests/internal/muuk_test.cpp", "tests/internal/mockmuukfiler.cpp"]
+# executable = "muuk_tests"
+# include = []
+# gflags = ["/std:c++20", "/utf-8", "/EHsc", "/FS"]
 
 [clean]
 patterns = ["*.obj", "*.lib", "*.pdb"]

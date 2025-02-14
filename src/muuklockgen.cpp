@@ -1,9 +1,10 @@
 #include "../include/muuklockgen.h"
 #include "../include/logger.h"
-#include "../include/util.h"
 #include "../include/buildconfig.h"
+#include "../include/util.h"
 
 #include <glob/glob.hpp>
+
 
 Package::Package(const std::string& name,
     const std::string& version,
@@ -28,12 +29,14 @@ void Package::merge(const Package& child_pkg) {
 
     system_include.insert(child_pkg.system_include.begin(), child_pkg.system_include.end());
 
+    deps.insert(child_pkg.deps.begin(), child_pkg.deps.end());
+
     // dependencies.insert(child_pkg.dependencies.begin(), child_pkg.dependencies.end());
 }
 
 toml::table Package::serialize() const {
     toml::table data;
-    toml::array include_array, cflags_array, sources_array, modules_array, libs_array;
+    toml::array include_array, cflags_array, sources_array, modules_array, libs_array, deps_array;
 
     for (const auto& path : include) include_array.push_back((fs::path(base_path) / path).lexically_normal().string());
 
@@ -62,11 +65,11 @@ toml::table Package::serialize() const {
         }
     }
 
-    for (const auto& lib : libs) {
-        libs_array.push_back(lib);
-    }
+    for (const auto& lib : libs) libs_array.push_back(lib);
 
     for (const auto& module : modules) modules_array.push_back(module);
+
+    for (const auto& dep : deps) deps_array.push_back(dep);
 
     data.insert("include", include_array);
     data.insert("cflags", cflags_array);
@@ -74,6 +77,7 @@ toml::table Package::serialize() const {
     data.insert("base_path", base_path);
     data.insert("modules", modules_array);
     data.insert("libs", libs_array);
+    data.insert("dependencies", deps_array);
 
     return data;
 }
@@ -177,6 +181,8 @@ void MuukLockGenerator::parse_section(const toml::table& section, Package& packa
             std::map<std::string, std::string> dependency_info;
             std::string muuk_path;
             std::string version = "unknown";
+
+            package.deps.insert(std::string(dep_name.str()));
 
             if (dep_value.is_string()) {
                 dependency_info["version"] = *dep_value.value<std::string>();

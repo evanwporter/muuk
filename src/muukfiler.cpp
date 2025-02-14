@@ -1,10 +1,12 @@
 #include "../include/muukfiler.h"
 #include "../include/logger.h"
+#include "../include/util.h"
+
+import logger;
 
 #include <fstream>
 #include <filesystem>
-
-
+#include "muukfiler.h"
 
 namespace fs = std::filesystem;
 
@@ -162,4 +164,33 @@ void MuukFiler::validate_array_of_strings(const toml::table& section, const std:
 toml::table MuukFiler::get_default_config() const
 {
     return toml::table{};
+}
+
+std::vector<std::string> MuukFiler::parse_section_order() {
+    std::vector<std::string> section_order;  // Local vector to store order
+
+    std::ifstream file(config_file_);
+    if (!file.is_open()) {
+        logger_->error("[MuukFiler] Failed to open TOML file for reading: {}", config_file_);
+        return section_order;  // Return empty if file fails to open
+    }
+
+    std::string line;
+    while (std::getline(file, line)) {
+        line = util::trim_whitespace(line);  // Trim leading/trailing spaces
+
+        if (!line.empty() && line.front() == '[' && line.back() == ']') {
+            std::string section = line.substr(1, line.size() - 2);  // Extract section name
+            section_order.push_back(section);
+        }
+    }
+
+    file.close();
+
+    logger_->info("[MuukFiler] Parsed section order:");
+    for (const auto& section : section_order) {
+        logger_->info("  {}", section);
+    }
+
+    return section_order;
 }

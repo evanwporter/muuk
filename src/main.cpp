@@ -11,10 +11,11 @@
 #include <vector>
 #include <argparse/argparse.hpp>
 #include <cracklib.hpp>
-#include "../include/util.h"
+
 #include "../include/muuker.hpp"
 #include "../include/muukfiler.h"
 #include "../include/logger.h"
+#include "../include/util.h"
 
 namespace fs = std::filesystem;
 // using namespace Muuk;
@@ -215,7 +216,7 @@ int main(int argc, char* argv[]) {
         if (program.get<bool>("--repl")) {
             start_repl(command_map);
             return 0;  // Exit after REPL
-    }
+        }
 #endif
 
         // Check if any known subcommand was used
@@ -233,7 +234,7 @@ int main(int argc, char* argv[]) {
             std::cerr << "Error: Unknown command. Use '--help' to see available commands.\n";
             return 1;
         }
-}
+    }
     catch (const std::runtime_error& err) {
         std::cerr << "Error: " << err.what() << "\n";
         return 1;

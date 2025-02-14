@@ -4,7 +4,6 @@
 #include "../include/muukfiler.h"
 #include "../include/muuklockgen.h"
 #include "../include/ninjagen.h"
-#include "../include/util.h"
 #include "../include/logger.h"
 #include <vector>
 #include <memory>

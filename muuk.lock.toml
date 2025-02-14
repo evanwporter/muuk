@@ -1,6 +1,7 @@
 [library.argparse]
 base_path = 'deps'
 cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
+dependencies = []
 include = [ 'deps\argparse\include' ]
 libs = []
 modules = []
@@ -9,6 +10,7 @@ sources = []
 [library.cracklib]
 base_path = 'deps'
 cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
+dependencies = []
 include = [ 'deps\cracklib\include' ]
 libs = []
 modules = []
@@ -17,6 +19,7 @@ sources = [ 'deps\cracklib\src\cracklib.cpp' ]
 [library.glob]
 base_path = 'deps/glob'
 cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
+dependencies = []
 include = [ 'deps\glob\include' ]
 libs = []
 modules = []
@@ -25,6 +28,7 @@ sources = [ 'deps\glob\src\glob.cpp' ]
 [library.json]
 base_path = 'deps'
 cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
+dependencies = []
 include = [ 'deps\json\single_include\' ]
 libs = []
 modules = []
@@ -45,6 +49,7 @@ cflags = [
     '/std:c++20',
     '/utf-8'
 ]
+dependencies = []
 include = [ 'deps\spdlog\include' ]
 libs = []
 modules = []
@@ -61,6 +66,7 @@ sources = [
 [library.tomlplusplus]
 base_path = 'deps'
 cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
+dependencies = []
 include = [ 'deps\tomlplusplus\include' ]
 libs = []
 modules = []
@@ -69,6 +75,7 @@ sources = []
 [library.zip]
 base_path = 'deps'
 cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
+dependencies = []
 include = [ 'deps\zip\src' ]
 libs = []
 modules = []
@@ -89,6 +96,7 @@ cflags = [
     '/std:c++20',
     '/utf-8'
 ]
+dependencies = [ 'argparse', 'cracklib', 'glob', 'json', 'spdlog', 'tomlplusplus', 'zip' ]
 include = [
     'deps\argparse\include',
     'deps\cracklib\include',
@@ -100,7 +108,7 @@ include = [
     'include'
 ]
 libs = []
-modules = []
+modules = [ 'modules/util_module.ixx' ]
 sources = [
     'src\muuker.cpp',
     'src\util.cpp',
@@ -114,6 +122,7 @@ sources = [
 [build.bin]
 base_path = ''
 cflags = [ '/DSPDLOG_COMPILED_LIB', '/DSPDLOG_USE_STD_FORMAT', '/EHsc', '/FS', '/std:c++20', '/utf-8' ]
+dependencies = [ 'argparse', 'cracklib', 'glob', 'json', 'muuk', 'spdlog', 'tomlplusplus', 'zip' ]
 include = [
     'deps\argparse\include',
     'deps\cracklib\include',
@@ -127,38 +136,4 @@ include = [
 libs = []
 modules = []
 sources = [ 'src\main.cpp' ]
-
-[library.googletest]
-base_path = 'deps'
-cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
-include = [
-    'deps\googletest\googlemock',
-    'deps\googletest\googlemock\include',
-    'deps\googletest\googletest',
-    'deps\googletest\googletest\include'
-]
-libs = []
-modules = []
-sources = [ 'deps\googletest\googletest\src\gtest-all.cc', 'deps\googletest\googlemock\src\gmock-all.cc' ]
-
-[build.test]
-base_path = ''
-cflags = [ '/DSPDLOG_COMPILED_LIB', '/DSPDLOG_USE_STD_FORMAT', '/EHsc', '/FS', '/std:c++20', '/utf-8' ]
-include = [
-    'deps\argparse\include',
-    'deps\cracklib\include',
-    'deps\glob\include',
-    'deps\googletest\googlemock',
-    'deps\googletest\googlemock\include',
-    'deps\googletest\googletest',
-    'deps\googletest\googletest\include',
-    'deps\json\single_include\',
-    'deps\spdlog\include',
-    'deps\tomlplusplus\include',
-    'deps\zip\src',
-    'include'
-]
-libs = []
-modules = []
-sources = [ 'tests\internal\muuk_test.cpp', 'tests\internal\mockmuukfiler.cpp' ]
 

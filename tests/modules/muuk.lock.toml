@@ -1,0 +1,18 @@
+[library.moduletest]
+base_path = ''
+cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/Od', '/W4', '/std:c++20', '/utf-8' ]
+dependencies = []
+include = []
+libs = []
+modules = [ 'modules/module_math.ixx', 'modules/module_utils.ixx' ]
+sources = []
+
+[build.bin]
+base_path = ''
+cflags = [ '/EHsc', '/FS', '/std:c++20', '/utf-8' ]
+dependencies = [ 'moduletest' ]
+include = []
+libs = []
+modules = []
+sources = [ 'main.cpp' ]
+

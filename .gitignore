@@ -9,10 +9,11 @@ build/
 *.ilk
 *.pdb
 *.lib
+*.ifc
 
 build.ninja
 github_api_response.json
 .ninja_log
-.ninja.lock
+.ninja_lock
 
 .vscode

@@ -1,5 +1,7 @@
 #include "../include/muukbuilder.h"
-#include "muukbuilder.h"
+#include "../include/util.h"
+#include "../include/logger.h"
+
 
 MuukBuilder::MuukBuilder(IMuukFiler& config_manager)
     : config_manager_(config_manager),
@@ -12,7 +14,7 @@ void MuukBuilder::build(bool is_release, std::string& target_build, const std::s
     logger_->info("[muukbuilder::build] Generating lockfile...");
 
     lock_generator_.parse_muuk_toml("muuk.toml", true);
-
+ 
     for (const auto& [build_name, _] : lock_generator_.get_resolved_packages().at("build")) {
         lock_generator_.resolve_dependencies(build_name);
     }
