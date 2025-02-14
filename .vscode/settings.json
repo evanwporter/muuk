@@ -1,5 +1,4 @@
 {
-  "mesonbuild.configureOnOpen": true,
   "files.associations": {
     "string": "cpp",
     "xstring": "cpp",
@@ -110,7 +109,6 @@
     "editor.suggest.insertMode": "replace",
     "editor.defaultFormatter": "ms-vscode.cpptools"
   },
-  "C_Cpp.default.configurationProvider": "mesonbuild.mesonbuild",
   "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
   "C_Cpp.codeAnalysis.runAutomatically": true,
   "files.encoding": "utf8",

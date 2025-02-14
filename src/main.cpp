@@ -91,6 +91,10 @@ int main(int argc, char* argv[]) {
         .help("Specify a specific build target")
         .default_value(std::string(""))
         .nargs(1);
+    build_command.add_argument("-c", "--compiler")
+        .help("Specify a compiler to use (e.g., g++, clang++, cl)")
+        .default_value(std::string(""))
+        .nargs(1);
 
     argparse::ArgumentParser download_command("install", "Install a package from github");
     download_command.add_argument("url")
@@ -165,7 +169,8 @@ int main(int argc, char* argv[]) {
             {"build", [&]() {
                 bool is_release = build_command.get<bool>("--release");
                 std::string target_build = build_command.get<std::string>("--target-build");
-                muukBuilder.build(is_release, target_build);
+                std::string compiler = build_command.get<std::string>("--compiler");
+                muukBuilder.build(is_release, target_build, compiler);
             }},
             {"install", [&]() {
                 const auto url = download_command.get<std::string>("url");
@@ -210,7 +215,7 @@ int main(int argc, char* argv[]) {
         if (program.get<bool>("--repl")) {
             start_repl(command_map);
             return 0;  // Exit after REPL
-        }
+    }
 #endif
 
         // Check if any known subcommand was used
@@ -228,7 +233,7 @@ int main(int argc, char* argv[]) {
             std::cerr << "Error: Unknown command. Use '--help' to see available commands.\n";
             return 1;
         }
-    }
+}
     catch (const std::runtime_error& err) {
         std::cerr << "Error: " << err.what() << "\n";
         return 1;

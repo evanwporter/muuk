@@ -5,7 +5,8 @@
       "includePath": ["${workspaceFolder}/**"],
       "defines": ["_DEBUG", "UNICODE", "_UNICODE"],
       "windowsSdkVersion": "10.0.22621.0",
-      "cStandard": "c23"
+      "cStandard": "c23",
+      "cppStandard": "c++20"
     }
   ],
   "version": 4

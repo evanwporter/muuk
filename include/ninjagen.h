@@ -15,14 +15,17 @@ namespace fs = std::filesystem;
 
 class NinjaGenerator {
 public:
-    NinjaGenerator(const std::string& lockfile_path, const std::string& build_type);
+    NinjaGenerator(const std::string& lockfile_path, const std::string& build_type, const std::string& compiler, const std::string& archiver, const std::string& linker);
     void generate_ninja_file(const std::string& target_build);
 
 private:
     std::string lockfile_path_;
     std::string build_type_;
+
     std::string compiler_;
     std::string archiver_;
+    std::string linker_;
+
     std::string ninja_file_;
     fs::path build_dir_;
     std::unique_ptr<MuukFiler> muuk_filer_;

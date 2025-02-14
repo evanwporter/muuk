@@ -9,19 +9,22 @@
 #include <filesystem>
 #include <vector>
 #include <map>
+#include "ninjagen.h"
 
 namespace fs = std::filesystem;
 
-NinjaGenerator::NinjaGenerator(const std::string& lockfile_path, const std::string& build_type)
-    : lockfile_path_(lockfile_path), build_type_(build_type),
-    compiler_("cl"), archiver_("lib"), ninja_file_("build.ninja"),
+NinjaGenerator::NinjaGenerator(const std::string& lockfile_path, const std::string& build_type,
+    const std::string& compiler, const std::string& archiver, const std::string& linker)
+    : lockfile_path_(lockfile_path), build_type_(build_type), compiler_(compiler),
+    archiver_(archiver), linker_(linker), ninja_file_("build.ninja"),
     build_dir_(fs::path("build") / build_type) {
 
-    logger_ = Logger::get_logger("ninjagen_logger");  // Initialize logger
-    logger_->info("[NinjaGenerator] Initializing NinjaGenerator with lockfile: '{}' and build type: '{}'", lockfile_path_, build_type_);
+    logger_ = Logger::get_logger("ninjagen_logger");
+    logger_->info("[NinjaGenerator] Initializing with Compiler: '{}', Archiver: '{}', Linker: '{}'", compiler_, archiver_, linker_);
 }
 
 void NinjaGenerator::generate_ninja_file(const std::string& target_build) {
+    (void)target_build;
     muuk_filer_ = std::make_unique<MuukFiler>(lockfile_path_);
     config_ = muuk_filer_->get_config();
 
@@ -59,35 +62,39 @@ void NinjaGenerator::write_ninja_header(std::ofstream& out) {
     logger_->info("[NinjaGenerator] Writing Ninja header...");
 
     out << "# Auto-generated Ninja build file\n\n"
-        << "cxx = " << COMPILER << "\n"
-        << "ar = " << ARCHIVER << "\n"
-        << "linker = " << LINKER << "\n\n";
+        << "cxx = " << compiler_ << "\n"
+        << "ar = " << archiver_ << "\n"
+        << "linker = " << linker_ << "\n\n";
 
-#ifdef _WIN32
-    out << "rule compile\n"
-        << "  command = $cxx /c $in /Fo$out $cflags\n"
-        << "  description = Compiling $in\n\n"
 
-        << "rule archive\n"
-        << "  command = $ar /OUT:$out $in\n"
-        << "  description = Archiving $out\n\n"
+    if (compiler_ == "cl") {
+        // MSVC (cl)
+        out << "rule compile\n"
+            << "  command = $cxx /c $in /Fo$out $cflags\n"
+            << "  description = Compiling $in\n\n"
 
-        << "rule link\n"
-        << "  command = $linker $in /OUT:$out $lflags $libraries\n"
-        << "  description = Linking $out\n\n";
-#else
-    out << "rule compile\n"
-        << "  command = $cxx -c $in -o $out $cflags\n"
-        << "  description = Compiling $in\n\n"
+            << "rule archive\n"
+            << "  command = $ar /OUT:$out $in\n"
+            << "  description = Archiving $out\n\n"
 
-        << "rule archive\n"
-        << "  command = $ar $out $in\n"
-        << "  description = Archiving $out\n\n"
+            << "rule link\n"
+            << "  command = $linker $in /OUT:$out $lflags $libraries\n"
+            << "  description = Linking $out\n\n";
+    }
+    else {
+        // MinGW or Clang on Windows / Unix
+        out << "rule compile\n"
+            << "  command = $cxx -c $in -o $out $cflags\n"
+            << "  description = Compiling $in\n\n"
 
-        << "rule link\n"
-        << "  command = $linker $in -o $out $lflags $libraries\n"
-        << "  description = Linking $out\n\n";
-#endif
+            << "rule archive\n"
+            << "  command = $ar rcs $out $in\n"
+            << "  description = Archiving $out\n\n"
+
+            << "rule link\n"
+            << "  command = $linker $in -o $out $lflags $libraries\n"
+            << "  description = Linking $out\n\n";
+    }
 }
 
 std::pair<std::map<std::string, std::vector<std::string>>, std::vector<std::string>>
@@ -138,8 +145,8 @@ NinjaGenerator::compile_objects(std::ofstream& out) {
                 auto sources = pkg_table->at("sources").as_array();
                 if (sources) {
                     for (const auto& src : *sources) {
-                        std::string src_path = util::to_linux_path(*src.value<std::string>());
-                        std::string obj_path = util::to_linux_path((module_dir / fs::path(src_path).stem()).string() + ".obj");
+                        std::string src_path = util::to_linux_path(fs::absolute(fs::path(*src.value<std::string>())).string());
+                        std::string obj_path = util::to_linux_path((module_dir / fs::path(src_path).stem()).string() + OBJ_EXT);
                         obj_files.push_back(obj_path);
 
                         logger_->info("Compiling: {} -> {}", src_path, obj_path);
@@ -161,7 +168,7 @@ void NinjaGenerator::archive_libraries(std::ofstream& out,
     std::vector<std::string>& libraries) {
 
     for (const auto& [pkg_name, obj_files] : objects) {
-        fs::path lib_name = build_dir_ / pkg_name / (pkg_name + ".lib");
+        fs::path lib_name = build_dir_ / pkg_name / (pkg_name + LIB_EXT);
         std::string normalized_lib = util::to_linux_path(lib_name.string());
 
         std::vector<std::string> input_files = obj_files;
@@ -226,7 +233,11 @@ void NinjaGenerator::link_executable(std::ofstream& out,
     }
 
     // TODO: Only add this when its in debug mode
-    lflags += "/DEBUG ";
+#ifdef _WIN32
+    lflags += " /DEBUG ";
+#else
+    lflags += " -g ";
+#endif
 
     // // TODO: Find a better location for this
     // lflags += "/LTCG";

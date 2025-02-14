@@ -26,7 +26,7 @@ build build/release/googletest/gtest-all.obj: compile deps/google-googletest-v1.
   cflags = /Ideps/google-googletest-v1.15.2/googlemock /Ideps/google-googletest-v1.15.2/googlemock/include /Ideps/google-googletest-v1.15.2/googletest /Ideps/google-googletest-v1.15.2/googletest/include /DDEBUG /Zi /EHsc /FS /W4 /std:c++20 /utf-8
 build build/release/googletest/gmock-all.obj: compile deps/google-googletest-v1.15.2/googlemock/src/gmock-all.cc
   cflags = /Ideps/google-googletest-v1.15.2/googlemock /Ideps/google-googletest-v1.15.2/googlemock/include /Ideps/google-googletest-v1.15.2/googletest /Ideps/google-googletest-v1.15.2/googletest/include /DDEBUG /Zi /EHsc /FS /W4 /std:c++20 /utf-8
-build build/release/muuk/muuk.obj: compile src/muuk.cpp
+build build/release/muuk/muuk.obj: compile src/muuker.cpp
   cflags = /Ideps/evanwporter-cracklib-v0.0.3/include /Ideps/gabime-spdlog-v1.15.1/include /Ideps/kuba---zip-v0.3.3/src /Ideps/nlohmann-json-v3.11.3/single_include /Ideps/p-ranav-argparse-v3.2/include /Ideps/p-ranav-glob-v0.3/single_include /Iinclude /DDEBUG /Zi -DDEBUG -DSPDLOG_COMPILED_LIB -DSPDLOG_USE_STD_FORMAT /EHsc /FS /W4 /std:c++20 /utf-8
 build build/release/muuk/util.obj: compile src/util.cpp
   cflags = /Ideps/evanwporter-cracklib-v0.0.3/include /Ideps/gabime-spdlog-v1.15.1/include /Ideps/kuba---zip-v0.3.3/src /Ideps/nlohmann-json-v3.11.3/single_include /Ideps/p-ranav-argparse-v3.2/include /Ideps/p-ranav-glob-v0.3/single_include /Iinclude /DDEBUG /Zi -DDEBUG -DSPDLOG_COMPILED_LIB -DSPDLOG_USE_STD_FORMAT /EHsc /FS /W4 /std:c++20 /utf-8

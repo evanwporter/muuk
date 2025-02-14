@@ -1,6 +1,6 @@
 [library.argparse]
 base_path = 'deps'
-cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/Od', '/W4', '/std:c++20', '/utf-8' ]
+cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
 include = [ 'deps\argparse\include' ]
 libs = []
 modules = []
@@ -8,7 +8,7 @@ sources = []
 
 [library.cracklib]
 base_path = 'deps'
-cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/Od', '/W4', '/std:c++20', '/utf-8' ]
+cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
 include = [ 'deps\cracklib\include' ]
 libs = []
 modules = []
@@ -16,15 +16,15 @@ sources = [ 'deps\cracklib\src\cracklib.cpp' ]
 
 [library.glob]
 base_path = 'deps/glob'
-cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/Od', '/W4', '/std:c++20', '/utf-8' ]
+cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
 include = [ 'deps\glob\include' ]
 libs = []
 modules = []
-sources = []
+sources = [ 'deps\glob\src\glob.cpp' ]
 
 [library.json]
 base_path = 'deps'
-cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/Od', '/W4', '/std:c++20', '/utf-8' ]
+cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
 include = [ 'deps\json\single_include\' ]
 libs = []
 modules = []
@@ -33,14 +33,15 @@ sources = []
 [library.spdlog]
 base_path = 'deps'
 cflags = [
-    '-DDEBUG',
-    '-g',
+    '/DNDEBUG',
     '/DSPDLOG_COMPILED_LIB',
     '/DSPDLOG_USE_STD_FORMAT',
     '/EHsc',
     '/FS',
-    '/Od',
-    '/W4',
+    '/GL',
+    '/Gy',
+    '/O2',
+    '/Oi',
     '/std:c++20',
     '/utf-8'
 ]
@@ -59,7 +60,7 @@ sources = [
 
 [library.tomlplusplus]
 base_path = 'deps'
-cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/Od', '/W4', '/std:c++20', '/utf-8' ]
+cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
 include = [ 'deps\tomlplusplus\include' ]
 libs = []
 modules = []
@@ -67,7 +68,7 @@ sources = []
 
 [library.zip]
 base_path = 'deps'
-cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/Od', '/W4', '/std:c++20', '/utf-8' ]
+cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
 include = [ 'deps\zip\src' ]
 libs = []
 modules = []
@@ -76,14 +77,15 @@ sources = [ 'deps\zip\src\zip.c' ]
 [library.muuk]
 base_path = ''
 cflags = [
-    '-DDEBUG',
-    '-g',
+    '/DNDEBUG',
     '/DSPDLOG_COMPILED_LIB',
     '/DSPDLOG_USE_STD_FORMAT',
     '/EHsc',
     '/FS',
-    '/Od',
-    '/W4',
+    '/GL',
+    '/Gy',
+    '/O2',
+    '/Oi',
     '/std:c++20',
     '/utf-8'
 ]
@@ -128,7 +130,7 @@ sources = [ 'src\main.cpp' ]
 
 [library.googletest]
 base_path = 'deps'
-cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/Od', '/W4', '/std:c++20', '/utf-8' ]
+cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
 include = [
     'deps\googletest\googlemock',
     'deps\googletest\googlemock\include',

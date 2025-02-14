@@ -31,6 +31,7 @@ void Logger::initialize() {
 }
 
 std::shared_ptr<spdlog::logger> Logger::get_logger(const std::string& name) {
+    (void)name;
     if (!global_logger) {
         initialize();
     }

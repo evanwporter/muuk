@@ -2,13 +2,23 @@
   "tasks": [
     {
       "type": "shell",
-      "label": "Build Muuk Debug",
+      "label": "Build Muuk Debug (MSVC)",
       "command": "muuk",
       "args": [
         "build"
         // "--release"
       ],
-      "problemMatcher": ["$msCompile"],
+      "problemMatcher": ["$msCompile"]
+    },
+    {
+      "type": "shell",
+      "label": "Build Muuk Debug (GCC)",
+      "command": "build/release/bin/muuk",
+      "args": [
+        "build"
+        // "--release"
+      ],
+      "problemMatcher": ["$gcc"],
       "group": {
         "kind": "build",
         "isDefault": true

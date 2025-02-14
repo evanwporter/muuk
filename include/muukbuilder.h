@@ -14,16 +14,20 @@ class MuukBuilder {
 public:
     explicit MuukBuilder(IMuukFiler& config_manager);
 
-    void build(bool is_release, std::string& target_build);
+    void build(bool is_release, std::string& target_build, const std::string& compiler);
     bool is_compiler_available() const;
 
 private:
     IMuukFiler& config_manager_;
     MuukLockGenerator lock_generator_;
-    NinjaGenerator ninja_generator_;
+    std::unique_ptr<NinjaGenerator> ninja_generator_;
     std::shared_ptr<spdlog::logger> logger_;
 
     void execute_build(bool is_release) const;
+
+    std::string detect_default_compiler() const;
+    std::string detect_archiver(const std::string& compiler) const;
+    std::string detect_linker(const std::string& compiler) const;
 };
 
 #endif // MUUK_BUILDER_H
