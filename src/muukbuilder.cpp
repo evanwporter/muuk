@@ -1,27 +1,24 @@
-#include "../include/muukbuilder.h"
-#include "../include/util.h"
-#include "../include/logger.h"
+#include "muukbuilder.h"
+#include "util.h"
+#include "logger.h"
+#include "muukfiler.h"
 
 
-MuukBuilder::MuukBuilder(IMuukFiler& config_manager)
-    : config_manager_(config_manager),
-      lock_generator_("./") {
+MuukBuilder::MuukBuilder(MuukFiler& config_manager)
+    : config_manager_(config_manager)
+{
     logger_ = Logger::get_logger("muukbuilder_logger");
 }
 
 void MuukBuilder::build(bool is_release, std::string& target_build, const std::string& compiler) {
     std::string build_type = is_release ? "release" : "debug";
-    logger_->info("[muukbuilder::build] Generating lockfile...");
+    logger_->info("Generating lockfile...");
 
-    lock_generator_.parse_muuk_toml("muuk.toml", true);
- 
-    for (const auto& [build_name, _] : lock_generator_.get_resolved_packages().at("build")) {
-        lock_generator_.resolve_dependencies(build_name);
-    }
+    lock_generator_ = std::make_unique<MuukLockGenerator>("./");
 
-    lock_generator_.generate_lockfile("muuk.lock.toml", is_release);
+    lock_generator_->generate_lockfile("muuk.lock.toml", is_release);
 
-    logger_->info("[muukbuilder::build] Generating Ninja build script...");
+    logger_->info("Generating Ninja build script...");
 
     // Detect compiler, archiver & linker
     std::string selected_compiler = compiler.empty() ? detect_default_compiler() : compiler;
@@ -37,7 +34,7 @@ void MuukBuilder::build(bool is_release, std::string& target_build, const std::s
     );
     ninja_generator_->generate_ninja_file(target_build);
 
-    logger_->info("[muukbuilder::build] Starting Ninja build...");
+    logger_->info("Starting Ninja build...");
 
     execute_build(is_release);
 }
@@ -47,25 +44,25 @@ void MuukBuilder::execute_build(bool is_release) const {
 
     // Use Ninja to execute the build
     std::string ninja_command = "ninja";
-    logger_->info("[muukbuilder::build] Running {} build: {}", build_type, ninja_command);
+    logger_->info("Running {} build: {}", build_type, ninja_command);
 
     int result = util::execute_command(ninja_command.c_str());
 
     if (result != 0) {
-        logger_->error("[muukbuilder::build] {} build failed with error code: {}", build_type, result);
+        logger_->error("{} build failed with error code: {}", build_type, result);
     }
     else {
-        logger_->info("[MuukBuilder::execute_build] {} build completed successfully.", build_type);
+        logger_->info("{} build completed successfully.", build_type);
 
         std::string compdb_command = "ninja -t compdb > build/compile_commands.json";
-        logger_->info("[MuukBuilder::execute_build] Generating compile_commands.json...");
+        logger_->info("Generating compile_commands.json...");
         int compdb_result = util::execute_command(compdb_command.c_str());
 
         if (compdb_result != 0) {
-            logger_->error("[MuukBuilder::execute_build] Failed to generate compile_commands.json");
+            logger_->error("Failed to generate compile_commands.json");
         }
         else {
-            logger_->info("[MuukBuilder::execute_build] Successfully generated compile_commands.json");
+            logger_->info("Successfully generated compile_commands.json");
         }
     }
 }
@@ -75,12 +72,12 @@ bool MuukBuilder::is_compiler_available() const {
 
     for (const char* compiler : compilers) {
         if (util::command_exists(compiler)) {
-            logger_->info("[muukbuilder::check] Found compiler: {}", compiler);
+            logger_->info("Found compiler: {}", compiler);
             return true;
         }
     }
 
-    logger_->error("[muukbuilder::check] No compatible C++ compiler found on PATH. Install MSVC, GCC, or Clang.");
+    logger_->error("No compatible C++ compiler found on PATH. Install MSVC, GCC, or Clang.");
     return false;
 }
 
@@ -111,12 +108,12 @@ std::string MuukBuilder::detect_default_compiler() const {
 
     for (const char* compiler : compilers) {
         if (util::command_exists(compiler)) {
-            logger_->info("[muukbuilder::check] Found default compiler: {}", compiler);
+            logger_->info("Found default compiler: {}", compiler);
             return compiler;
         }
     }
 
-    logger_->error("[muukbuilder::check] No suitable C++ compiler found. Install GCC, Clang, or MSVC.");
+    logger_->error("No suitable C++ compiler found. Install GCC, Clang, or MSVC.");
     return "g++";  // Default fallback
 }
     

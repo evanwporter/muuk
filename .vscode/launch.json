@@ -9,7 +9,15 @@
       "type": "cppvsdbg",
       "request": "launch",
       "program": "${workspaceFolder}/build/debug/bin/bin.exe",
-      "args": ["build"],
+      "args": [
+        "build",
+        "-c",
+        "cl",
+        "--release"
+        // "install",
+        // "add",
+        // "libgit2/libgit2"
+      ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],

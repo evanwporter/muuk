@@ -1,6 +1,0 @@
-[package]
-name = "glob"
-
-[library.glob]
-include = ["glob/include"]
-sources = ["glob/source/*.cpp"]

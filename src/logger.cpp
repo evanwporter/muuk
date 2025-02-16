@@ -1,39 +1,53 @@
 #include "../include/logger.h"
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
-#include <memory>
+#include <filesystem>
 #include <iostream>
 
-// #define LOG_TO_CONSOLE
-
-std::shared_ptr<spdlog::logger> Logger::global_logger;
+// Static member definitions
+std::shared_ptr<spdlog::logger> Logger::logger_ = nullptr;
 std::once_flag Logger::init_flag;
 
 void Logger::initialize() {
     std::call_once(init_flag, []() {
         try {
-#ifdef LOG_TO_CONSOLE
-            auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-            global_logger = std::make_shared<spdlog::logger>("console_logger", console_sink);
-#else
+            // Ensure the "logs" directory exists
+            std::filesystem::create_directories("logs");
+
+            // Set up file sink (logs everything)
             auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("logs/muuk.log", true);
-            global_logger = std::make_shared<spdlog::logger>("file_logger", file_sink);
-#endif
-            global_logger->set_level(spdlog::level::trace);
-            global_logger->set_pattern("[%Y-%m-%d %H:%M:%S] [%l] %v");
+            file_sink->set_level(spdlog::level::trace);
+            file_sink->set_pattern("[%Y-%m-%d %H:%M:%S] [%l] %v");
+
+            // Set up console sink (only warnings and errors)
+            auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+            console_sink->set_level(spdlog::level::warn);
+            console_sink->set_pattern("[%l] %v");
+
+            // Create single global logger
+            logger_ = std::make_shared<spdlog::logger>("muuk", spdlog::sinks_init_list{ file_sink, console_sink });
+            logger_->set_level(spdlog::level::trace);
+
             spdlog::flush_every(std::chrono::seconds(1));
-            spdlog::register_logger(global_logger);
+            spdlog::set_default_logger(logger_); // Set as default logger
+
+            logger_->info("Logger initialized successfully.");
         }
         catch (const spdlog::spdlog_ex& ex) {
             std::cerr << "Logger initialization failed: " << ex.what() << std::endl;
+            std::exit(EXIT_FAILURE);  // Prevent silent crash
         }
         });
 }
 
 std::shared_ptr<spdlog::logger> Logger::get_logger(const std::string& name) {
-    (void)name;
-    if (!global_logger) {
+    if (!logger_) {
         initialize();
     }
-    return global_logger;
+    return logger_;
+}
+
+void Logger::log_important_info(const std::string& message) {
+    std::cout << message << std::endl;
+    get_logger()->info(message);
 }

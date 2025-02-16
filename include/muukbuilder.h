@@ -11,14 +11,14 @@
 
 class MuukBuilder {
 public:
-    explicit MuukBuilder(IMuukFiler& config_manager);
+    explicit MuukBuilder(MuukFiler& config_manager);
 
     void build(bool is_release, std::string& target_build, const std::string& compiler);
     bool is_compiler_available() const;
 
 private:
-    IMuukFiler& config_manager_;
-    MuukLockGenerator lock_generator_;
+    MuukFiler& config_manager_;
+    std::unique_ptr<MuukLockGenerator> lock_generator_;
     std::unique_ptr<NinjaGenerator> ninja_generator_;
     std::shared_ptr<spdlog::logger> logger_;
 

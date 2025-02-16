@@ -1,6 +1,0 @@
-[package]
-name = 'argparse'
-version = 'v3.2'
-
-[library.argparse]
-include = ['argparse/include']

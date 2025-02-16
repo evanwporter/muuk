@@ -23,30 +23,30 @@
 #include <filesystem>
 #include <cstdlib>
 #include <iostream>
-#include <glob/glob.hpp>
+#include <glob/glob.h>
 #include <unordered_set>
 #include <format>
 
 namespace fs = std::filesystem;
 
 // namespace Muuk {
-Muuker::Muuker(IMuukFiler& config_manager) : config_manager_(config_manager), muuk_builder_(config_manager) {
+Muuker::Muuker(MuukFiler& config_manager) : config_manager_(config_manager), muuk_builder_(config_manager) {
     logger_ = Logger::get_logger("muuk_logger");
 }
 
 void Muuker::clean() const {
-    logger_->info("[muuk::clean] Starting clean operation.");
+    logger_->info("Starting clean operation.");
 
     if (!config_manager_.has_section("clean")) {
-        logger_->warn("[muuk::clean] 'clean' operation is not defined in the config file.");
+        logger_->warn("'clean' operation is not defined in the config file.");
         return;
     }
 
     fs::path current_dir = fs::current_path();
-    logger_->info("[muuk::clean] Current working directory: {}", current_dir.string());
+    logger_->info("Current working directory: {}", current_dir.string());
 
     if (!fs::exists(current_dir)) {
-        logger_->warn("[muuk::clean] Skipping clean operation: Directory '{}' does not exist.", current_dir.string());
+        logger_->warn("Skipping clean operation: Directory '{}' does not exist.", current_dir.string());
         return;
     }
 
@@ -54,12 +54,12 @@ void Muuker::clean() const {
     auto clean_patterns = clean_section.get_as<toml::array>("patterns");
 
     if (!clean_patterns) {
-        logger_->warn("[muuk::clean] 'clean.patterns' is not a valid array.");
+        logger_->warn("'clean.patterns' is not a valid array.");
         return;
     }
 
     // Log detected cleaning patterns
-    logger_->info("[muuk::clean] Cleaning patterns:");
+    logger_->info("Cleaning patterns:");
     for (const auto& pattern : *clean_patterns) {
         if (pattern.is_string()) {
             logger_->info(" - {}", *pattern.value<std::string>());
@@ -74,47 +74,47 @@ void Muuker::clean() const {
             if (pattern.is_string()) {
                 std::string pattern_str = *pattern.value<std::string>();
                 std::string full_pattern = (fs::path(current_dir) / pattern_str).string();
-                std::vector<std::string> matched_files = glob::glob(full_pattern);
 
+                std::vector<std::filesystem::path> matched_files = glob::glob(full_pattern);
+
+                // Ensure files_to_delete is also std::vector<std::filesystem::path>
                 for (const auto& file_path : matched_files) {
-                    files_to_delete.push_back(fs::path(file_path));
+                    files_to_delete.push_back(file_path);
                 }
             }
         }
 
-
-
         // Delete collected files
         for (const auto& file : files_to_delete) {
             try {
-                logger_->info("[muuk::clean] Removing file: {}", file.string());
+                logger_->info("Removing file: {}", file.string());
                 util::remove_path(file.string());
             }
             catch (const std::exception& e) {
-                logger_->warn("[muuk::clean] Failed to remove '{}': {}", file.string(), e.what());
+                logger_->warn("Failed to remove '{}': {}", file.string(), e.what());
             }
         }
     }
     catch (const std::exception& e) {
-        logger_->error("[muuk::clean] Error during directory iteration: {}", e.what());
+        logger_->error("Error during directory iteration: {}", e.what());
     }
 
-    logger_->info("[muuk::clean] Clean operation completed.");
+    logger_->info("Clean operation completed.");
 }
 
 void Muuker::run_script(const std::string& script, const std::vector<std::string>& args) const {
-    logger_->info("[muuk::run] Running script: {}", script);
+    logger_->info("Running script: {}", script);
 
     const auto& config = config_manager_.get_config();
     auto scripts_section = config.get_as<toml::table>("scripts");
     if (!scripts_section || !scripts_section->contains(script)) {
-        logger_->error("[muuk::run] Script '{}' not found in the config file.", script);
+        logger_->error("Script '{}' not found in the config file.", script);
         return;
     }
 
     auto script_entry = scripts_section->get(script);
     if (!script_entry || !script_entry->is_string()) {
-        logger_->error("[muuk::run] Script '{}' must be a string command in the config file.", script);
+        logger_->error("Script '{}' must be a string command in the config file.", script);
         return;
     }
 
@@ -123,18 +123,18 @@ void Muuker::run_script(const std::string& script, const std::vector<std::string
         command += " " + arg;
     }
 
-    logger_->info("[muuk::run] Executing command: {}", command);
+    logger_->info("Executing command: {}", command);
     int result = util::execute_command(command.c_str());
     if (result != 0) {
-        logger_->error("[muuk::run] Command failed with error code: {}", result);
+        logger_->error("Command failed with error code: {}", result);
     }
     else {
-        logger_->info("[muuk::run] Command executed successfully.");
+        logger_->info("Command executed successfully.");
     }
 }
 
 void Muuker::download_github_release(const std::string& repo, const std::string& version) {
-    logger_->info("[muuk::install] Downloading GitHub release. Repository: {}, Version: {}", repo, version);
+    logger_->info("Downloading GitHub release. Repository: {}, Version: {}", repo, version);
 
     size_t slash_pos = repo.find('/');
     if (slash_pos == std::string::npos) {
@@ -149,21 +149,21 @@ void Muuker::download_github_release(const std::string& repo, const std::string&
     // If version is "latest", fetch the latest release version
     if (version == "latest") {
         std::string api_url = "https://api.github.com/repos/" + author + "/" + repo_name + "/releases/latest";
-        logger_->info("[muuk::install] Fetching latest release from: {}", api_url);
+        logger_->info("Fetching latest release from: {}", api_url);
 
         try {
             nlohmann::json response = util::fetch_json(api_url);
             if (response.contains("tag_name") && response["tag_name"].is_string()) {
                 resolved_version = response["tag_name"].get<std::string>();
-                logger_->info("[muuk::install] Resolved latest version: {} of {}/{}", resolved_version, author, repo_name);
+                logger_->info("Resolved latest version: {} of {}/{}", resolved_version, author, repo_name);
             }
             else {
-                logger_->error("[muuk::install] Failed to fetch latest release version of {}/{}", author, repo_name);
+                logger_->error("Failed to fetch latest release version of {}/{}", author, repo_name);
                 return;
             }
         }
         catch (const std::exception& e) {
-            logger_->error("[muuk::install] Error fetching latest release: {}", e.what());
+            logger_->error("Error fetching latest release: {}", e.what());
             return;
         }
     }
@@ -179,7 +179,7 @@ void Muuker::download_github_release(const std::string& repo, const std::string&
     std::string renamed_folder = deps_path + "/" + author + "-" + repo_name + "-" + resolved_version;
 
     try {
-        logger_->info("[muuk::install] Downloading file from URL: {}", archive_url);
+        logger_->info("Downloading file from URL: {}", archive_url);
         util::download_file(archive_url, zip_path);
 
         logger_->info("Extracting downloaded file: {}", zip_path);
@@ -190,14 +190,14 @@ void Muuker::download_github_release(const std::string& repo, const std::string&
         for (const auto& entry : fs::directory_iterator(deps_path)) {
             if (entry.is_directory() && entry.path().filename().string().find(repo_name) == 0) {
                 fs::rename(entry.path(), renamed_folder);
-                logger_->info("[muuk::install] Renamed extracted folder '{}' to '{}'", entry.path().string(), renamed_folder);
+                logger_->info("Renamed extracted folder '{}' to '{}'", entry.path().string(), renamed_folder);
                 renamed = true;
                 break;
             }
         }
 
         if (!renamed) {
-            logger_->error("[muuk::install] Could not find the expected extracted folder: {}", expected_extracted_folder);
+            logger_->error("Could not find the expected extracted folder: {}", expected_extracted_folder);
         }
 
         // Clean up ZIP file
@@ -207,17 +207,17 @@ void Muuker::download_github_release(const std::string& repo, const std::string&
         add_dependency(author, repo_name, resolved_version);
     }
     catch (const std::exception& e) {
-        logger_->error("[muuk::install] Error downloading GitHub repository: {}", e.what());
+        logger_->error("Error downloading GitHub repository: {}", e.what());
     }
 }
 
 
 void Muuker::add_dependency(const std::string& author, const std::string& repo_name, const std::string& version) {
-    logger_->info("[muuk::install] Adding/updating dependency: {}-{} - Version: {}", author, repo_name, version);
+    logger_->info("Adding/updating dependency: {}-{} - Version: {}", author, repo_name, version);
 
     if (!config_manager_.has_section("dependencies")) {
-        logger_->info("[muuk::install] Creating 'dependencies' section in config.");
-        config_manager_.update_section("dependencies", toml::table{});
+        logger_->info("Creating 'dependencies' section in config.");
+        // config_manager_.update_section("dependencies", toml::table{});
     }
 
     toml::table dependencies = config_manager_.get_section("dependencies");
@@ -226,24 +226,24 @@ void Muuker::add_dependency(const std::string& author, const std::string& repo_n
     auto existing_version = dependencies.get(key);
     if (existing_version && existing_version->is_string()) {
         if (*existing_version->value<std::string>() == version) {
-            logger_->info("[muuk::install] Dependency {} is already at version {}.", key, version);
+            logger_->info("Dependency {} is already at version {}.", key, version);
         }
         else {
             dependencies.insert_or_assign(key, version);
-            logger_->info("[muuk::install] Updated dependency {} to version {}.", key, version);
+            logger_->info("Updated dependency {} to version {}.", key, version);
         }
     }
     else {
         dependencies.insert_or_assign(key, version);
-        logger_->info("[muuk::install] Added new dependency: {} - Version: {}", key, version);
+        logger_->info("Added new dependency: {} - Version: {}", key, version);
     }
 
-    config_manager_.update_section("dependencies", dependencies);
-    logger_->info("[muuk::install] Dependencies updated successfully.");
+    // config_manager_.update_section("dependencies", dependencies);
+    logger_->info("Dependencies updated successfully.");
 }
 
 void Muuker::download_patch(const std::string& author, const std::string& repo_name, const std::string& version) {
-    logger_->info("[muuk::patch] Downloading patch for {}-{} - Version: {}", author, repo_name, version);
+    logger_->info("Downloading patch for {}-{} - Version: {}", author, repo_name, version);
 
     std::string patch_name = author + "-" + repo_name + "-" + version + ".toml";
     std::string patch_url = "https://github.com/evanwporter/muuk-tomls/raw/main/" + patch_name;
@@ -256,31 +256,31 @@ void Muuker::download_patch(const std::string& author, const std::string& repo_n
     util::ensure_directory_exists(module_folder);
 
     try {
-        logger_->info("[muuk::patch] Downloading patch from {}", patch_url);
+        logger_->info("Downloading patch from {}", patch_url);
         util::download_file(patch_url, temp_patch_path);  // Since download_file returns void, no direct error handling
 
         if (!fs::exists(temp_patch_path)) {
-            logger_->warn("[muuk::patch] Patch file '{}' was not found after download. Skipping.", temp_patch_path);
+            logger_->warn("Patch file '{}' was not found after download. Skipping.", temp_patch_path);
             return;
         }
 
         fs::rename(temp_patch_path, final_patch_path);
-        logger_->info("[muuk::patch] Patch successfully applied to '{}'", final_patch_path);
+        logger_->info("Patch successfully applied to '{}'", final_patch_path);
     }
     catch (const std::exception& e) {
-        logger_->error("[muuk::patch] Error downloading patch: {}", e.what());
+        logger_->error("Error downloading patch: {}", e.what());
     }
 }
 
 void Muuker::upload_patch(bool dry_run) {
-    logger_->info("[muuk::patch] Scanning for patches to upload...");
+    logger_->info("Scanning for patches to upload...");
 
     std::string modules_folder = "modules";
     std::string patch_repo_path = "muuk-tomls";
     fs::path patch_index_file = patch_repo_path + "/uploaded_patches.txt";
 
     if (!fs::exists(patch_repo_path)) {
-        logger_->error("[muuk::patch] Patch repository directory '{}' does not exist!", patch_repo_path);
+        logger_->error("Patch repository directory '{}' does not exist!", patch_repo_path);
         return;
     }
 
@@ -312,10 +312,10 @@ void Muuker::upload_patch(bool dry_run) {
     // Dry Run Mode
     if (dry_run) {
         if (patches_to_upload.empty()) {
-            logger_->info("[muuk::patch] No patches need to be uploaded.");
+            logger_->info("No patches need to be uploaded.");
         }
         else {
-            logger_->info("[muuk::patch] The following patches would be uploaded:");
+            logger_->info("The following patches would be uploaded:");
             for (const auto& patch : patches_to_upload) {
                 logger_->info(" - {}", patch);
             }
@@ -325,14 +325,14 @@ void Muuker::upload_patch(bool dry_run) {
 
     // Actual Upload
     for (const auto& module_name : patches_to_upload) {
-        logger_->info("[muuk::patch] Uploading patch for module '{}'", module_name);
+        logger_->info("Uploading patch for module '{}'", module_name);
         std::string patch_file = modules_folder + "/" + module_name + "/muuk.toml";
         std::string patch_target = patch_repo_path + "/" + module_name + ".toml";
 
         try {
             // Copy patch to repo
             fs::copy(patch_file, patch_target, fs::copy_options::overwrite_existing);
-            logger_->info("[muuk::patch] Patch copied to '{}'", patch_target);
+            logger_->info("Patch copied to '{}'", patch_target);
 
             // Git commit and push
             std::string git_add = "cd " + patch_repo_path + " && git add " + patch_target;
@@ -348,20 +348,20 @@ void Muuker::upload_patch(bool dry_run) {
             outfile << module_name << "\n";
             outfile.close();
 
-            logger_->info("[muuk::patch] Patch for '{}' uploaded successfully.", module_name);
+            logger_->info("Patch for '{}' uploaded successfully.", module_name);
         }
         catch (const std::exception& e) {
-            logger_->error("[muuk::patch] Error uploading patch '{}': {}", module_name, e.what());
+            logger_->error("Error uploading patch '{}': {}", module_name, e.what());
         }
     }
 }
 
 void Muuker::install_submodule(const std::string& repo) {
-    logger_->info("[muuk::install] Installing Git submodule: {}", repo);
+    logger_->info("Installing Git submodule: {}", repo);
 
     size_t slash_pos = repo.find('/');
     if (slash_pos == std::string::npos) {
-        logger_->error("[muuk::install] Invalid repository format. Expected <author>/<repo> but got: {}", repo);
+        logger_->error("Invalid repository format. Expected <author>/<repo> but got: {}", repo);
         return;
     }
 
@@ -372,20 +372,20 @@ void Muuker::install_submodule(const std::string& repo) {
     util::ensure_directory_exists("deps");
 
     std::string git_command = "git submodule add https://github.com/" + repo + ".git " + submodule_path;
-    logger_->info("[muuk::install] Executing: {}", git_command);
+    logger_->info("Executing: {}", git_command);
 
     int result = util::execute_command(git_command.c_str());
     if (result != 0) {
-        logger_->error("[muuk::install] Failed to add submodule '{}'.", repo);
+        logger_->error("Failed to add submodule '{}'.", repo);
         return;
     }
 
     std::string init_command = "git submodule update --init --recursive " + submodule_path;
-    logger_->info("[muuk::install] Initializing submodule...");
+    logger_->info("Initializing submodule...");
     result = util::execute_command(init_command.c_str());
 
     if (result != 0) {
-        logger_->error("[muuk::install] Failed to initialize submodule '{}'.", repo);
+        logger_->error("Failed to initialize submodule '{}'.", repo);
         return;
     }
 
@@ -397,21 +397,21 @@ void Muuker::install_submodule(const std::string& repo) {
         version = "latest"; // Fallback in case no tags are found
     }
 
-    logger_->info("[muuk::install] Submodule '{}' installed with version '{}'.", repo_name, version);
+    logger_->info("Submodule '{}' installed with version '{}'.", repo_name, version);
 
     // Update muuk.toml
     update_muuk_toml_with_submodule(author, repo_name, version);
 
-    logger_->info("[muuk::install] Successfully added and initialized submodule at '{}'.", submodule_path);
+    logger_->info("Successfully added and initialized submodule at '{}'.", submodule_path);
 }
 
 
 void Muuker::update_muuk_toml_with_submodule(const std::string& author, const std::string& repo_name, const std::string& version) {
-    logger_->info("[muuk::update_muuk_toml] Updating muuk.toml with new submodule: {}/{} - Version: {}", author, repo_name, version);
+    logger_->info("Updating muuk.toml with new submodule: {}/{} - Version: {}", author, repo_name, version);
 
     if (!config_manager_.has_section("library.muuk.dependencies")) {
-        logger_->info("[muuk::update_muuk_toml] Creating 'library.muuk.dependencies' section in config.");
-        config_manager_.update_section("library.muuk.dependencies", toml::table{});
+        logger_->info("Creating 'library.muuk.dependencies' section in config.");
+        // config_manager_.update_section("library.muuk.dependencies", toml::table{});
     }
 
     toml::table dependencies = config_manager_.get_section("library.muuk.dependencies");
@@ -426,22 +426,22 @@ void Muuker::update_muuk_toml_with_submodule(const std::string& author, const st
 
     dependencies.insert_or_assign(key, dependency_entry);
 
-    config_manager_.update_section("library.muuk.dependencies", dependencies);
-    logger_->info("[muuk::update_muuk_toml] muuk.toml updated successfully.");
+    // config_manager_.update_section("library.muuk.dependencies", dependencies);
+    // logger_->info("muuk.toml updated successfully.");
 }
 
 void Muuker::remove_package(const std::string& package_name) {
-    logger_->info("[muuk::remove] Attempting to remove package: {}", package_name);
+    logger_->info("Attempting to remove package: {}", package_name);
 
     if (!config_manager_.has_section("library.muuk.dependencies")) {
-        logger_->error("[muuk::remove] No dependencies section found in muuk.toml.");
+        logger_->error("No dependencies section found in muuk.toml.");
         return;
     }
 
     toml::table dependencies = config_manager_.get_section("library.muuk.dependencies");
 
     if (!dependencies.contains(package_name)) {
-        logger_->error("[muuk::remove] Package '{}' not found in dependencies.", package_name);
+        logger_->error("Package '{}' not found in dependencies.", package_name);
         return;
     }
 
@@ -457,15 +457,15 @@ void Muuker::remove_package(const std::string& package_name) {
     }
 
     dependencies.erase(package_name);
-    config_manager_.update_section("library.muuk.dependencies", dependencies);
-    logger_->info("[muuk::remove] Removed '{}' from muuk.toml.", package_name);
+    // config_manager_.update_section("library.muuk.dependencies", dependencies);
+    logger_->info("Removed '{}' from muuk.toml.", package_name);
 
     // Determine package directory
     fs::path package_dir = fs::path("deps") / package_name;
 
     // If it's a Git submodule, deinitialize and remove it
     if (!git_url.empty()) {
-        logger_->info("[muuk::remove] Detected '{}' as a Git submodule. Removing submodule...", package_name);
+        logger_->info("Detected '{}' as a Git submodule. Removing submodule...", package_name);
 
         std::string git_remove_submodule = "git submodule deinit -f " + package_dir.string();
         std::string git_rm_submodule = "git rm -f " + package_dir.string();
@@ -475,30 +475,30 @@ void Muuker::remove_package(const std::string& package_name) {
         util::execute_command(git_rm_submodule.c_str());
         util::execute_command(git_clean.c_str());
 
-        logger_->info("[muuk::remove] Successfully removed Git submodule '{}'.", package_name);
+        logger_->info("Successfully removed Git submodule '{}'.", package_name);
     }
 
     if (util::path_exists(package_dir.string())) {
         try {
             util::remove_path(package_dir.string());
-            logger_->info("[muuk::remove] Deleted package directory: {}", package_dir.string());
+            logger_->info("Deleted package directory: {}", package_dir.string());
         }
         catch (const std::exception& e) {
-            logger_->error("[muuk::remove] Failed to delete directory '{}': {}", package_dir.string(), e.what());
+            logger_->error("Failed to delete directory '{}': {}", package_dir.string(), e.what());
         }
     }
     else {
-        logger_->warn("[muuk::remove] Package directory '{}' does not exist.", package_dir.string());
+        logger_->warn("Package directory '{}' does not exist.", package_dir.string());
     }
 
-    logger_->info("[muuk::remove] Package '{}' removal completed.", package_name);
+    logger_->info("Package '{}' removal completed.", package_name);
 }
 
 std::string Muuker::get_package_name() const {
-    logger_->info("[muuk::get_package_name] Retrieving package name.");
+    logger_->info("Retrieving package name.");
 
     if (!config_manager_.has_section("package")) {
-        logger_->error("[muuk::get_package_name] No 'package' section found in the configuration.");
+        logger_->error("No 'package' section found in the configuration.");
         return "";
     }
 
@@ -506,17 +506,17 @@ std::string Muuker::get_package_name() const {
     auto package_name = package_section.get("name");
 
     if (!package_name || !package_name->is_string()) {
-        logger_->error("[muuk::get_package_name] 'package.name' is not found or is not a valid string.");
+        logger_->error("'package.name' is not found or is not a valid string.");
         return "";
     }
 
     std::string name = *package_name->value<std::string>();
-    logger_->info("[muuk::get_package_name] Found package name: {}", name);
+    logger_->info("Found package name: {}", name);
     return name;
 }
 
 void Muuker::init_project() {
-    logger_->info("[muuk::init] Initializing a new muuk.toml configuration...");
+    logger_->info("Initializing a new muuk.toml configuration...");
 
     std::string project_name, author, version, license, include_path;
 
@@ -554,14 +554,14 @@ void Muuker::init_project() {
 
     std::ofstream config_file("muuk.toml");
     if (!config_file) {
-        logger_->error("[muuk::init] Failed to create muuk.toml.");
+        logger_->error("Failed to create muuk.toml.");
         return;
     }
 
     config_file << config;
     config_file.close();
 
-    logger_->info("[muuk::init] Successfully created muuk.toml!");
+    logger_->info("Successfully created muuk.toml!");
     std::cout << "\nSuccessfully initialized muuk project!\n";
 }
 

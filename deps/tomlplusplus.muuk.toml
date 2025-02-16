@@ -1,6 +1,0 @@
-[package]
-name = "tomlplusplus"
-version = "3.4.0"
-
-[library.tomlplusplus]
-include = ["tomlplusplus/include"]

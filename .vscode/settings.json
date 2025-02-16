@@ -100,7 +100,8 @@
     "cinttypes": "cpp",
     "coroutine": "cpp",
     "resumable": "cpp",
-    "queue": "cpp"
+    "queue": "cpp",
+    "stack": "cpp"
   },
   "[cpp]": {
     "editor.wordBasedSuggestions": "off",

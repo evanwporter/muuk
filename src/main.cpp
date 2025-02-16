@@ -17,6 +17,8 @@
 #include "../include/logger.h"
 #include "../include/util.h"
 
+#include "package_manager.h"
+
 namespace fs = std::filesystem;
 // using namespace Muuk;
 
@@ -98,14 +100,14 @@ int main(int argc, char* argv[]) {
         .nargs(1);
 
     argparse::ArgumentParser download_command("install", "Install a package from github");
-    download_command.add_argument("url")
-        .help("The author and zip file of the github repo to install");
-    download_command.add_argument("--version")
-        .help("The version to download (default: latest)")
-        .default_value(std::string("latest"));
-    download_command.add_argument("--submodule")
-        .help("Install the package as a Git submodule instead of downloading a release.")
-        .flag();
+    // download_command.add_argument("url")
+    //     .help("The author and zip file of the github repo to install");
+    // download_command.add_argument("--version")
+    //     .help("The version to download (default: latest)")
+    //     .default_value(std::string("latest"));
+    // download_command.add_argument("--submodule")
+    //     .help("Install the package as a Git submodule instead of downloading a release.")
+    //     .flag();
 
     argparse::ArgumentParser remove_command("remove", "Remove an installed package or submodule");
     remove_command.add_argument("package_name")
@@ -129,6 +131,35 @@ int main(int argc, char* argv[]) {
 
     argparse::ArgumentParser init_command("init", "Initialize a new muuk.toml configuration file");
 
+    argparse::ArgumentParser add_command("add", "Add a dependency to muuk.toml");
+    add_command.add_argument("name")
+        .help("The name of the dependency.");
+    add_command.add_argument("--sys")
+        .help("Marks the package as a system dependency (requires --version).")
+        .flag();
+    add_command.add_argument("--version")
+        .help("Specify dependency version (Required for --sys).")
+        .default_value(std::string(""));
+    add_command.add_argument("--rev")
+        .help("Specify revision for Git dependencies.")
+        .default_value(std::string(""));
+    add_command.add_argument("--tag")
+        .help("Specify tag for Git dependencies.")
+        .default_value(std::string(""));
+    add_command.add_argument("--branch")
+        .help("Specify branch for Git dependencies.")
+        .default_value(std::string(""));
+    add_command.add_argument("--git")
+        .help("The Git repository URL (optional).")
+        .default_value(std::string(""));
+    add_command.add_argument("--muuk-path")
+        .help("The path to the dependency's muuk.toml file (default: deps/<name>/muuk.toml).")
+        .default_value(std::string(""));
+    add_command.add_argument("-t", "--target")
+        .help("Specify a target section to add the dependency (e.g., build.test, library.muuk).")
+        .default_value(std::string(""));
+
+
     program.add_subparser(clean_command);
     program.add_subparser(run_command);
     program.add_subparser(build_command);
@@ -137,6 +168,7 @@ int main(int argc, char* argv[]) {
     program.add_subparser(upload_patch_command);
     program.add_subparser(crack_command);
     program.add_subparser(init_command);
+    program.add_subparser(add_command);
 
 
     if (argc < 2) {
@@ -174,16 +206,8 @@ int main(int argc, char* argv[]) {
                 muukBuilder.build(is_release, target_build, compiler);
             }},
             {"install", [&]() {
-                const auto url = download_command.get<std::string>("url");
-                const auto version = download_command.get<std::string>("--version");
-                bool use_submodule = download_command.get<bool>("--submodule");
-
-                if (use_submodule) {
-                    muuk.install_submodule(url);
-                }
-                else {
-                muuk.download_github_release(url, version);
-                }
+                logger->info("Installing all dependencies from muuk.toml...");
+                muuk::package_manager::install("muuk.lock.toml");
             }},
             {"remove", [&]() {
                 const auto package_name = remove_command.get<std::string>("package_name");
@@ -209,6 +233,32 @@ int main(int argc, char* argv[]) {
             }},
             {"init", [&]() {
                 muuk.init_project();
+            }},
+            {"add", [&]() {
+                const auto name = add_command.get<std::string>("name");
+                bool is_system_dep = add_command.get<bool>("--sys");
+                auto version = add_command.get<std::string>("--version");
+                auto revision = add_command.get<std::string>("--rev");
+                auto tag = add_command.get<std::string>("--tag");
+                auto branch = add_command.get<std::string>("--branch");
+                auto git_url = add_command.get<std::string>("--git");
+                auto muuk_path = add_command.get<std::string>("--muuk-path");
+                auto target_section = add_command.get<std::string>("--target");
+
+                if (is_system_dep && version == "latest") {
+                    std::cerr << "Error: --sys requires a valid --version argument.\n";
+                    return;
+                }
+
+                // Default muuk path
+                if (muuk_path.empty()) {
+                    muuk_path = "deps/" + name + "/muuk.toml";
+                }
+
+                logger->info("Adding dependency: {} (system: {}, version: {}, rev: {}, tag: {}, branch: {}, git: {}, path: {})",
+                             name, is_system_dep, version, revision, tag, branch, git_url, muuk_path, target_section);
+
+                muuk::package_manager::add_dependency("muuk.toml", name, version, git_url, muuk_path, revision, tag, branch, is_system_dep, target_section);
             }},
         };
 

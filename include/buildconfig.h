@@ -1,5 +1,4 @@
-#ifndef BUILD_CONFIG_H
-#define BUILD_CONFIG_H
+#pragma once 
 
 #ifdef _WIN32
 #ifdef _M_X64  // Ensure we are building for 64-bit
@@ -31,5 +30,3 @@ constexpr const char* EXE_EXT = "";
 #endif
 
 constexpr const char* DEPENDENCY_FOLDER = "deps";
-
-#endif // BUILD_CONFIG_H

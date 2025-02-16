@@ -6,13 +6,14 @@
 #include <memory>
 #include <spdlog/spdlog.h>
 #include "../include/muukbuilder.h"
+#include "muukfiler.h"
 
-// namespace Muuk {
-class IMuukFiler;
+// // namespace Muuk {
+// class IMuukFiler;
 
 class Muuker {
 public:
-    explicit Muuker(IMuukFiler& config_manager);
+    explicit Muuker(MuukFiler& config_manager);
 
     void clean() const;
     void run_script(const std::string& script, const std::vector<std::string>& args) const;
@@ -33,7 +34,7 @@ public:
     void generate_license(const std::string& license, const std::string& author);
 
 private:
-    IMuukFiler& config_manager_;
+    MuukFiler& config_manager_;
     std::shared_ptr<spdlog::logger> logger_;
     MuukBuilder muuk_builder_;
 

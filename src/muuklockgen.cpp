@@ -3,8 +3,7 @@
 #include "../include/buildconfig.h"
 #include "../include/util.h"
 
-#include <glob/glob.hpp>
-
+#include <glob/glob.h>
 
 Package::Package(const std::string& name,
     const std::string& version,
@@ -48,15 +47,15 @@ toml::table Package::serialize() const {
         if (source.find('*') != std::string::npos) {
             try {
                 logger_->info("Globbing {}...", source_path.string());
-                std::vector<std::string> globbed_paths = glob::glob(source_path.string());
+                std::vector<std::filesystem::path> globbed_paths = glob::glob(source_path.string());
 
                 for (const auto& path : globbed_paths) {
-                    logger_->info("  - Globbed file: {}", path);
-                    sources_array.push_back(path);
+                    logger_->info("  - Globbed file: {}", path.string());
+                    sources_array.push_back(path.string());
                 }
             }
             catch (const std::exception& e) {
-                logger_->warn("[muuk::clean] Error while globbing '{}': {}", source_path.string(), e.what());
+                logger_->warn("Error while globbing '{}': {}", source_path.string(), e.what());
             }
 
         }
@@ -142,6 +141,19 @@ void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
             resolved_packages_["build"][std::string(build_name.str())] = build_package;
         }
     }
+
+    if (data.contains("platform") && data["platform"].is_table()) {
+        for (const auto& [platform_name, platform_data] : *data["platform"].as_table()) {
+            if (platform_data.is_table() && platform_data.as_table()->contains("cflags")) {
+                const auto& cflag_array = *platform_data.as_table()->at("cflags").as_array();
+                std::set<std::string> cflags;
+                for (const auto& cflag : cflag_array) {
+                    cflags.insert(*cflag.value<std::string>());
+                }
+                platform_cflags_[std::string(platform_name.str())] = cflags;
+            }
+        }
+    }
 }
 
 void MuukLockGenerator::parse_section(const toml::table& section, Package& package) {
@@ -178,47 +190,31 @@ void MuukLockGenerator::parse_section(const toml::table& section, Package& packa
     if (section.contains("dependencies")) {
         logger_->debug("Dependencies of '{}':", package.name);
         for (const auto& [dep_name, dep_value] : *section["dependencies"].as_table()) {
-            std::map<std::string, std::string> dependency_info;
-            std::string muuk_path;
-            std::string version = "unknown";
+            std::unordered_map<std::string, std::string> dependency_info;
 
             package.deps.insert(std::string(dep_name.str()));
 
-            if (dep_value.is_string()) {
-                dependency_info["version"] = *dep_value.value<std::string>();
-            }
-            else if (dep_value.is_table()) {
+            if (dep_value.is_table()) {
                 for (const auto& [key, val] : *dep_value.as_table()) {
                     if (val.is_string()) {
-                        if (key.str() == "version") {
-                            version = *val.value<std::string>();
-                            dependency_info["version"] = version;
-                        }
-                        else if (key.str() == "muuk_path") {
-                            muuk_path = *val.value<std::string>();
-
-                            if (fs::exists(muuk_path)) {
-                                dependency_info["muuk_path"] = muuk_path;
-                            }
-                            else {
-                                logger_->warn("muuk_path '{}' does not exist for dependency '{}'. Ignoring.", muuk_path, std::string(dep_name.str()));
-                            }
-                        }
+                        std::string value = *val.value<std::string>();
+                        dependency_info[std::string(key.str())] = value;
                     }
                 }
             }
+            else if (dep_value.is_string()) {
+                dependency_info["version"] = *dep_value.value<std::string>();
+            }
             else {
-                logger_->error("Invalid dependency format for '{}'. Expected a string or a table.", std::string(dep_name.str()));
+                logger_->error("Invalid format for dependency '{}'. Expected a string or table.", std::string(dep_name.str()));
                 continue;
             }
 
             package.dependencies[std::string(dep_name.str())] = dependency_info;
 
-            if (!muuk_path.empty()) {
-                logger_->debug("  → Dependency '{}' (version: {}, muuk_path: {})", std::string(dep_name.str()), version, muuk_path);
-            }
-            else {
-                logger_->debug("  → Dependency '{}' (version: {})", std::string(dep_name.str()), version);
+            logger_->debug("  → Dependency '{}' added with details:", std::string(dep_name.str()));
+            for (const auto& [key, val] : dependency_info) {
+                logger_->debug("      - {}: {}", key, val);
             }
         }
     }
@@ -286,6 +282,7 @@ void MuukLockGenerator::resolve_dependencies(const std::string& package_name, st
 
                     if (!package) {
                         logger_->error("Error: Package '{}' not found after search.", package_name);
+                        std::cerr << "Error: Package '" << package_name << "not found after search.";
                         return;
                     }
                 }
@@ -295,6 +292,12 @@ void MuukLockGenerator::resolve_dependencies(const std::string& package_name, st
             }
 
             for (const auto& [dep_name, dep_info] : package->dependencies) {
+                if (dep_name == package_name) {
+                    logger_->warn("Circular dependency detected: '{}' depends on itself. Skipping.", package_name);
+                    std::cerr << "Warning: Circular dependency detected: " << package_name << " depends on itself.\n";
+                    continue;
+                }
+
                 logger_->info("Resolving dependency '{}' for '{}'", dep_name, package_name);
 
                 std::string dep_search_path;
@@ -315,6 +318,19 @@ void MuukLockGenerator::resolve_dependencies(const std::string& package_name, st
                     if (package) {
                         package->merge(*resolved_packages_["library"][dep_name]);
                     }
+                }
+
+                toml::table dependency_entry;
+                for (const auto& [key, value] : dep_info) {
+                    dependency_entry.insert(key, value);
+                }
+
+                dependencies_[dep_name] = dependency_entry;
+
+                // Log full dependency details
+                logger_->info("Resolved dependency '{}':", dep_name);
+                for (const auto& [key, val] : dep_info) {
+                    logger_->info("  - {}: {}", key, val);
                 }
             }
 
@@ -349,6 +365,13 @@ void MuukLockGenerator::generate_lockfile(const std::string& output_path, bool i
         return;
     }
 
+    parse_muuk_toml(base_path_ + "muuk.toml", true);
+
+    logger_->info("Resolving dependencies for build packages...");
+    for (const auto& [build_name, _] : resolved_packages_["build"]) {
+        resolve_dependencies(build_name);
+    }
+
     std::set<std::string> gflags;
 
     logger_->info("Extracting global flags from build packages...");
@@ -369,6 +392,7 @@ void MuukLockGenerator::generate_lockfile(const std::string& output_path, bool i
         }
     }
 
+    // TODO: Move to NINJAGEN or CREATE SEPERATE BUILD CONFIGURATIONS
     if (!is_release) {
         logger_->info("Applying debug-specific flags...");
         gflags.insert("-g");
@@ -424,7 +448,6 @@ void MuukLockGenerator::generate_lockfile(const std::string& output_path, bool i
         logger_->info("Applied gflags to package: {}", pkg_name);
     }
 
-    toml::table lock_data;
     for (const auto& package_name : resolved_order_) {
         auto package_opt = find_package(package_name);
         if (!package_opt) continue;
@@ -440,8 +463,26 @@ void MuukLockGenerator::generate_lockfile(const std::string& output_path, bool i
         logger_->info("Written package '{}' to lockfile.", package_name);
     }
 
+    // TODO: Format this nicely
+    lockfile << "[dependencies]\n";
+    for (const auto& [dep_name, dep_info] : dependencies_) {
+        lockfile << "[" << "dependencies." << dep_name << "]\n";
+        lockfile << dep_info << "\n";
+    }
+    lockfile << "\n";
 
-    lockfile << lock_data;
+    if (!platform_cflags_.empty()) {
+        for (const auto& [platform, cflags] : platform_cflags_) {
+            toml::array cflag_array;
+            for (const auto& cflag : cflags) {
+                cflag_array.push_back(cflag);
+            }
+            // platform_table.insert(toml::table{ {"flags", flag_array} });
+            lockfile << "[platform." << platform << "]\n" << toml::table{ {"cflags", cflag_array} } << "\n";
+
+        }
+    }
+
     lockfile.close();
 
     logger_->info("muuk.lock.toml generation complete!");

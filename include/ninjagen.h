@@ -7,7 +7,7 @@
 #include <iostream>
 #include <filesystem>
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include <memory>
 #include <spdlog/spdlog.h>
 
@@ -37,6 +37,10 @@ private:
     // std::pair<std::unordered_map<std::string, std::vector<std::string>>, std::vector<std::string>> compile_objects(std::ofstream& out);
     void archive_libraries(std::ofstream& out, const std::unordered_map<std::string, std::vector<std::string>>& objects, std::vector<std::string>& libraries);
     void link_executable(std::ofstream& out, const std::unordered_map<std::string, std::vector<std::string>>& objects, const std::vector<std::string>& libraries, const std::string& build_name);
+
+    void extract_platform_flags();
+
+    std::vector<std::string> platform_cflags_;
 
     std::string gather_cflags(const toml::table& pkg_table);
 };

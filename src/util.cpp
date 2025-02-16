@@ -88,11 +88,11 @@ namespace util {
             ensure_directory_exists(target_dir);
 
             if (!fs::exists(archive)) {
-                logger->error("[util::extract_zip] Zip file does not exist: {}", archive);
+                logger->error("Zip file does not exist: {}", archive);
                 throw std::runtime_error("Zip file not found: " + archive);
             }
 
-            logger->info("[util::extract_zip] Starting extraction of zip archive: {} from {}", archive, target_dir);
+            logger->info("Starting extraction of zip archive: {} from {}", archive, target_dir);
 
             int result = zip_extract(
                 archive.c_str(),
@@ -107,18 +107,18 @@ namespace util {
             );
 
             if (result < 0) {
-                logger->error("[util::extract_zip] Failed to extract zip archive '{}'. Error code: {}", archive, result);
+                logger->error("Failed to extract zip archive '{}'. Error code: {}", archive, result);
                 throw std::runtime_error("Zip extraction failed.");
             }
 
-            logger->info("[util::extract_zip] Extraction completed successfully for: {}", archive);
+            logger->info("Extraction completed successfully for: {}", archive);
         }
         catch (const std::exception& ex) {
-            logger->error("[util::extract_zip] Exception during zip extraction: {}", ex.what());
+            logger->error("Exception during zip extraction: {}", ex.what());
             throw;
         }
         catch (...) {
-            logger->error("[util::extract_zip] Unknown error occurred during zip extraction.");
+            logger->error("Unknown error occurred during zip extraction.");
             throw;
         }
     }
@@ -134,22 +134,22 @@ namespace util {
             command = "curl -L -o " + output_path + " " + url;
         }
         else {
-            spdlog::error("[util::download_file] Neither wget nor curl is available on the system.");
+            spdlog::error("Neither wget nor curl is available on the system.");
             throw std::runtime_error("No suitable downloader found. Install wget or curl.");
         }
 
-        spdlog::info("[util::download_file] Executing download command: {}", command);
+        spdlog::info("Executing download command: {}", command);
 
         int result = util::execute_command(command.c_str());
         if (result != 0) {
-            spdlog::error("[util::download_file] Failed to download file from {}. Command exited with code: {}", url, result);
+            spdlog::error("Failed to download file from {}. Command exited with code: {}", url, result);
             throw std::runtime_error("File download failed.");
         }
     }
 
 
     int execute_command(const std::string& command) {
-        logger->info("[util::execute_command] Executing command: {}", command);
+        logger->info("Executing command: {}", command);
         return system(command.c_str());
     }
 
@@ -160,18 +160,18 @@ namespace util {
             "--header=\"User-Agent: Mozilla/5.0\" "
             "--no-check-certificate " + url;
 
-        spdlog::info("[util::fetch_json] Executing wget command: {}", command);
+        spdlog::info("Executing wget command: {}", command);
 
         int result = util::execute_command(command.c_str());
         if (result != 0) {
-            spdlog::error("[util::fetch_json] wget failed with error code: {}", result);
+            spdlog::error("wget failed with error code: {}", result);
             throw std::runtime_error("Failed to fetch JSON from GitHub API.");
         }
 
         // Read the JSON file
         std::ifstream json_file(output_file);
         if (!json_file.is_open()) {
-            spdlog::error("[util::fetch_json] Failed to open the JSON response file: {}", output_file);
+            spdlog::error("Failed to open the JSON response file: {}", output_file);
             throw std::runtime_error("Failed to open the fetched JSON file.");
         }
 
@@ -181,7 +181,7 @@ namespace util {
 
         if (std::filesystem::exists(output_file)) {
             std::filesystem::remove(output_file);
-            spdlog::info("[util::fetch_json] Deleted temporary JSON response file: {}", output_file);
+            spdlog::info("Deleted temporary JSON response file: {}", output_file);
         }
 
         // Parse and return JSON data
@@ -241,11 +241,11 @@ namespace util {
             return normalized;
         }
         catch (const std::exception& e) {
-            logger->warn("[util::normalize_path] Exception during path normalizing {}", e.what());
+            logger->warn("Exception during path normalizing {}", e.what());
             return path;
         }
         catch (...) {
-            logger->error("[util::normalize_path] Unknown error occurred during normalize path.");
+            logger->error("Unknown error occurred during normalize path.");
             throw;
         }
     }
@@ -367,7 +367,7 @@ namespace util {
         auto lookup = msvc_to_gcc.find(normalized_flag);
         if (lookup != msvc_to_gcc.end()) {
             return lookup->second;
-    }
+        }
 #endif
 
         // **Handle C++ standard flag conversion (-std=c++20 <-> /std:c++20)**
@@ -380,12 +380,12 @@ namespace util {
         }
 
         return normalized_flag;
-}
+    }
 
     template std::string vectorToString<std::string>(const std::vector<std::string>&, const std::string&);
 
     std::string execute_command_get_out(const std::string& command) {
-        logger->info("[util::execute_command_with_output] Executing command: {}", command);
+        logger->info("Executing command: {}", command);
 
         std::array<char, 128> buffer;
         std::string result;
@@ -397,7 +397,7 @@ namespace util {
 #endif
 
         if (!pipe) {
-            logger->error("[util::execute_command_with_output] Failed to execute command: {}", command);
+            logger->error("Failed to execute command: {}", command);
             throw std::runtime_error("Failed to execute command: " + command);
         }
 
@@ -405,7 +405,7 @@ namespace util {
             result += buffer.data();
         }
 
-        logger->info("[util::execute_command_with_output] Command output:\n{}", result);
+        logger->info("Command output:\n{}", result);
         return result;
     }
 

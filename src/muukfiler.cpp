@@ -1,196 +1,136 @@
-#include "../include/muukfiler.h"
-#include "../include/logger.h"
-#include "../include/util.h"
-
-import logger;
-
-#include <fstream>
-#include <filesystem>
 #include "muukfiler.h"
-
-namespace fs = std::filesystem;
+#include "logger.h"
 
 MuukFiler::MuukFiler(const std::string& config_file) : config_file_(config_file) {
-    logger_ = Logger::get_logger("muuk_logger");
-    load_config();
+    logger_ = Logger::get_logger("muuk::filer");
 
-    if (!config_file_.ends_with("muuk.lock.toml")) validate_muuk();
+    parse_file();
+
+    if (!config_file.ends_with("lock.toml")) validate_muuk();
 }
 
-const toml::table& MuukFiler::get_config() const {
-    return config_;
-}
+void MuukFiler::parse_file() {
+    std::ifstream file(config_file_);
+    if (!file.is_open()) {
+        throw std::runtime_error("Failed to open file: " + config_file_);
+    }
 
-void MuukFiler::set_config(const toml::table& new_config) {
-    config_ = new_config;
-    save_config();
-}
+    std::string line, current_section;
+    std::stringstream section_data;
 
-bool MuukFiler::has_section(const std::string& section) const {
-    return config_.contains(section);
-}
+    while (std::getline(file, line)) {
+        std::string trimmed = util::trim_whitespace(line);
 
-toml::table MuukFiler::get_section(const std::string& section) const {
-    return has_section(section) ? *config_.get_as<toml::table>(section) : toml::table{};
-}
+        if (trimmed.empty() || trimmed[0] == '#') {
+            continue;  // Ignore empty lines and comments
+        }
 
-void MuukFiler::update_section(const std::string& section, const toml::table& data) {
-    config_.insert_or_assign(section, data);
-    track_section_order(section);
-    save_config();
-}
+        if (trimmed[0] == '[' && trimmed.back() == ']') {
+            if (!current_section.empty()) {
+                sections_[current_section] = toml::parse(section_data);
+                section_data.str("");
+                section_data.clear();
+            }
 
-void MuukFiler::set_value(const std::string& section, const std::string& key, const toml::node& value) {
-    ensure_section_exists(section);
-    config_.at(section).as_table()->insert_or_assign(key, value);
-    save_config();
-}
+            current_section = trimmed.substr(1, trimmed.size() - 2);
+            section_order_.push_back(current_section);
+        }
+        else {
+            section_data << line << "\n";
+        }
+    }
 
-void MuukFiler::remove_key(const std::string& section, const std::string& key) {
-    if (has_section(section)) {
-        config_.at(section).as_table()->erase(key);
-        save_config();
+    if (!current_section.empty()) {
+        sections_[current_section] = toml::parse(section_data);
+    }
+
+    file.close();
+
+    logger_->info("Final parsed section order:");
+    for (const auto& section : section_order_) {
+        logger_->info("  - {}", section);
     }
 }
 
-void MuukFiler::remove_section(const std::string& section) {
-    if (config_.erase(section)) {
-        section_order_.erase(std::remove(section_order_.begin(), section_order_.end(), section), section_order_.end());
-        save_config();
-    }
-}
-
-void MuukFiler::append_to_array(const std::string& section, const std::string& key, const toml::node& value) {
-    ensure_section_exists(section);
-    auto& section_table = *config_.at(section).as_table();
-
-    if (!section_table.contains(key) || !section_table[key].is_array()) {
-        section_table.insert_or_assign(key, toml::array{});
-    }
-
-    section_table[key].as_array()->push_back(value);
-    save_config();
-}
-
-void MuukFiler::load_config() {
-    if (!fs::exists(config_file_)) {
-        std::ofstream(config_file_) << get_default_config();
-    }
-
-    try {
-        config_ = toml::parse_file(config_file_);
-        track_section_order();
-    }
-    catch (const toml::parse_error& e) {
-        throw std::runtime_error(format_error("Error parsing TOML: " + std::string(e.what())));
-    }
-}
-
-void MuukFiler::save_config() {
-    std::ofstream(config_file_) << config_;
-}
-
-void MuukFiler::ensure_section_exists(const std::string& section) {
-    if (!has_section(section)) {
-        config_.insert_or_assign(section, toml::table{});
-        track_section_order(section);
-    }
-}
-
-void MuukFiler::track_section_order(const std::string& section) {
-    if (std::find(section_order_.begin(), section_order_.end(), section) == section_order_.end()) {
+toml::table& MuukFiler::get_section(const std::string& section) {
+    if (sections_.find(section) == sections_.end()) {
+        sections_[section] = toml::table{};
         section_order_.push_back(section);
     }
+    return sections_.at(section);  // Return a reference
 }
 
-std::string MuukFiler::format_error(const std::string& error_message) {
-    return "[Error] " + error_message + "\n[Config File]: " + config_file_;
+
+void MuukFiler::modify_section(const std::string& section, const toml::table& data) {
+    if (sections_.find(section) == sections_.end()) {
+        section_order_.push_back(section);
+    }
+    sections_[section] = data;
+}
+
+void MuukFiler::write_to_file() {
+    std::ofstream file(config_file_, std::ios::out | std::ios::trunc);
+    if (!file.is_open()) {
+        throw std::runtime_error("Failed to open file for writing: " + config_file_);
+    }
+
+    for (const auto& section : section_order_) {
+        file << "[" << section << "]\n";
+        file << sections_.at(section) << "\n\n";
+    }
+
+    file.close();
 }
 
 void MuukFiler::validate_muuk() {
-    if (!has_section("package")) {
-        throw std::runtime_error(format_error("Missing required [package] section."));
-    }
+    // if (sections_.find("package") == sections_.end()) {
+    //     throw std::runtime_error("Missing required [package] section.");
+    // }
 
-    const auto& package_section = get_section("package");
-    if (!package_section.contains("name") || !package_section["name"].is_string()) {
-        throw std::runtime_error(format_error("[package] must have a 'name' key of type string."));
-    }
+    // const auto& package_section = sections_["package"];
+    // if (!package_section.contains("name") || !package_section["name"].is_string()) {
+    //     throw std::runtime_error("[package] must have a 'name' key of type string.");
+    // }
 
-    std::string package_name = *package_section["name"].value<std::string>();
-    const auto& library_section = get_section("library");
-
-    if (!library_section.contains(package_name) || !library_section.at(package_name).is_table()) {
-        throw std::runtime_error(format_error("Missing required [library." + package_name + "] section."));
-    }
-
-    auto& library_package = *library_section.at(package_name).as_table();
-    validate_array_of_strings(library_package, "include", true);
-    validate_array_of_strings(library_package, "sources");
-    validate_array_of_strings(library_package, "lflags");
-    validate_array_of_strings(library_package, "libflags");
-
-    if (library_package.contains("dependencies")) {
-        auto& dependencies = *library_package.at("dependencies").as_table();
-        for (const auto& [dep_name, dep_value] : dependencies) {
-            if (!dep_value.is_string() && (!dep_value.is_table() || !dep_value.as_table()->contains("version"))) {
-                throw std::runtime_error(format_error("Dependency '" + std::string(dep_name.str()) + "' must have a valid 'version'."));
-            }
-        }
-    }
-
-    if (has_section("clean")) {
-        validate_array_of_strings(get_section("clean"), "patterns");
-    }
+    // std::string package_name = *package_section["name"].value<std::string>();
+    // if (sections_.find("library." + package_name) == sections_.end()) {
+    //     throw std::runtime_error("Missing required [library." + package_name + "] section.");
+    // }
 }
 
-void MuukFiler::validate_array_of_strings(const toml::table& section, const std::string& key, bool required) {
-    if (!section.contains(key)) {
-        if (required) throw std::runtime_error(format_error("Missing required key [" + key + "] in section."));
-        return;
-    }
-
-    if (!section.at(key).is_array()) {
-        throw std::runtime_error(format_error("[" + key + "] must be an array."));
-    }
-
-    for (const auto& item : *section.at(key).as_array()) {
-        if (!item.is_string()) {
-            throw std::runtime_error(format_error("[" + key + "] must be an array of strings."));
-        }
-    }
+toml::table MuukFiler::get_config() const {
+    return toml::parse_file(config_file_);
 }
 
-toml::table MuukFiler::get_default_config() const
-{
-    return toml::table{};
+bool MuukFiler::has_section(const std::string& section) const {
+    return sections_.find(section) != sections_.end();
 }
 
 std::vector<std::string> MuukFiler::parse_section_order() {
-    std::vector<std::string> section_order;  // Local vector to store order
+    std::vector<std::string> parsed_order;
 
     std::ifstream file(config_file_);
     if (!file.is_open()) {
         logger_->error("[MuukFiler] Failed to open TOML file for reading: {}", config_file_);
-        return section_order;  // Return empty if file fails to open
+        return parsed_order;
     }
 
     std::string line;
     while (std::getline(file, line)) {
-        line = util::trim_whitespace(line);  // Trim leading/trailing spaces
+        line = util::trim_whitespace(line);
 
         if (!line.empty() && line.front() == '[' && line.back() == ']') {
-            std::string section = line.substr(1, line.size() - 2);  // Extract section name
-            section_order.push_back(section);
+            std::string section = line.substr(1, line.size() - 2);
+            parsed_order.push_back(section);
         }
     }
 
     file.close();
 
     logger_->info("[MuukFiler] Parsed section order:");
-    for (const auto& section : section_order) {
+    for (const auto& section : parsed_order) {
         logger_->info("  {}", section);
     }
 
-    return section_order;
+    return parsed_order;
 }

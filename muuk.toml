@@ -1,44 +1,41 @@
 [package]
-name = "muuk"
-version = "1.0.0"
+name = 'muuk'
+version = '1.0.0'
 
 [scripts]
-hello = "echo Hello!"
-
-[library.muuk]
-include = ["include"]
-sources = [
-    "src/muuker.cpp",
-    "src/util.cpp",
-    "src/logger.cpp",
-    "src/muukfiler.cpp",
-    "src/muukbuilder.cpp",
-    "src/ninjagen.cpp",
-    "src/muuklockgen.cpp",
-]
-modules = ["modules/util_module.ixx"]
-libs = []
-
-[library.muuk.dependencies]
-argparse = { version = "v3.2", git = "https://github.com/p-ranav/argparse.git", muuk_path = "deps/argparse.muuk.toml" }
-glob = { version = "v0.3", git = "https://github.com/evanwporter/glob.git", muuk_path = "deps/glob/muuk.toml" }
-spdlog = { version = "v1.15.1", git = "https://github.com/gabime/spdlog.git", muuk_path = "deps/spdlog.muuk.toml" }
-zip = { "version" = "v0.3.3", git = "https://github.com/kuba--/zip.git", muuk_path = "deps/zip.muuk.toml" }
-json = { "version" = "v3.11.3", git = "https://github.com/nlohmann/json.git", muuk_path = "deps/json.muuk.toml" }
-cracklib = { version = "v0.0.3", git = "https://github.com/evanwporter/cracklib.git", muuk_path = "deps/cracklib.muuk.toml" }
-tomlplusplus = { version = "v3.4.0", git = "https://github.com/marzer/tomlplusplus.git", muuk_path = "deps/tomlplusplus.muuk.toml" }
-
-[build.bin]
-dependencies = { "muuk" = "v1.0.0" }
-sources = ["src/main.cpp"]
-gflags = ["/std:c++20", "/utf-8", "/EHsc", "/FS"]
-
-# [build.test]
-# dependencies = { "muuk" = "v1.0.0", "googletest" = { version = "v1.15.2", git = "https://github.com/google/googletest.git", muuk_path = "deps/googletest.muuk.toml" } }
-# sources = ["tests/internal/muuk_test.cpp", "tests/internal/mockmuukfiler.cpp"]
-# executable = "muuk_tests"
-# include = []
-# gflags = ["/std:c++20", "/utf-8", "/EHsc", "/FS"]
+hello = 'echo Hello!'
 
 [clean]
-patterns = ["*.obj", "*.lib", "*.pdb"]
+patterns = ['*.obj', '*.lib', '*.pdb']
+
+[library.muuk]
+include = ['include']
+libs = []
+sources = [
+    'src/muuker.cpp',
+    'src/util.cpp',
+    'src/logger.cpp',
+    'src/muukfiler.cpp',
+    'src/muukbuilder.cpp',
+    'src/ninjagen.cpp',
+    'src/muuklockgen.cpp',
+    'src/installer.cpp',
+    'src/package_manager.cpp',
+]
+
+[library.muuk.dependencies]
+argparse = { git = 'https://github.com/p-ranav/argparse.git', muuk_path = 'deps/argparse/muuk.toml', revision = 'd924b84eba1f0f0adf38b20b7b4829f6f65b6570' }
+cracklib = { git = 'https://github.com/evanwporter/cracklib.git', muuk_path = 'deps/cracklib/muuk.toml', revision = '2014acb865cd04d97102f29d9d07d2a490b32629' }
+glob = { git = 'https://github.com/p-ranav/glob.git', muuk_path = 'deps/glob/muuk.toml', revision = 'd025092c0e1eb1a8b226d3a799fd32680d2fd13f' }
+json = { git = 'https://github.com/nlohmann/json.git', muuk_path = 'deps/json/muuk.toml', revision = '0b6881a95f8aaf60bd2324ecdf2258a65bf33baf' }
+spdlog = { git = 'https://github.com/gabime/spdlog.git', muuk_path = 'deps/spdlog/muuk.toml', revision = '3335c380a08c5e0f5117a66622df6afdb3d74959' }
+tomlplusplus = { git = 'https://github.com/marzer/tomlplusplus.git', muuk_path = 'deps/tomlplusplus/muuk.toml', revision = 'cbc00d6766f14bcd2b3e72de2a3c369a0d48b98a' }
+zip = { git = 'https://github.com/kuba--/zip.git', muuk_path = 'deps/zip/muuk.toml', revision = 'd7a2252a537926cbdef8512741a322a183fcfd09' }
+
+[build.bin]
+dependencies = { muuk = 'v1.0.0' }
+gflags = ['/std:c++20', '/utf-8', '/EHsc', '/FS']
+sources = ['src/main.cpp']
+
+[platform.windows]
+cflags = ["/I."]

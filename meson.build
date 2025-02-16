@@ -1,5 +1,7 @@
 project('muuk', ['cpp', 'c'], version: '0.1', default_options: ['cpp_std=c++20'])
 
+openssl_dep = dependency('openssl')
+
 json_dep = dependency('nlohmann_json')
 log_dep = dependency('spdlog')
 argparse_dep = dependency('argparse')

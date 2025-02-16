@@ -9,7 +9,7 @@
 #include <iostream>
 #include <filesystem>
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include "ninjagen.h"
 
 namespace fs = std::filesystem;
@@ -41,6 +41,8 @@ void NinjaGenerator::generate_ninja_file(const std::string& target_build) {
         logger_->error("[NinjaGenerator] Error: No TOML data loaded.");
         return;
     }
+
+    extract_platform_flags();
 
     fs::create_directories(build_dir_);
     logger_->info("[NinjaGenerator] Created build directory: {}", build_dir_.string());
@@ -116,6 +118,14 @@ void NinjaGenerator::write_ninja_header(std::ofstream& out) {
     util::ensure_directory_exists(module_dir);
     logger_->info("[NinjaGenerator] Created module build directory: {}", module_dir);
 
+    std::string platform_cflags_str;
+    for (const auto& cflag : platform_cflags_) {
+        platform_cflags_str += cflag + " ";
+    }
+
+    out << "# Platform-Specific Flags\n"
+        << "platform_cflags = " << platform_cflags_str << "\n\n";
+
     out << "# ------------------------------------------------------------\n"
         << "# Rules for Compiling C++ Modules\n"
         << "# ------------------------------------------------------------\n";
@@ -126,14 +136,14 @@ void NinjaGenerator::write_ninja_header(std::ofstream& out) {
             << "  command = $cxx /std:c++20 /utf-8 /c /interface $in /Fo$out /IFC:"
             << module_dir << " /ifcOutput "
             << module_dir << " /ifcSearchDir "
-            << module_dir << " $cflags\n"
+            << module_dir << " $cflags $platform_cflags\n"
             << "  description = Compiling C++ module $in\n\n";
     }
     else if (compiler_ == "clang++") {
         // Clang Compiler
         out << "rule module_compile\n"
             << "  command = $cxx -std=c++20 -fmodules-ts -c $in -o $out -fmodule-output="
-            << module_dir << " $cflags\n"
+            << module_dir << " $cflags $platform_cflags\n"
             << "  description = Compiling C++ module $in\n\n";
     }
     else {
@@ -332,7 +342,7 @@ void NinjaGenerator::archive_libraries(std::ofstream& out,
 
     for (const auto& [pkg_name, obj_files] : objects) {
         if (!config_.contains("library") || !config_["library"].as_table() || !config_["library"].as_table()->contains(pkg_name)) {
-            logger_->warn("[NinjaGenerator] Skipping '{}' because it's not a library.", pkg_name);
+            logger_->info("[NinjaGenerator] Skipping '{}' because it's not a library.", pkg_name);
             continue;
         }
 
@@ -351,7 +361,7 @@ void NinjaGenerator::archive_libraries(std::ofstream& out,
         }
 
         if (input_files.empty()) {
-            logger_->warn("[NinjaGenerator] Skipping library '{}' because it has no sources or linked libraries.", pkg_name);
+            logger_->info("[NinjaGenerator] Skipping library '{}' because it has no sources or linked libraries.", pkg_name);
             continue;
         }
 
@@ -410,7 +420,83 @@ void NinjaGenerator::link_executable(std::ofstream& out,
     // // TODO: Find a better location for this
     // lflags += "/LTCG";
 
-    out << "\nbuild " << normalized_exe << ": link " << build_objs << "\n"
+    out << "\nbuild " << normalized_exe << ": link " << build_objs << lib_files << "\n"
         << "  lflags =" << lflags << "\n"
         << "  libraries = " << lib_files << "\n";
 }
+
+void NinjaGenerator::extract_platform_flags() {
+    logger_->info("[NinjaGenerator] Extracting platform-specific flags from lockfile...");
+
+    // Check if the "platform" section exists
+    if (!config_.contains("platform")) {
+        logger_->warn("[NinjaGenerator] No 'platform' section found in lockfile.");
+        return;
+    }
+
+    auto platform_table = config_["platform"].as_table();
+    if (!platform_table) {
+        logger_->warn("[NinjaGenerator] Platform section found but is not a valid table.");
+        return;
+    }
+
+    // Detect the current platform
+    std::string detected_platform;
+
+#ifdef _WIN32
+    detected_platform = "windows";
+#elif __APPLE__
+    detected_platform = "macos";
+#elif __linux__
+    detected_platform = "linux";
+#else
+    detected_platform = "unknown";
+#endif
+
+    logger_->info("[NinjaGenerator] Detected platform: {}", detected_platform);
+
+    // Check if the detected platform exists in the TOML configuration
+    if (!platform_table->contains(detected_platform)) {
+        logger_->warn("[NinjaGenerator] No configuration found for platform '{}'.", detected_platform);
+        return;
+    }
+
+    auto flags_table = platform_table->at(detected_platform).as_table();
+    if (!flags_table || !flags_table->contains("cflags")) {
+        logger_->warn("[NinjaGenerator] No 'cflags' entry found for platform '{}'.", detected_platform);
+        return;
+    }
+
+    auto flags_array = flags_table->at("cflags").as_array();
+    if (!flags_array) {
+        logger_->warn("[NinjaGenerator] 'flags' entry for platform '{}' is not an array.", detected_platform);
+        return;
+    }
+
+    // Extract flags
+    platform_cflags_.clear();
+    for (const auto& flag : *flags_array) {
+        if (flag.is_string()) {
+            std::string flag_value = flag.value<std::string>().value_or("");
+            platform_cflags_.push_back(flag_value);
+            logger_->info("[NinjaGenerator] Added platform-specific flag: {}", flag_value);
+        }
+        else {
+            logger_->warn("[NinjaGenerator] Ignoring non-string flag entry for platform '{}'.", detected_platform);
+        }
+    }
+
+    // Log the final list of extracted flags
+    std::string platform_cflags_str;
+    for (const auto& flag : platform_cflags_) {
+        platform_cflags_str += flag + " ";
+    }
+
+    if (!platform_cflags_.empty()) {
+        logger_->info("[NinjaGenerator] Final platform-specific flags: {}", platform_cflags_str);
+    }
+    else {
+        logger_->warn("[NinjaGenerator] No valid platform-specific flags were extracted.");
+    }
+}
+

@@ -8,7 +8,7 @@
 #include <filesystem>
 #include <iostream>
 #include <fstream>
-#include <map>
+#include <unordered_map>
 #include <set>
 #include <vector>
 #include <memory>
@@ -41,7 +41,7 @@ public:
     std::vector<std::string> libs;
 
     std::set<std::string> deps;
-    std::map<std::string, std::map<std::string, std::string>> dependencies;
+    std::unordered_map<std::string, std::unordered_map<std::string, std::string>> dependencies;
 
 private:
     std::shared_ptr<spdlog::logger> logger_;
@@ -50,26 +50,23 @@ private:
 class MuukLockGenerator {
 public:
     explicit MuukLockGenerator(const std::string& base_path);
-
-    void parse_muuk_toml(const std::string& path, bool is_base = false);
-    void resolve_dependencies(const std::string& package_name, std::optional<std::string> search_path = std::nullopt);
     void generate_lockfile(const std::string& output_path, bool is_release = false);
-
-    const std::map<std::string, std::map<std::string, std::shared_ptr<Package>>>& get_resolved_packages() const {
-        return resolved_packages_;
-    }
 
 private:
     std::string base_path_;
-    std::map<std::string, std::map<std::string, std::shared_ptr<Package>>> resolved_packages_;
+    std::unordered_map<std::string, std::unordered_map<std::string, std::shared_ptr<Package>>> resolved_packages_;
     std::shared_ptr<spdlog::logger> logger_;
     std::unique_ptr<MuukModuleParser> module_parser_;
+
+    std::unordered_map<std::string, toml::table> dependencies_;
 
     std::unordered_set<std::string> visited;
     std::vector<std::string> resolved_order_;
 
     std::set<std::string> system_include_paths_;
     std::set<std::string> system_library_paths_;
+
+    std::unordered_map<std::string, std::set<std::string>> platform_cflags_;
 
     void parse_section(const toml::table& section, Package& package);
     void search_and_parse_dependency(const std::string& package_name);
@@ -79,6 +76,9 @@ private:
     std::optional<std::shared_ptr<Package>> find_package(const std::string& package_name);
 
     void resolve_system_dependency(const std::string& package_name, std::optional<std::shared_ptr<Package>> package);
+
+    void parse_muuk_toml(const std::string& path, bool is_base = false);
+    void resolve_dependencies(const std::string& package_name, std::optional<std::string> search_path = std::nullopt);
 };
 
 #endif // MUUK_PARSER_H

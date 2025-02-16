@@ -16,4 +16,5 @@ github_api_response.json
 .ninja_log
 .ninja_lock
 
+subprojects/
 .vscode
