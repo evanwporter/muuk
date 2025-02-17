@@ -2,6 +2,7 @@ logs/
 obj/
 __pycache__/
 build/
+deps/
 
 *.log
 *.obj
