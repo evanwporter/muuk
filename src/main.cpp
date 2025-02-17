@@ -12,10 +12,11 @@
 #include <argparse/argparse.hpp>
 #include <cracklib.hpp>
 
-#include "../include/muuker.hpp"
-#include "../include/muukfiler.h"
-#include "../include/logger.h"
-#include "../include/util.h"
+#include "muuker.hpp"
+#include "muukfiler.h"
+#include "logger.h"
+#include "util.h"
+#include "muuk.h"
 
 #include "package_manager.h"
 
@@ -57,8 +58,7 @@ void start_repl(std::unordered_map<std::string, std::function<void()>>& command_
 #endif
 
 int main(int argc, char* argv[]) {
-    Logger::initialize();
-    auto logger = Logger::get_logger("main_logger");
+    auto logger = logger::get_logger("main_logger");
 
     argparse::ArgumentParser program("muuk");
 
@@ -96,6 +96,10 @@ int main(int argc, char* argv[]) {
         .nargs(1);
     build_command.add_argument("-c", "--compiler")
         .help("Specify a compiler to use (e.g., g++, clang++, cl)")
+        .default_value(std::string(""))
+        .nargs(1);
+    build_command.add_argument("-p", "--profile")
+        .help("Specify a build profile (e.g., debug, release)")
         .default_value(std::string(""))
         .nargs(1);
 
@@ -172,7 +176,7 @@ int main(int argc, char* argv[]) {
 
 
     if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " <command> [--muuk-path <path>] [other options]\n";
+        logger::error("Usage: " + std::string(argv[0]) + " <command> [--muuk-path <path>] [other options]\n");
         return 1;
     }
 
@@ -180,113 +184,110 @@ int main(int argc, char* argv[]) {
         program.parse_args(argc, argv);
         std::string muuk_path = program.get<std::string>("--muuk-path");
 
-        logger->info("[muuk] Using muuk configuration from: {}", muuk_path);
+        // Command execution logic
+        if (program.is_subcommand_used("init")) {
+            muuk::init_project();
+            return 0;
+        }
 
+        if (program.is_subcommand_used("install")) {
+            logger->info("Installing dependencies from muuk.toml...");
+            muuk::package_manager::install("muuk.lock.toml");
+            return 0;
+        }
+
+        // TODO: Implement
+        // if (program.is_subcommand_used("remove")) {
+        //     const auto package_name = remove_command.get<std::string>("package_name");
+        //     muuk::package_manager::remove_dependency("muuk.toml", package_name);
+        //     return 0;
+        // }
+
+        // TODO: Do something with
+        // if (program.is_subcommand_used("upload-patch")) {
+        //     bool dry_run = upload_patch_command.get<bool>("--dry-run");
+        //     logger->info("[muuk] Running upload-patch with dry-run: {}", dry_run);
+        //     muuk::upload_patch(dry_run);
+        //     return 0;
+        // }
+
+        if (program.is_subcommand_used("crack")) {
+            const auto rar_file = crack_command.get<std::string>("rar_file");
+            int threads = crack_command.get<int>("--threads");
+            bool json_output = crack_command.get<bool>("--json");
+            crack(rar_file.c_str(), threads);
+            return 0;
+        }
+
+        if (program.is_subcommand_used("add")) {
+            std::string dependency_name = add_command.get<std::string>("name");
+            std::string version = add_command.get<std::string>("--version");
+            std::string revision = add_command.get<std::string>("--rev");
+            std::string tag = add_command.get<std::string>("--tag");
+            std::string branch = add_command.get<std::string>("--branch");
+            std::string git_url = add_command.get<std::string>("--git");
+            std::string muuk_path_dependency = add_command.get<std::string>("--muuk-path");
+            std::string target_section = add_command.get<std::string>("--target");
+            bool is_system = add_command.get<bool>("--sys");
+
+            logger->info("Adding dependency: {}", dependency_name);
+
+            muuk::package_manager::add_dependency(
+                muuk_path,
+                dependency_name,
+                version,
+                git_url,
+                muuk_path_dependency,
+                revision,
+                tag,
+                branch,
+                is_system,
+                target_section
+            );
+
+            return 0;
+        }
+
+        // Commands that require `muuk.toml`
+        logger->info("[muuk] Using configuration from: {}", muuk_path);
         MuukFiler muukFiler(muuk_path);
         Muuker muuk(muukFiler);
         MuukBuilder muukBuilder(muukFiler);
 
-        // Command mapping
-        std::unordered_map<std::string, std::function<void()>> command_map = {
-            {"clean", [&]() { muuk.clean(); }},
-            {"run", [&]() {
-                const auto script = run_command.present<std::string>("script");
-                const auto extra_args = run_command.get<std::vector<std::string>>("extra_args");
+        if (program.is_subcommand_used("clean")) {
+            muuk.clean();
+            return 0;
+        }
 
-                if (!script.has_value()) {
-                    std::cerr << "Error: No script name provided for the 'run' command.\n";
-                    return;
-                }
-                muuk.run_script(script.value(), extra_args);
-            }},
-            {"build", [&]() {
-                bool is_release = build_command.get<bool>("--release");
-                std::string target_build = build_command.get<std::string>("--target-build");
-                std::string compiler = build_command.get<std::string>("--compiler");
-                muukBuilder.build(is_release, target_build, compiler);
-            }},
-            {"install", [&]() {
-                logger->info("Installing all dependencies from muuk.toml...");
-                muuk::package_manager::install("muuk.lock.toml");
-            }},
-            {"remove", [&]() {
-                const auto package_name = remove_command.get<std::string>("package_name");
+        if (program.is_subcommand_used("run")) {
+            const auto script = run_command.present<std::string>("script");
+            const auto extra_args = run_command.get<std::vector<std::string>>("extra_args");
+            if (!script.has_value()) {
+                logger::error("Error: No script name provided for 'run'.\n");
+                return 1;
+            }
+            muuk.run_script(script.value(), extra_args);
+            return 0;
+        }
 
-                if (package_name.empty()) {
-                    std::cerr << "Error: Package name required for 'remove' command.\n";
-                    return;
-                }
-
-                muuk.remove_package(package_name);
-            }},
-            {"upload-patch", [&]() {
-                bool dry_run = upload_patch_command.get<bool>("--dry-run");
-                logger->info("[muuk] Running upload-patch with dry-run: {}", dry_run);
-                muuk.upload_patch(dry_run);
-            }},
-            {"crack", [&]() {
-                const auto rar_file = crack_command.get<std::string>("rar_file");
-                int threads = crack_command.get<int>("--threads");
-                bool json_output = crack_command.get<bool>("--json");
-
-                crack(rar_file.c_str(), threads);
-            }},
-            {"init", [&]() {
-                muuk.init_project();
-            }},
-            {"add", [&]() {
-                const auto name = add_command.get<std::string>("name");
-                bool is_system_dep = add_command.get<bool>("--sys");
-                auto version = add_command.get<std::string>("--version");
-                auto revision = add_command.get<std::string>("--rev");
-                auto tag = add_command.get<std::string>("--tag");
-                auto branch = add_command.get<std::string>("--branch");
-                auto git_url = add_command.get<std::string>("--git");
-                auto muuk_path = add_command.get<std::string>("--muuk-path");
-                auto target_section = add_command.get<std::string>("--target");
-
-                if (is_system_dep && version == "latest") {
-                    std::cerr << "Error: --sys requires a valid --version argument.\n";
-                    return;
-                }
-
-                // Default muuk path
-                if (muuk_path.empty()) {
-                    muuk_path = "deps/" + name + "/muuk.toml";
-                }
-
-                logger->info("Adding dependency: {} (system: {}, version: {}, rev: {}, tag: {}, branch: {}, git: {}, path: {})",
-                             name, is_system_dep, version, revision, tag, branch, git_url, muuk_path, target_section);
-
-                muuk::package_manager::add_dependency("muuk.toml", name, version, git_url, muuk_path, revision, tag, branch, is_system_dep, target_section);
-            }},
-        };
+        if (program.is_subcommand_used("build")) {
+            bool is_release = build_command.get<bool>("--release");
+            std::string target_build = build_command.get<std::string>("--target-build");
+            std::string compiler = build_command.get<std::string>("--compiler");
+            std::string profile = build_command.get<std::string>("--profile");
+            muukBuilder.build(is_release, target_build, compiler, profile);
+            return 0;
+        }
 
 #ifdef DEBUG
         if (program.get<bool>("--repl")) {
             start_repl(command_map);
-            return 0;  // Exit after REPL
+            return 0;
         }
 #endif
-
-        // Check if any known subcommand was used
-        bool command_found = false;
-        for (const auto& [command_name, command_handler] : command_map) {
-            if (program.is_subcommand_used(command_name)) {
-                command_handler();
-                command_found = true;
-                break;
-            }
-        }
-
-        // Handle unknown command
-        if (!command_found) {
-            std::cerr << "Error: Unknown command. Use '--help' to see available commands.\n";
-            return 1;
-        }
     }
     catch (const std::runtime_error& err) {
-        std::cerr << "Error: " << err.what() << "\n";
+        logger::error(std::string(err.what()) + "\n");
         return 1;
     }
 

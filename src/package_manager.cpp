@@ -19,7 +19,7 @@ namespace fs = std::filesystem;
 namespace muuk {
     namespace package_manager {
 
-        std::shared_ptr<spdlog::logger> logger_ = Logger::get_logger("muuk::installer");
+        std::shared_ptr<spdlog::logger> logger_ = logger::get_logger("muuk::installer");
 
         void extract_zip(const std::string& archive, const std::string& target_dir) {
             try {

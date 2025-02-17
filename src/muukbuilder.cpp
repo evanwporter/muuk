@@ -7,18 +7,21 @@
 MuukBuilder::MuukBuilder(MuukFiler& config_manager)
     : config_manager_(config_manager)
 {
-    logger_ = Logger::get_logger("muukbuilder_logger");
+    logger_ = logger::get_logger("muukbuilder_logger");
 }
 
-void MuukBuilder::build(bool is_release, std::string& target_build, const std::string& compiler) {
+void MuukBuilder::build(
+    bool is_release, 
+    std::string& target_build, 
+    const std::string& compiler, 
+    const std::string& profile
+) {
     std::string build_type = is_release ? "release" : "debug";
     logger_->info("Generating lockfile...");
 
     lock_generator_ = std::make_unique<MuukLockGenerator>("./");
 
     lock_generator_->generate_lockfile("muuk.lock.toml", is_release);
-
-    logger_->info("Generating Ninja build script...");
 
     // Detect compiler, archiver & linker
     std::string selected_compiler = compiler.empty() ? detect_default_compiler() : compiler;
@@ -32,7 +35,7 @@ void MuukBuilder::build(bool is_release, std::string& target_build, const std::s
         selected_archiver, 
         selected_linker
     );
-    ninja_generator_->generate_ninja_file(target_build);
+    ninja_generator_->generate_ninja_files(target_build);
 
     logger_->info("Starting Ninja build...");
 

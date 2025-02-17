@@ -18,7 +18,7 @@ class CompileCommandsGenerator {
 public:
     explicit CompileCommandsGenerator(const std::string& lockfile_path)
         : lockfile_path_(lockfile_path) {
-        logger_ = Logger::get_logger("compile_commands_logger");
+        logger_ = logger::get_logger("compile_commands_logger");
         logger_->info("[CompileCommandsGenerator] Initializing with lockfile: '{}'", lockfile_path_);
     }
 

@@ -13,7 +13,7 @@ class MuukBuilder {
 public:
     explicit MuukBuilder(MuukFiler& config_manager);
 
-    void build(bool is_release, std::string& target_build, const std::string& compiler);
+    void build(bool is_release, std::string& target_build, const std::string& compiler, const std::string& profile);
     bool is_compiler_available() const;
 
 private:

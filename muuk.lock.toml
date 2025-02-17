@@ -1,6 +1,6 @@
 [library.argparse]
 base_path = 'deps/argparse'
-cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/Od', '/W4', '/std:c++20', '/utf-8' ]
+cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
 dependencies = []
 include = [ 'deps\argparse\include' ]
 libs = []
@@ -9,7 +9,7 @@ sources = []
 
 [library.cracklib]
 base_path = 'deps/cracklib'
-cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/Od', '/W4', '/std:c++20', '/utf-8' ]
+cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
 dependencies = []
 include = [ 'deps\cracklib\include' ]
 libs = []
@@ -18,16 +18,16 @@ sources = [ 'deps\cracklib\src\cracklib.cpp' ]
 
 [library.json]
 base_path = 'deps/json'
-cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/Od', '/W4', '/std:c++20', '/utf-8' ]
+cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
 dependencies = []
-include = [ 'deps\json\include\' ]
+include = [ 'deps\json\single_include' ]
 libs = []
 modules = []
 sources = []
 
 [library.glob]
 base_path = 'deps/glob'
-cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/Od', '/W4', '/std:c++20', '/utf-8' ]
+cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
 dependencies = []
 include = [ 'deps\glob\include\' ]
 libs = []
@@ -36,9 +36,9 @@ sources = [ 'deps\glob\source\glob.cpp' ]
 
 [library.zip]
 base_path = 'deps/zip'
-cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/Od', '/W4', '/std:c++20', '/utf-8' ]
+cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
 dependencies = []
-include = [ 'deps\zip\src\' ]
+include = [ 'deps\zip\src' ]
 libs = []
 modules = []
 sources = [ 'deps\zip\src\zip.c' ]
@@ -46,14 +46,15 @@ sources = [ 'deps\zip\src\zip.c' ]
 [library.spdlog]
 base_path = 'deps/spdlog'
 cflags = [
-    '-DDEBUG',
-    '-g',
+    '/DNDEBUG',
     '/DSPDLOG_COMPILED_LIB',
     '/DSPDLOG_USE_STD_FORMAT',
     '/EHsc',
     '/FS',
-    '/Od',
-    '/W4',
+    '/GL',
+    '/Gy',
+    '/O2',
+    '/Oi',
     '/std:c++20',
     '/utf-8'
 ]
@@ -63,34 +64,35 @@ libs = []
 modules = []
 sources = [
     'deps\spdlog\src\async.cpp',
-    'deps\spdlog\src\bundled_fmtlib_format.cpp',
     'deps\spdlog\src\cfg.cpp',
-    'deps\spdlog\src\color_sinks.cpp',
-    'deps\spdlog\src\file_sinks.cpp',
     'deps\spdlog\src\spdlog.cpp',
-    'deps\spdlog\src\stdout_sinks.cpp'
+    'deps\spdlog\src\color_sinks.cpp',
+    'deps\spdlog\src\stdout_sinks.cpp',
+    'deps\spdlog\src\bundled_fmtlib_format.cpp',
+    'deps\spdlog\src\file_sinks.cpp'
 ]
 
 [library.tomlplusplus]
 base_path = 'deps/tomlplusplus'
-cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/Od', '/W4', '/std:c++20', '/utf-8' ]
+cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
 dependencies = []
 include = [ 'deps\tomlplusplus\include\' ]
 libs = []
 modules = []
-sources = []
+sources = [ 'deps\tomlplusplus\src\toml.cpp' ]
 
 [library.muuk]
 base_path = '.'
 cflags = [
-    '-DDEBUG',
-    '-g',
+    '/DNDEBUG',
     '/DSPDLOG_COMPILED_LIB',
     '/DSPDLOG_USE_STD_FORMAT',
     '/EHsc',
     '/FS',
-    '/Od',
-    '/W4',
+    '/GL',
+    '/Gy',
+    '/O2',
+    '/Oi',
     '/std:c++20',
     '/utf-8'
 ]
@@ -99,10 +101,10 @@ include = [
     'deps\argparse\include',
     'deps\cracklib\include',
     'deps\glob\include\',
-    'deps\json\include\',
+    'deps\json\single_include',
     'deps\spdlog\include',
     'deps\tomlplusplus\include\',
-    'deps\zip\src\',
+    'deps\zip\src',
     'include'
 ]
 libs = []
@@ -116,7 +118,8 @@ sources = [
     'src\ninjagen.cpp',
     'src\muuklockgen.cpp',
     'src\installer.cpp',
-    'src\package_manager.cpp'
+    'src\package_manager.cpp',
+    'src\muukinitializer.cpp'
 ]
 
 [build.bin]
@@ -127,10 +130,10 @@ include = [
     'deps\argparse\include',
     'deps\cracklib\include',
     'deps\glob\include\',
-    'deps\json\include\',
+    'deps\json\single_include',
     'deps\spdlog\include',
     'deps\tomlplusplus\include\',
-    'deps\zip\src\',
+    'deps\zip\src',
     'include'
 ]
 libs = []

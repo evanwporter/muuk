@@ -16,7 +16,7 @@ namespace fs = std::filesystem;
 class NinjaGenerator {
 public:
     NinjaGenerator(const std::string& lockfile_path, const std::string& build_type, const std::string& compiler, const std::string& archiver, const std::string& linker);
-    void generate_ninja_file(const std::string& target_build);
+    void generate_ninja_files(const std::string& target_build);
 
 private:
     std::string lockfile_path_;
@@ -39,6 +39,8 @@ private:
     void link_executable(std::ofstream& out, const std::unordered_map<std::string, std::vector<std::string>>& objects, const std::vector<std::string>& libraries, const std::string& build_name);
 
     void extract_platform_flags();
+
+    void generate_ninja_file(const std::string& target_build);
 
     std::vector<std::string> platform_cflags_;
 

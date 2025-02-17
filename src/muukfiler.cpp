@@ -2,7 +2,7 @@
 #include "logger.h"
 
 MuukFiler::MuukFiler(const std::string& config_file) : config_file_(config_file) {
-    logger_ = Logger::get_logger("muuk::filer");
+    logger_ = logger::get_logger("muuk::filer");
 
     parse_file();
 
@@ -46,9 +46,9 @@ void MuukFiler::parse_file() {
 
     file.close();
 
-    logger_->info("Final parsed section order:");
+    logger_->debug("Final parsed section order:");
     for (const auto& section : section_order_) {
-        logger_->info("  - {}", section);
+        logger_->debug("  - {}", section);
     }
 }
 

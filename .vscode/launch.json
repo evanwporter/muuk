@@ -22,7 +22,8 @@
       "cwd": "${workspaceFolder}",
       "environment": [],
       "console": "integratedTerminal",
-      "symbolSearchPath": "${workspaceFolder}"
+      "symbolSearchPath": "${workspaceFolder}",
+      "preLaunchTask": "Build Debug (MSVC)"
     }
   ]
 }

@@ -25,6 +25,7 @@ public:
         const std::string& package_type);
 
     void merge(const Package& child_pkg);
+
     toml::table serialize() const;
 
     std::string name;
@@ -39,6 +40,7 @@ public:
     std::vector<std::string> sources;
     std::vector<std::string> modules;
     std::vector<std::string> libs;
+    std::set<std::string> inherited_profiles;
 
     std::set<std::string> deps;
     std::unordered_map<std::string, std::unordered_map<std::string, std::string>> dependencies;
@@ -66,6 +68,8 @@ private:
     std::set<std::string> system_include_paths_;
     std::set<std::string> system_library_paths_;
 
+    std::unordered_map<std::string, std::unordered_map<std::string, std::set<std::string>>> profiles_;
+
     std::unordered_map<std::string, std::set<std::string>> platform_cflags_;
 
     void parse_section(const toml::table& section, Package& package);
@@ -76,6 +80,8 @@ private:
     std::optional<std::shared_ptr<Package>> find_package(const std::string& package_name);
 
     void resolve_system_dependency(const std::string& package_name, std::optional<std::shared_ptr<Package>> package);
+
+    void merge_down();
 
     void parse_muuk_toml(const std::string& path, bool is_base = false);
     void resolve_dependencies(const std::string& package_name, std::optional<std::string> search_path = std::nullopt);

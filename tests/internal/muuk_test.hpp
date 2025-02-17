@@ -63,7 +63,7 @@ TEST(MuukTests, UpdateSection) {
 TEST(MuukTests, RunScript) {
     MockMuukFiler mockFiler;
     Muuker muuk(mockFiler);
-    auto logger_ = Logger::get_logger("muuk_logger");
+    auto logger_ = logger::get_logger("muuk_logger");
 
     // logger_->info("Modding config");
     std::cout << "Modding config" << std::endl;

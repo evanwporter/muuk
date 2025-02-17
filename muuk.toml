@@ -21,6 +21,7 @@ sources = [
     'src/muuklockgen.cpp',
     'src/installer.cpp',
     'src/package_manager.cpp',
+    'src/muukinitializer.cpp',
 ]
 
 [library.muuk.dependencies]
@@ -33,9 +34,14 @@ tomlplusplus = { git = 'https://github.com/marzer/tomlplusplus.git', muuk_path =
 zip = { git = 'https://github.com/kuba--/zip.git', muuk_path = 'deps/zip/muuk.toml', revision = 'd7a2252a537926cbdef8512741a322a183fcfd09' }
 
 [build.bin]
+profile = ["release", "debug"]
 dependencies = { muuk = 'v1.0.0' }
 gflags = ['/std:c++20', '/utf-8', '/EHsc', '/FS']
 sources = ['src/main.cpp']
 
 [platform.windows]
 cflags = ["/I."]
+
+[profile.release]
+gflags = ["/HELLO"]
+profile = ["release", "debug"]

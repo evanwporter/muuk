@@ -121,14 +121,13 @@ namespace muuk {
                 std::string installed_revision = package_section.contains("revision") ? *package_section["revision"].value<std::string>() : "";
                 std::string installed_tag = package_section.contains("tag") ? *package_section["tag"].value<std::string>() : "";
 
-                return (installed_version == version && installed_revision == revision && installed_tag == tag);
+                return (installed_version == version || installed_revision == revision || installed_tag == tag);
             }
             catch (const std::exception& e) {
                 logger_->error("Error checking installed version: {}", e.what());
                 return false;
             }
         }
-
 
         void install(const std::string& lockfile_path = "muuk.lock.toml") {
             MuukLockGenerator lockgen("./");

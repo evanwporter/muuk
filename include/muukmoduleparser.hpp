@@ -40,7 +40,7 @@ private:
 
 public:
     MuukModuleParser(const std::string& path) : toml_path(path) {
-        logger_ = Logger::get_logger("MuukModuleParser");
+        logger_ = logger::get_logger("MuukModuleParser");
         logger_->info("Initializing MuukModuleParser with path: {}", path);
         loadToml();
     }

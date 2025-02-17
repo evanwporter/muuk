@@ -25,7 +25,7 @@ namespace fs = std::filesystem;
 
 namespace util {
 
-    auto logger = Logger::get_logger("util_logger");
+    auto logger = logger::get_logger("util_logger");
 
     // Ensure directory exists and optionally create .gitignore
     void ensure_directory_exists(const std::string& dir_path, bool gitignore) {

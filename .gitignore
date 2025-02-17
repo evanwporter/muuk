@@ -18,4 +18,6 @@ github_api_response.json
 .ninja_lock
 
 subprojects/
-.vscode
+
+# TODO: Eventually remove vscode folder from remote
+# .vscode

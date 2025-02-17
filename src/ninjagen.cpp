@@ -20,40 +20,45 @@ NinjaGenerator::NinjaGenerator(const std::string& lockfile_path, const std::stri
     archiver_(archiver), linker_(linker), ninja_file_("build.ninja"),
     build_dir_(fs::path("build") / build_type) {
 
-    logger_ = Logger::get_logger("ninjagen_logger");
-    logger_->info("[NinjaGenerator] Initializing with Compiler: '{}', Archiver: '{}', Linker: '{}'", compiler_, archiver_, linker_);
+    logger_ = logger::get_logger("ninjagen_logger");
+    logger_->info("Initializing with Compiler: '{}', Archiver: '{}', Linker: '{}'", compiler_, archiver_, linker_);
 }
 
 void NinjaGenerator::generate_ninja_file(const std::string& target_build) {
+    // TODO: target build  
     (void)target_build;
+
+    logger_->info(" Generating Ninja build script...");
+    logger_->info("----------------------------------");
+
     muuk_filer_ = std::make_unique<MuukFiler>(lockfile_path_);
     config_ = muuk_filer_->get_config();
 
     std::vector<std::string> section_order = muuk_filer_->parse_section_order();
 
-    logger_->info("[NinjaGenerator] Keys in config_ (ordered from TOML):");
+    logger_->info("Keys in config_ (ordered from TOML):");
 
     for (const auto& section : section_order) {
         logger_->info("  {}", section);
     }
 
     if (config_.empty()) {
-        logger_->error("[NinjaGenerator] Error: No TOML data loaded.");
+        logger_->error("Error: No TOML data loaded.");
         return;
     }
 
     extract_platform_flags();
 
     fs::create_directories(build_dir_);
-    logger_->info("[NinjaGenerator] Created build directory: {}", build_dir_.string());
+    logger_->info("Created build directory: {}", build_dir_.string());
 
     std::ofstream out(ninja_file_);
     if (!out) {
-        logger_->error("[NinjaGenerator] Failed to create Ninja build file '{}'", ninja_file_);
+        logger_->error("Failed to create Ninja build file '{}'", ninja_file_);
         throw std::runtime_error("Failed to create Ninja build file.");
     }
 
-    logger_->info("[NinjaGenerator] Generating Ninja build rules...");
+    logger_->info("Generating Ninja build rules...");
     write_ninja_header(out);
 
     // Parse dependencies
@@ -97,11 +102,11 @@ void NinjaGenerator::generate_ninja_file(const std::string& target_build) {
         }
     }
 
-    logger_->info("[NinjaGenerator] Ninja build file '{}' generated successfully!", ninja_file_);
+    logger_->info("Ninja build file '{}' generated successfully!", ninja_file_);
 }
 
 void NinjaGenerator::write_ninja_header(std::ofstream& out) {
-    logger_->info("[NinjaGenerator] Writing Ninja header...");
+    logger_->info("Writing Ninja header...");
 
     out << "# ------------------------------------------------------------\n"
         << "# Auto-generated Ninja build file\n"
@@ -116,7 +121,7 @@ void NinjaGenerator::write_ninja_header(std::ofstream& out) {
     std::string module_dir = util::to_linux_path((build_dir_ / "modules/").string());
 
     util::ensure_directory_exists(module_dir);
-    logger_->info("[NinjaGenerator] Created module build directory: {}", module_dir);
+    logger_->info("Created module build directory: {}", module_dir);
 
     std::string platform_cflags_str;
     for (const auto& cflag : platform_cflags_) {
@@ -204,10 +209,11 @@ NinjaGenerator::compile_objects(std::ofstream& out,
     std::unordered_map<std::string, std::vector<std::string>> compiled_modules;
 
     for (const auto& package_name : section_order) {
+        if (!package_name.starts_with("build") && !package_name.starts_with("library")) continue;
 
         size_t dot_pos = package_name.find('.');
         if (dot_pos == std::string::npos) {
-            logger_->error("[NinjaGenerator] Invalid package format: {}", package_name);
+            logger_->error("Invalid package format in 'muuk.lock.toml': {}", package_name);
             continue;
         }
 
@@ -219,7 +225,7 @@ NinjaGenerator::compile_objects(std::ofstream& out,
         auto package_table = config_.at_path(package_name).as_table();
         if (!package_table) continue;
 
-        logger_->info("[NinjaGenerator] Processing package: {}", package_name);
+        logger_->info("Processing package: {}", package_name);
 
         fs::path module_dir = build_dir_ / pkg_name;
         fs::create_directories(module_dir);
@@ -280,7 +286,7 @@ NinjaGenerator::compile_objects(std::ofstream& out,
                         std::string module_name = fs::path(mod_path).stem().string();
                         std::string obj_path = util::to_linux_path((module_dir / module_name).string() + OBJ_EXT);
 
-                        logger_->info("[NinjaGenerator] Compiling module '{}' -> {}", module_name, obj_path);
+                        logger_->info("Compiling module '{}' -> {}", module_name, obj_path);
 
                         // Ensure each module depends on:
                         // 1. The previous module in the sequence
@@ -315,9 +321,9 @@ NinjaGenerator::compile_objects(std::ofstream& out,
                     std::string obj_path = util::to_linux_path((module_dir / fs::path(src_path).stem()).string() + OBJ_EXT);
                     obj_files.push_back(obj_path);
 
-                    logger_->info("[NinjaGenerator] Compiling source: {} -> {}", src_path, obj_path);
+                    logger_->info("Compiling source: {} -> {}", src_path, obj_path);
 
-                    // Ensure that each source depends on the **last compiled module**
+                    // Ensure that each source depends on the last compiled module
                     out << "build " << obj_path << ": compile " << src_path;
                     if (!previous_module_obj.empty()) {
                         out << " | " << previous_module_obj;
@@ -342,7 +348,7 @@ void NinjaGenerator::archive_libraries(std::ofstream& out,
 
     for (const auto& [pkg_name, obj_files] : objects) {
         if (!config_.contains("library") || !config_["library"].as_table() || !config_["library"].as_table()->contains(pkg_name)) {
-            logger_->info("[NinjaGenerator] Skipping '{}' because it's not a library.", pkg_name);
+            logger_->info("Skipping '{}' because it's not a library.", pkg_name);
             continue;
         }
 
@@ -361,11 +367,11 @@ void NinjaGenerator::archive_libraries(std::ofstream& out,
         }
 
         if (input_files.empty()) {
-            logger_->info("[NinjaGenerator] Skipping library '{}' because it has no sources or linked libraries.", pkg_name);
+            logger_->info("Skipping library '{}' because it has no sources or linked libraries.", pkg_name);
             continue;
         }
 
-        logger_->info("[NinjaGenerator] Creating library: {}", normalized_lib);
+        logger_->info("Creating library: {}", normalized_lib);
         out << "build " << normalized_lib << ": archive";
         for (const auto& file : input_files) {
             out << " " << file;
@@ -384,7 +390,7 @@ void NinjaGenerator::link_executable(std::ofstream& out,
     fs::path exe_output = build_dir_ / build_name / (build_name + EXE_EXT);
     std::string normalized_exe = util::to_linux_path(exe_output.string());
 
-    logger_->info("[NinjaGenerator] Linking executable for '{}': {}", build_name, normalized_exe);
+    logger_->info("Linking executable for '{}': {}", build_name, normalized_exe);
 
     std::string build_objs;
     if (objects.find(build_name) != objects.end()) {
@@ -426,21 +432,20 @@ void NinjaGenerator::link_executable(std::ofstream& out,
 }
 
 void NinjaGenerator::extract_platform_flags() {
-    logger_->info("[NinjaGenerator] Extracting platform-specific flags from lockfile...");
+    logger_->info("Extracting platform-specific flags from lockfile...");
 
     // Check if the "platform" section exists
     if (!config_.contains("platform")) {
-        logger_->warn("[NinjaGenerator] No 'platform' section found in lockfile.");
+        logger_->warn("No 'platform' section found in lockfile.");
         return;
     }
 
     auto platform_table = config_["platform"].as_table();
     if (!platform_table) {
-        logger_->warn("[NinjaGenerator] Platform section found but is not a valid table.");
+        logger_->warn("Platform section found but is not a valid table.");
         return;
     }
 
-    // Detect the current platform
     std::string detected_platform;
 
 #ifdef _WIN32
@@ -453,23 +458,22 @@ void NinjaGenerator::extract_platform_flags() {
     detected_platform = "unknown";
 #endif
 
-    logger_->info("[NinjaGenerator] Detected platform: {}", detected_platform);
+    logger_->info("Detected platform: {}", detected_platform);
 
-    // Check if the detected platform exists in the TOML configuration
     if (!platform_table->contains(detected_platform)) {
-        logger_->warn("[NinjaGenerator] No configuration found for platform '{}'.", detected_platform);
+        logger_->warn("No configuration found for platform '{}'.", detected_platform);
         return;
     }
 
     auto flags_table = platform_table->at(detected_platform).as_table();
     if (!flags_table || !flags_table->contains("cflags")) {
-        logger_->warn("[NinjaGenerator] No 'cflags' entry found for platform '{}'.", detected_platform);
+        logger_->warn("No 'cflags' entry found for platform '{}'.", detected_platform);
         return;
     }
 
     auto flags_array = flags_table->at("cflags").as_array();
     if (!flags_array) {
-        logger_->warn("[NinjaGenerator] 'flags' entry for platform '{}' is not an array.", detected_platform);
+        logger_->warn("'flags' entry for platform '{}' is not an array.", detected_platform);
         return;
     }
 
@@ -479,10 +483,10 @@ void NinjaGenerator::extract_platform_flags() {
         if (flag.is_string()) {
             std::string flag_value = flag.value<std::string>().value_or("");
             platform_cflags_.push_back(flag_value);
-            logger_->info("[NinjaGenerator] Added platform-specific flag: {}", flag_value);
+            logger_->info("Added platform-specific flag: {}", flag_value);
         }
         else {
-            logger_->warn("[NinjaGenerator] Ignoring non-string flag entry for platform '{}'.", detected_platform);
+            logger_->warn("Ignoring non-string flag entry for platform '{}'.", detected_platform);
         }
     }
 
@@ -493,10 +497,10 @@ void NinjaGenerator::extract_platform_flags() {
     }
 
     if (!platform_cflags_.empty()) {
-        logger_->info("[NinjaGenerator] Final platform-specific flags: {}", platform_cflags_str);
+        logger_->info("Final platform-specific flags: {}", platform_cflags_str);
     }
     else {
-        logger_->warn("[NinjaGenerator] No valid platform-specific flags were extracted.");
+        logger_->warn("No valid platform-specific flags were extracted.");
     }
 }
 

@@ -3,30 +3,8 @@
     {
       "type": "shell",
       "label": "Build Debug (MSVC)",
-      "command": "bin",
-      "args": [
-        "build",
-        // "--release",
-        "-c",
-        "cl"
-      ],
-      "problemMatcher": ["$msCompile"],
-      "group": {
-        "kind": "build",
-        "isDefault": false
-      },
-      "options": {
-        "statusbar": {
-          "hide": false,
-          "label": "Debug"
-        }
-      }
-    },
-    {
-      "type": "shell",
-      "label": "Build Release (MSVC)",
       "command": "muuk",
-      "args": ["build", "--compiler", "cl", "--release"],
+      "args": ["build", "--compiler", "cl"],
       "problemMatcher": ["$msCompile"],
       "group": {
         "kind": "build",
@@ -35,8 +13,41 @@
       "options": {
         "statusbar": {
           "hide": false,
+          "label": "Debug"
+        }
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "silent",
+        "revealProblems": "onProblem",
+        "focus": false,
+        "showReuseMessage": true,
+        "clear": true
+      }
+    },
+    {
+      "type": "shell",
+      "label": "Build Release (MSVC)",
+      "command": "muuk",
+      "args": ["build", "--release", "-c", "cl"],
+      "problemMatcher": ["$msCompile"],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "options": {
+        "statusbar": {
+          "hide": false,
           "label": "Release"
         }
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "silent",
+        "revealProblems": "onProblem",
+        "focus": false,
+        "showReuseMessage": true,
+        "clear": true
       }
     },
     {
@@ -56,6 +67,14 @@
         "statusbar": {
           "hide": true
         }
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "silent",
+        "revealProblems": "onProblem",
+        "focus": false,
+        "showReuseMessage": true,
+        "clear": true
       }
     },
     {

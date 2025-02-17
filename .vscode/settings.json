@@ -124,5 +124,8 @@
     "editor.formatOnType": true,
     "editor.wordBasedSuggestions": "off",
     "editor.defaultFormatter": "ms-python.black-formatter"
+  },
+  "launches": {
+    "lauchDebugger": "(Windows) Launch"
   }
 }
