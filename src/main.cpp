@@ -58,7 +58,7 @@ void start_repl(std::unordered_map<std::string, std::function<void()>>& command_
 #endif
 
 int main(int argc, char* argv[]) {
-    auto logger = logger::get_logger("main_logger");
+    auto logger_ = logger::get_logger("main_logger");
 
     argparse::ArgumentParser program("muuk");
 
@@ -87,10 +87,7 @@ int main(int argc, char* argv[]) {
         .default_value(std::vector<std::string>{});
 
     argparse::ArgumentParser build_command("build", "Build the project");
-    build_command.add_argument("--release")
-        .help("Build in release mode (optimized)")
-        .flag();
-    build_command.add_argument("-t", "--target-build")
+    build_command.add_argument("-t", "--target-build") // TODO
         .help("Specify a specific build target")
         .default_value(std::string(""))
         .nargs(1);
@@ -191,7 +188,7 @@ int main(int argc, char* argv[]) {
         }
 
         if (program.is_subcommand_used("install")) {
-            logger->info("Installing dependencies from muuk.toml...");
+            logger_->info("Installing dependencies from muuk.toml...");
             muuk::package_manager::install("muuk.lock.toml");
             return 0;
         }
@@ -206,7 +203,7 @@ int main(int argc, char* argv[]) {
         // TODO: Do something with
         // if (program.is_subcommand_used("upload-patch")) {
         //     bool dry_run = upload_patch_command.get<bool>("--dry-run");
-        //     logger->info("[muuk] Running upload-patch with dry-run: {}", dry_run);
+        //     logger_->info("[muuk] Running upload-patch with dry-run: {}", dry_run);
         //     muuk::upload_patch(dry_run);
         //     return 0;
         // }
@@ -230,7 +227,7 @@ int main(int argc, char* argv[]) {
             std::string target_section = add_command.get<std::string>("--target");
             bool is_system = add_command.get<bool>("--sys");
 
-            logger->info("Adding dependency: {}", dependency_name);
+            logger_->info("Adding dependency: {}", dependency_name);
 
             muuk::package_manager::add_dependency(
                 muuk_path,
@@ -249,7 +246,7 @@ int main(int argc, char* argv[]) {
         }
 
         // Commands that require `muuk.toml`
-        logger->info("[muuk] Using configuration from: {}", muuk_path);
+        logger_->info("[muuk] Using configuration from: {}", muuk_path);
         MuukFiler muukFiler(muuk_path);
         Muuker muuk(muukFiler);
         MuukBuilder muukBuilder(muukFiler);
@@ -271,11 +268,11 @@ int main(int argc, char* argv[]) {
         }
 
         if (program.is_subcommand_used("build")) {
-            bool is_release = build_command.get<bool>("--release");
             std::string target_build = build_command.get<std::string>("--target-build");
             std::string compiler = build_command.get<std::string>("--compiler");
             std::string profile = build_command.get<std::string>("--profile");
-            muukBuilder.build(is_release, target_build, compiler, profile);
+            muukBuilder.build(target_build, compiler, profile);
+
             return 0;
         }
 

@@ -25,16 +25,16 @@ namespace fs = std::filesystem;
 
 namespace util {
 
-    auto logger = logger::get_logger("util_logger");
+    auto logger_ = logger::get_logger("util_logger");
 
     // Ensure directory exists and optionally create .gitignore
     void ensure_directory_exists(const std::string& dir_path, bool gitignore) {
         if (!fs::exists(dir_path)) {
             fs::create_directories(dir_path);
-            logger->info("Created directory: {}", dir_path);
+            logger_->info("Created directory: {}", dir_path);
         }
         else {
-            logger->debug("Directory already exists: {}", dir_path);
+            logger_->debug("Directory already exists: {}", dir_path);
         }
 
         if (gitignore) {
@@ -44,10 +44,10 @@ namespace util {
                 if (gitignore_stream.is_open()) {
                     gitignore_stream << "*\n";
                     gitignore_stream.close();
-                    logger->info("Created .gitignore file in directory: {}", dir_path);
+                    logger_->info("Created .gitignore file in directory: {}", dir_path);
                 }
                 else {
-                    logger->error("Failed to create .gitignore file in directory: {}", dir_path);
+                    logger::error("Failed to create .gitignore file in directory: {}", dir_path);
                 }
             }
         }
@@ -55,17 +55,17 @@ namespace util {
 
     bool path_exists(const std::string& path) {
         bool exists = fs::exists(path);
-        logger->debug("Checked existence of '{}': {}", path, exists);
+        logger_->debug("Checked existence of '{}': {}", path, exists);
         return exists;
     }
 
     void remove_path(const std::string& path) {
         if (fs::exists(path)) {
             fs::remove_all(path);
-            logger->info("Removed path: {}", path);
+            logger_->info("Removed path: {}", path);
         }
         else {
-            logger->warn("Attempted to remove non-existent path: {}", path);
+            logger::warning("Attempted to remove non-existent path: {}", path);
         }
     }
 
@@ -78,7 +78,7 @@ namespace util {
         else {
             matches = std::regex_match(path, std::regex(".*" + std::regex_replace(pattern, std::regex("\\*"), ".*") + "$"));
         }
-        logger->debug("Matching '{}' with pattern '{}': {}", path, pattern, matches);
+        logger_->debug("Matching '{}' with pattern '{}': {}", path, pattern, matches);
         return matches;
     }
 
@@ -88,17 +88,17 @@ namespace util {
             ensure_directory_exists(target_dir);
 
             if (!fs::exists(archive)) {
-                logger->error("Zip file does not exist: {}", archive);
+                logger::error("Zip file does not exist: {}", archive);
                 throw std::runtime_error("Zip file not found: " + archive);
             }
 
-            logger->info("Starting extraction of zip archive: {} from {}", archive, target_dir);
+            logger_->info("Starting extraction of zip archive: {} from {}", archive, target_dir);
 
             int result = zip_extract(
                 archive.c_str(),
                 target_dir.c_str(),
                 [](const char* filename, void* arg) -> int {
-                    // logger->info("Extracting: {}", filename);
+                    // logger_->info("Extracting: {}", filename);
                     (void)filename;
                     (void)arg;
                     return 0;
@@ -107,18 +107,18 @@ namespace util {
             );
 
             if (result < 0) {
-                logger->error("Failed to extract zip archive '{}'. Error code: {}", archive, result);
+                logger::error("Failed to extract zip archive '{}'. Error code: {}", archive, result);
                 throw std::runtime_error("Zip extraction failed.");
             }
 
-            logger->info("Extraction completed successfully for: {}", archive);
+            logger_->info("Extraction completed successfully for: {}", archive);
         }
         catch (const std::exception& ex) {
-            logger->error("Exception during zip extraction: {}", ex.what());
+            logger::error("Exception during zip extraction: {}", ex.what());
             throw;
         }
         catch (...) {
-            logger->error("Unknown error occurred during zip extraction.");
+            logger::error("Unknown error occurred during zip extraction.");
             throw;
         }
     }
@@ -149,7 +149,7 @@ namespace util {
 
 
     int execute_command(const std::string& command) {
-        logger->info("Executing command: {}", command);
+        logger_->info("Executing command: {}", command);
         return system(command.c_str());
     }
 
@@ -241,11 +241,11 @@ namespace util {
             return normalized;
         }
         catch (const std::exception& e) {
-            logger->warn("Exception during path normalizing {}", e.what());
+            logger::warning("Exception during path normalizing {}", e.what());
             return path;
         }
         catch (...) {
-            logger->error("Unknown error occurred during normalize path.");
+            logger::error("Unknown error occurred during normalize path.");
             throw;
         }
     }
@@ -385,7 +385,7 @@ namespace util {
     template std::string vectorToString<std::string>(const std::vector<std::string>&, const std::string&);
 
     std::string execute_command_get_out(const std::string& command) {
-        logger->info("Executing command: {}", command);
+        logger_->info("Executing command: {}", command);
 
         std::array<char, 128> buffer;
         std::string result;
@@ -397,7 +397,7 @@ namespace util {
 #endif
 
         if (!pipe) {
-            logger->error("Failed to execute command: {}", command);
+            logger::error("Failed to execute command: {}", command);
             throw std::runtime_error("Failed to execute command: " + command);
         }
 
@@ -405,7 +405,7 @@ namespace util {
             result += buffer.data();
         }
 
-        logger->info("Command output:\n{}", result);
+        logger_->info("Command output:\n{}", result);
         return result;
     }
 

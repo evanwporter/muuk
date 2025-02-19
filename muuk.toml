@@ -43,5 +43,11 @@ sources = ['src/main.cpp']
 cflags = ["/I."]
 
 [profile.release]
-gflags = ["/HELLO"]
-profile = ["release", "debug"]
+cflags = ["/O2", "/DNDEBUG", "/GL", "/LTCG"]
+lflags = ["/OPT:REF", "/OPT:ICF"]
+gflags = ["/O2", "/GL"]
+
+[profile.debug]
+cflags = ["/Od", "/DDEBUG", "/Zi", "/RTC1", "/FS"]
+lflags = ["/DEBUG"]
+gflags = ["/Od", "/Zi"]

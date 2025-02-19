@@ -13,7 +13,10 @@ class MuukBuilder {
 public:
     explicit MuukBuilder(MuukFiler& config_manager);
 
-    void build(bool is_release, std::string& target_build, const std::string& compiler, const std::string& profile);
+    void build(std::string& target_build, const std::string& compiler, const std::string& profile);
+
+    void build_all_profiles(std::string& target_build, const std::string& compiler);
+
     bool is_compiler_available() const;
 
 private:
@@ -22,11 +25,13 @@ private:
     std::unique_ptr<NinjaGenerator> ninja_generator_;
     std::shared_ptr<spdlog::logger> logger_;
 
-    void execute_build(bool is_release) const;
+    void execute_build(const std::string& profile) const;
 
     std::string detect_default_compiler() const;
     std::string detect_archiver(const std::string& compiler) const;
     std::string detect_linker(const std::string& compiler) const;
+
+    void add_script(const std::string& profile);
 };
 
 #endif // MUUK_BUILDER_H

@@ -26,7 +26,7 @@ namespace muuk {
                 util::ensure_directory_exists(target_dir);
 
                 if (!fs::exists(archive)) {
-                    logger_->error("Zip file does not exist: {}", archive);
+                    logger::error("Zip file does not exist: {}", archive);
                     throw std::runtime_error("Zip file not found: " + archive);
                 }
 
@@ -45,18 +45,18 @@ namespace muuk {
                 );
 
                 if (result < 0) {
-                    logger_->error("Failed to extract zip archive '{}'. Error code: {}", archive, result);
+                    logger::error("Failed to extract zip archive '{}'. Error code: {}", archive, result);
                     throw std::runtime_error("Zip extraction failed.");
                 }
 
                 logger_->info("Extraction completed successfully for: {}", archive);
             }
             catch (const std::exception& ex) {
-                logger_->error("Exception during zip extraction: {}", ex.what());
+                logger::error("Exception during zip extraction: {}", ex.what());
                 throw;
             }
             catch (...) {
-                logger_->error("Unknown error occurred during zip extraction.");
+                logger::error("Unknown error occurred during zip extraction.");
                 throw;
             }
         }
@@ -72,7 +72,7 @@ namespace muuk {
                 command = "curl -L -o " + output_path + " " + url;
             }
             else {
-                logger_->error("Neither wget nor curl is available on the system.");
+                logger::error("Neither wget nor curl is available on the system.");
                 throw std::runtime_error("No suitable downloader found. Install wget or curl.");
             }
 
@@ -80,7 +80,7 @@ namespace muuk {
 
             int result = util::execute_command(command.c_str());
             if (result != 0) {
-                logger_->error("Failed to download file from {}. Command exited with code: {}", url, result);
+                logger::error("Failed to download file from {}. Command exited with code: {}", url, result);
                 throw std::runtime_error("File download failed.");
             }
         }
@@ -88,7 +88,7 @@ namespace muuk {
         std::pair<std::string, std::string> split_author_repo(std::string repo) {
             size_t slash_pos = repo.find('/');
             if (slash_pos == std::string::npos) {
-                logger_->error("Invalid repository format. Expected <author>/<repo> but got: {}", repo);
+                logger::error("Invalid repository format. Expected <author>/<repo> but got: {}", repo);
                 return { "", "" };
             }
 
@@ -96,7 +96,7 @@ namespace muuk {
             std::string repo_name = repo.substr(slash_pos + 1);
 
             if (repo_name.empty()) {
-                logger_->error("Invalid repository format. Expected <author>/<repo> but got: {}", repo);
+                logger::error("Invalid repository format. Expected <author>/<repo> but got: {}", repo);
                 return { "", "" };
             }
 
@@ -125,12 +125,12 @@ namespace muuk {
                         logger_->info("Resolved latest version: {} of {}/{}", resolved_version, author, repo_name);
                     }
                     else {
-                        logger_->error("Failed to fetch latest release version of {}/{}", author, repo_name);
+                        logger::error("Failed to fetch latest release version of {}/{}", author, repo_name);
                         return;
                     }
                 }
                 catch (const std::exception& e) {
-                    logger_->error("Error fetching latest release: {}", e.what());
+                    logger::error("Error fetching latest release: {}", e.what());
                     return;
                 }
             }
@@ -164,7 +164,7 @@ namespace muuk {
                 }
 
                 if (!renamed) {
-                    logger_->error("Could not find the expected extracted folder: {}", expected_extracted_folder);
+                    logger::error("Could not find the expected extracted folder: {}", expected_extracted_folder);
                 }
 
                 // Clean up ZIP file
@@ -174,7 +174,7 @@ namespace muuk {
                 // add_dependency(author, repo_name, resolved_version);
             }
             catch (const std::exception& e) {
-                logger_->error("Error downloading GitHub repository: {}", e.what());
+                logger::error("Error downloading GitHub repository: {}", e.what());
             }
         }
 
@@ -183,7 +183,7 @@ namespace muuk {
 
             size_t slash_pos = repo.find('/');
             if (slash_pos == std::string::npos) {
-                logger_->error("Invalid repository format. Expected <author>/<repo> but got: {}", repo);
+                logger::error("Invalid repository format. Expected <author>/<repo> but got: {}", repo);
                 return;
             }
 
@@ -198,7 +198,7 @@ namespace muuk {
 
             int result = util::execute_command(git_command.c_str());
             if (result != 0) {
-                logger_->error("Failed to add submodule '{}'.", repo);
+                logger::error("Failed to add submodule '{}'.", repo);
                 return;
             }
 
@@ -207,7 +207,7 @@ namespace muuk {
             result = util::execute_command(init_command.c_str());
 
             if (result != 0) {
-                logger_->error("Failed to initialize submodule '{}'.", repo);
+                logger::error("Failed to initialize submodule '{}'.", repo);
                 return;
             }
 
@@ -241,7 +241,7 @@ namespace muuk {
 
             try {
                 if (!fs::exists(toml_path)) {
-                    logger_->error("muuk.toml file not found at: {}", toml_path);
+                    logger::error("muuk.toml file not found at: {}", toml_path);
                     throw std::runtime_error("muuk.toml file not found.");
                 }
 
@@ -250,7 +250,7 @@ namespace muuk {
                 // Step 1: Get package name
                 toml::table package_section = muukFiler.get_section("package");
                 if (!package_section.contains("name") || !package_section["name"].is_string()) {
-                    logger_->error("Missing 'name' in [package] section.");
+                    logger::error("Missing 'name' in [package] section.");
                     throw std::runtime_error("Invalid muuk.toml: missing package.name");
                 }
                 std::string package_name = *package_section["name"].value<std::string>();
@@ -300,7 +300,7 @@ namespace muuk {
                     revision.erase(std::remove(revision.begin(), revision.end(), '\n'), revision.end());
 
                     if (revision.empty()) {
-                        logger_->error("Failed to retrieve latest commit hash for '{}'", repo_name);
+                        logger::error("Failed to retrieve latest commit hash for '{}'", repo_name);
                         throw std::runtime_error("Failed to get latest commit hash.");
                     }
 
@@ -357,7 +357,7 @@ namespace muuk {
                 logger_->info("Successfully added dependency '{}' to '{}'", repo_name, toml_path);
             }
             catch (const std::exception& e) {
-                logger_->error("Error adding dependency to muuk.toml: {}", e.what());
+                logger::error("Error adding dependency to muuk.toml: {}", e.what());
                 throw;
             }
         }

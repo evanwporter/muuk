@@ -38,7 +38,7 @@ namespace muuk {
             logger_->info("Cloning repository: {}", clone_cmd);
             int clone_result = util::execute_command(clone_cmd);
             if (clone_result != 0) {
-                logger_->error("Failed to clone repository '{}'", repo_url);
+                logger::error("Failed to clone repository '{}'", repo_url);
                 return;
             }
 
@@ -48,7 +48,7 @@ namespace muuk {
                 logger_->info("Checking out reference: {}", checkout_ref);
                 int checkout_result = util::execute_command(checkout_cmd);
                 if (checkout_result != 0) {
-                    logger_->error("Failed to checkout reference '{}' in '{}'", checkout_ref, target_dir);
+                    logger::error("Failed to checkout reference '{}' in '{}'", checkout_ref, target_dir);
                     return;
                 }
             }
@@ -61,14 +61,19 @@ namespace muuk {
             }
         }
 
-        void generate_default_muuk_toml(const std::string& repo_path, const std::string& repo_name,
-            const std::string& version, const std::string& revision, const std::string& tag) {
+        void generate_default_muuk_toml(
+            const std::string& repo_path,
+            const std::string& repo_name,
+            const std::string& version,
+            const std::string& revision,
+            const std::string& tag
+        ) {
             std::string muuk_toml_path = repo_path + "/muuk.toml";
 
             try {
                 std::ofstream muuk_toml(muuk_toml_path);
                 if (!muuk_toml) {
-                    logger_->error("Failed to create muuk.toml at '{}'", muuk_toml_path);
+                    logger::error("Failed to create muuk.toml at '{}'", muuk_toml_path);
                     return;
                 }
 
@@ -100,7 +105,7 @@ namespace muuk {
                 logger_->info("Generated default muuk.toml at '{}'", muuk_toml_path);
             }
             catch (const std::exception& e) {
-                logger_->error("Error writing muuk.toml for '{}': {}", repo_name, e.what());
+                logger::error("Error writing muuk.toml for '{}': {}", repo_name, e.what());
             }
         }
 
@@ -111,7 +116,7 @@ namespace muuk {
                 toml::table config = muukFiler.get_config();
 
                 if (!config.contains("package") || !config["package"].is_table()) {
-                    logger_->warn("'{}' has no valid [package] section.", muuk_toml_path);
+                    logger::warning("'{}' has no valid [package] section.", muuk_toml_path);
                     return false;
                 }
 
@@ -124,7 +129,7 @@ namespace muuk {
                 return (installed_version == version || installed_revision == revision || installed_tag == tag);
             }
             catch (const std::exception& e) {
-                logger_->error("Error checking installed version: {}", e.what());
+                logger::error("Error checking installed version: {}", e.what());
                 return false;
             }
         }
@@ -136,7 +141,7 @@ namespace muuk {
             logger_->info("Reading dependencies from '{}'", lockfile_path);
 
             if (!fs::exists(lockfile_path)) {
-                logger_->error("muuk.lock.toml not found.");
+                logger::error("muuk.lock.toml not found.");
                 throw std::runtime_error("muuk.lock.toml file not found.");
             }
 
@@ -144,7 +149,7 @@ namespace muuk {
             toml::table lockfile_data = muukFiler.get_config();
 
             if (!lockfile_data.contains("dependencies") || !lockfile_data["dependencies"].is_table()) {
-                logger_->error("No 'dependencies' section found in '{}'", lockfile_path);
+                logger::error("No 'dependencies' section found in '{}'", lockfile_path);
                 return;
             }
 
@@ -159,7 +164,7 @@ namespace muuk {
                 std::string repo_name = std::string(dep_name_.str());
 
                 if (!dep_table.is_table()) {
-                    logger_->warn("Skipping invalid dependency entry '{}'", repo_name);
+                    logger::warning("Skipping invalid dependency entry '{}'", repo_name);
                     continue;
                 }
 
@@ -171,7 +176,7 @@ namespace muuk {
                 std::string branch = dep_info.contains("branch") ? *dep_info["branch"].value<std::string>() : "";
 
                 if (git_url.empty()) {
-                    logger_->warn("Dependency '{}' has no Git URL. Skipping.", repo_name);
+                    logger::warning("Dependency '{}' has no Git URL. Skipping.", repo_name);
                     continue;
                 }
 
@@ -186,7 +191,7 @@ namespace muuk {
                         logger_->info("'{}' is already up to date. Skipping installation.", repo_name);
                         continue;
                     }
-                    logger_->warn("'{}' version mismatch. Reinstalling...", repo_name);
+                    logger::warning("'{}' version mismatch. Reinstalling...", repo_name);
                     fs::remove_all(target_dir); // Remove outdated version
                 }
 
@@ -202,7 +207,7 @@ namespace muuk {
                 clone_shallow_repo(git_url, target_dir, ref);
 
                 if (!fs::exists(muuk_toml_path)) {
-                    logger_->warn("No muuk.toml found for '{}'. Generating a default one.", repo_name);
+                    logger::warning("No muuk.toml found for '{}'. Generating a default one.", repo_name);
                     generate_default_muuk_toml(target_dir, repo_name, version, revision, tag);
                 }
             }

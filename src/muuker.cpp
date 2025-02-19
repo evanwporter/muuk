@@ -38,7 +38,7 @@ void Muuker::clean() const {
     logger_->info("Starting clean operation.");
 
     if (!config_manager_.has_section("clean")) {
-        logger_->warn("'clean' operation is not defined in the config file.");
+        logger::warning("'clean' operation is not defined in the config file.");
         return;
     }
 
@@ -46,7 +46,7 @@ void Muuker::clean() const {
     logger_->info("Current working directory: {}", current_dir.string());
 
     if (!fs::exists(current_dir)) {
-        logger_->warn("Skipping clean operation: Directory '{}' does not exist.", current_dir.string());
+        logger::warning("Skipping clean operation: Directory '{}' does not exist.", current_dir.string());
         return;
     }
 
@@ -54,7 +54,7 @@ void Muuker::clean() const {
     auto clean_patterns = clean_section.get_as<toml::array>("patterns");
 
     if (!clean_patterns) {
-        logger_->warn("'clean.patterns' is not a valid array.");
+        logger::warning("'clean.patterns' is not a valid array.");
         return;
     }
 
@@ -91,12 +91,12 @@ void Muuker::clean() const {
                 util::remove_path(file.string());
             }
             catch (const std::exception& e) {
-                logger_->warn("Failed to remove '{}': {}", file.string(), e.what());
+                logger::warning("Failed to remove '{}': {}", file.string(), e.what());
             }
         }
     }
     catch (const std::exception& e) {
-        logger_->error("Error during directory iteration: {}", e.what());
+        logger::error("Error during directory iteration: {}", e.what());
     }
 
     logger_->info("Clean operation completed.");
@@ -108,13 +108,13 @@ void Muuker::run_script(const std::string& script, const std::vector<std::string
     const auto& config = config_manager_.get_config();
     auto scripts_section = config.get_as<toml::table>("scripts");
     if (!scripts_section || !scripts_section->contains(script)) {
-        logger_->error("Script '{}' not found in the config file.", script);
+        logger::error("Script '{}' not found in the config file.", script);
         return;
     }
 
     auto script_entry = scripts_section->get(script);
     if (!script_entry || !script_entry->is_string()) {
-        logger_->error("Script '{}' must be a string command in the config file.", script);
+        logger::error("Script '{}' must be a string command in the config file.", script);
         return;
     }
 
@@ -126,7 +126,7 @@ void Muuker::run_script(const std::string& script, const std::vector<std::string
     logger_->info("Executing command: {}", command);
     int result = util::execute_command(command.c_str());
     if (result != 0) {
-        logger_->error("Command failed with error code: {}", result);
+        logger::error("Command failed with error code: {}", result);
     }
     else {
         logger_->info("Command executed successfully.");
@@ -151,7 +151,7 @@ void Muuker::download_patch(const std::string& author, const std::string& repo_n
         util::download_file(patch_url, temp_patch_path);  // Since download_file returns void, no direct error handling
 
         if (!fs::exists(temp_patch_path)) {
-            logger_->warn("Patch file '{}' was not found after download. Skipping.", temp_patch_path);
+            logger::warning("Patch file '{}' was not found after download. Skipping.", temp_patch_path);
             return;
         }
 
@@ -159,7 +159,7 @@ void Muuker::download_patch(const std::string& author, const std::string& repo_n
         logger_->info("Patch successfully applied to '{}'", final_patch_path);
     }
     catch (const std::exception& e) {
-        logger_->error("Error downloading patch: {}", e.what());
+        logger::error("Error downloading patch: {}", e.what());
     }
 }
 
@@ -171,7 +171,7 @@ void Muuker::upload_patch(bool dry_run) {
     fs::path patch_index_file = patch_repo_path + "/uploaded_patches.txt";
 
     if (!fs::exists(patch_repo_path)) {
-        logger_->error("Patch repository directory '{}' does not exist!", patch_repo_path);
+        logger::error("Patch repository directory '{}' does not exist!", patch_repo_path);
         return;
     }
 
@@ -242,7 +242,7 @@ void Muuker::upload_patch(bool dry_run) {
             logger_->info("Patch for '{}' uploaded successfully.", module_name);
         }
         catch (const std::exception& e) {
-            logger_->error("Error uploading patch '{}': {}", module_name, e.what());
+            logger::error("Error uploading patch '{}': {}", module_name, e.what());
         }
     }
 }
@@ -275,14 +275,14 @@ void Muuker::remove_package(const std::string& package_name) {
     logger_->info("Attempting to remove package: {}", package_name);
 
     if (!config_manager_.has_section("library.muuk.dependencies")) {
-        logger_->error("No dependencies section found in muuk.toml.");
+        logger::error("No dependencies section found in muuk.toml.");
         return;
     }
 
     toml::table dependencies = config_manager_.get_section("library.muuk.dependencies");
 
     if (!dependencies.contains(package_name)) {
-        logger_->error("Package '{}' not found in dependencies.", package_name);
+        logger::error("Package '{}' not found in dependencies.", package_name);
         return;
     }
 
@@ -325,11 +325,11 @@ void Muuker::remove_package(const std::string& package_name) {
             logger_->info("Deleted package directory: {}", package_dir.string());
         }
         catch (const std::exception& e) {
-            logger_->error("Failed to delete directory '{}': {}", package_dir.string(), e.what());
+            logger::error("Failed to delete directory '{}': {}", package_dir.string(), e.what());
         }
     }
     else {
-        logger_->warn("Package directory '{}' does not exist.", package_dir.string());
+        logger::warning("Package directory '{}' does not exist.", package_dir.string());
     }
 
     logger_->info("Package '{}' removal completed.", package_name);
@@ -339,7 +339,7 @@ std::string Muuker::get_package_name() const {
     logger_->info("Retrieving package name.");
 
     if (!config_manager_.has_section("package")) {
-        logger_->error("No 'package' section found in the configuration.");
+        logger::error("No 'package' section found in the configuration.");
         return "";
     }
 
@@ -347,7 +347,7 @@ std::string Muuker::get_package_name() const {
     auto package_name = package_section.get("name");
 
     if (!package_name || !package_name->is_string()) {
-        logger_->error("'package.name' is not found or is not a valid string.");
+        logger::error("'package.name' is not found or is not a valid string.");
         return "";
     }
 

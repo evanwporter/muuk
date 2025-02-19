@@ -1,10 +1,13 @@
 #include "muukfiler.h"
 #include "logger.h"
+#include <iostream>
 
 MuukFiler::MuukFiler(const std::string& config_file) : config_file_(config_file) {
     logger_ = logger::get_logger("muuk::filer");
 
     parse_file();
+
+    // section_order_ = parse_section_order();
 
     if (!config_file.ends_with("lock.toml")) validate_muuk();
 }
@@ -109,9 +112,21 @@ bool MuukFiler::has_section(const std::string& section) const {
 std::vector<std::string> MuukFiler::parse_section_order() {
     std::vector<std::string> parsed_order;
 
+    if (!logger_) {
+        std::cout << "HELP" << std::endl;
+        return parsed_order;
+    }
+
+    logger_->debug("MuukFiler initialized with config file: {}", config_file_);
+
+    if (config_file_.empty()) {
+        logger::error("[MuukFiler] Config file path is empty!");
+        return parsed_order;
+    }
+
     std::ifstream file(config_file_);
     if (!file.is_open()) {
-        logger_->error("[MuukFiler] Failed to open TOML file for reading: {}", config_file_);
+        logger::error("[MuukFiler] Failed to open TOML file for reading: {}", config_file_);
         return parsed_order;
     }
 

@@ -1,60 +1,64 @@
 [library.argparse]
 base_path = 'deps/argparse'
-cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
+cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/Od', '/W4', '/std:c++20', '/utf-8' ]
 dependencies = []
 include = [ 'deps\argparse\include' ]
 libs = []
 modules = []
+profiles = []
 sources = []
 
 [library.cracklib]
 base_path = 'deps/cracklib'
-cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
+cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/Od', '/W4', '/std:c++20', '/utf-8' ]
 dependencies = []
 include = [ 'deps\cracklib\include' ]
 libs = []
 modules = []
+profiles = []
 sources = [ 'deps\cracklib\src\cracklib.cpp' ]
 
 [library.json]
 base_path = 'deps/json'
-cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
+cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/Od', '/W4', '/std:c++20', '/utf-8' ]
 dependencies = []
 include = [ 'deps\json\single_include' ]
 libs = []
 modules = []
+profiles = []
 sources = []
 
 [library.glob]
 base_path = 'deps/glob'
-cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
+cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/Od', '/W4', '/std:c++20', '/utf-8' ]
 dependencies = []
 include = [ 'deps\glob\include\' ]
 libs = []
 modules = []
+profiles = []
 sources = [ 'deps\glob\source\glob.cpp' ]
 
 [library.zip]
 base_path = 'deps/zip'
-cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
+cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/Od', '/W4', '/std:c++20', '/utf-8' ]
 dependencies = []
 include = [ 'deps\zip\src' ]
 libs = []
 modules = []
+profiles = []
 sources = [ 'deps\zip\src\zip.c' ]
 
 [library.spdlog]
 base_path = 'deps/spdlog'
 cflags = [
-    '/DNDEBUG',
+    '-DDEBUG',
+    '-g',
     '/DSPDLOG_COMPILED_LIB',
     '/DSPDLOG_USE_STD_FORMAT',
     '/EHsc',
     '/FS',
-    '/GL',
-    '/Gy',
-    '/O2',
-    '/Oi',
+    '/Od',
+    '/W4',
     '/std:c++20',
     '/utf-8'
 ]
@@ -62,6 +66,7 @@ dependencies = []
 include = [ 'deps\spdlog\include' ]
 libs = []
 modules = []
+profiles = []
 sources = [
     'deps\spdlog\src\async.cpp',
     'deps\spdlog\src\cfg.cpp',
@@ -74,25 +79,25 @@ sources = [
 
 [library.tomlplusplus]
 base_path = 'deps/tomlplusplus'
-cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/Gy', '/O2', '/Oi', '/std:c++20', '/utf-8' ]
+cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/Od', '/W4', '/std:c++20', '/utf-8' ]
 dependencies = []
 include = [ 'deps\tomlplusplus\include\' ]
 libs = []
 modules = []
+profiles = []
 sources = [ 'deps\tomlplusplus\src\toml.cpp' ]
 
 [library.muuk]
 base_path = '.'
 cflags = [
-    '/DNDEBUG',
+    '-DDEBUG',
+    '-g',
     '/DSPDLOG_COMPILED_LIB',
     '/DSPDLOG_USE_STD_FORMAT',
     '/EHsc',
     '/FS',
-    '/GL',
-    '/Gy',
-    '/O2',
-    '/Oi',
+    '/Od',
+    '/W4',
     '/std:c++20',
     '/utf-8'
 ]
@@ -109,6 +114,7 @@ include = [
 ]
 libs = []
 modules = []
+profiles = []
 sources = [
     'src\muuker.cpp',
     'src\util.cpp',
@@ -138,6 +144,7 @@ include = [
 ]
 libs = []
 modules = []
+profiles = [ 'debug', 'release' ]
 sources = [ 'src\main.cpp' ]
 
 [dependencies]
@@ -174,3 +181,11 @@ version = 'v1.0.0'
 
 [platform.windows]
 cflags = [ '/I.' ]
+[profile.debug]
+cflags = [ '/DDEBUG', '/FS', '/Od', '/RTC1', '/Zi' ]
+gflags = [ '/Od', '/Zi' ]
+
+[profile.release]
+cflags = [ '/DNDEBUG', '/GL', '/LTCG', '/O2' ]
+gflags = [ '/GL', '/O2' ]
+

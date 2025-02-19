@@ -15,7 +15,7 @@ Package::Package(const std::string& name,
 
 void Package::merge(const Package& child_pkg) {
     if (&child_pkg == nullptr) {
-        logger_->error("[MuukLockGenerator] 'child_pkg' is NULL or corrupted. Cannot merge into '{}'", name);
+        logger::error("[MuukLockGenerator] 'child_pkg' is NULL or corrupted. Cannot merge into '{}'", name);
         return;
     }
 
@@ -55,7 +55,7 @@ toml::table Package::serialize() const {
                 }
             }
             catch (const std::exception& e) {
-                logger_->warn("Error while globbing '{}': {}", source_path.string(), e.what());
+                logger::warning("Error while globbing '{}': {}", source_path.string(), e.what());
             }
 
         }
@@ -97,7 +97,7 @@ MuukLockGenerator::MuukLockGenerator(const std::string& base_path) : base_path_(
 void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
     // logger_->info("Attempting to parse muuk.toml: {}", path);
     if (!fs::exists(path)) {
-        logger_->error("Error: '{}' not found!", path);
+        logger::error("Error: '{}' not found!", path);
         return;
     }
 
@@ -105,7 +105,7 @@ void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
     auto data = muuk_filer.get_config();
 
     if (!data.contains("package") || !data["package"].is_table()) {
-        logger_->error("Missing 'package' section in TOML file.");
+        logger::error("Missing 'package' section in TOML file.");
         return;
     }
 
@@ -127,7 +127,7 @@ void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
             }
         }
         else {
-            logger_->warn("No 'library' section found in TOML for {}", package_name);
+            logger::warning("No 'library' section found in TOML for {}", package_name);
         }
     }
 
@@ -247,7 +247,7 @@ void MuukLockGenerator::parse_section(const toml::table& section, Package& packa
                 dependency_info["version"] = *dep_value.value<std::string>();
             }
             else {
-                logger_->error("Invalid format for dependency '{}'. Expected a string or table.", std::string(dep_name.str()));
+                logger::error("Invalid format for dependency '{}'. Expected a string or table.", std::string(dep_name.str()));
                 continue;
             }
 
@@ -282,7 +282,7 @@ void MuukLockGenerator::parse_section(const toml::table& section, Package& packa
 
 void MuukLockGenerator::resolve_dependencies(const std::string& package_name, std::optional<std::string> search_path) {
     if (visited.count(package_name)) {
-        logger_->warn("Circular dependency detected for '{}'. Skipping resolution.", package_name);
+        logger::warning("Circular dependency detected for '{}'. Skipping resolution.", package_name);
         return;
     }
 
@@ -311,7 +311,7 @@ void MuukLockGenerator::resolve_dependencies(const std::string& package_name, st
                         package = resolved_packages_["library"][package_name];
 
                         if (!package) {
-                            logger_->error("Error: Package '{}' not found after parsing '{}'.", package_name, *search_path);
+                            logger::error("Error: Package '{}' not found after parsing '{}'.", package_name, *search_path);
                             return;
                         }
                     }
@@ -322,7 +322,7 @@ void MuukLockGenerator::resolve_dependencies(const std::string& package_name, st
                     package = resolved_packages_["library"][package_name];
 
                     if (!package) {
-                        logger_->error("Error: Package '{}' not found after search.", package_name);
+                        logger::error("Error: Package '{}' not found after search.", package_name);
                         return;
                     }
                 }
@@ -333,7 +333,7 @@ void MuukLockGenerator::resolve_dependencies(const std::string& package_name, st
 
             for (const auto& [dep_name, dep_info] : package->dependencies) {
                 if (dep_name == package_name) {
-                    logger_->warn("Circular dependency detected: '{}' depends on itself. Skipping.", package_name);
+                    logger::warning("Circular dependency detected: '{}' depends on itself. Skipping.", package_name);
                     std::cerr << "Warning: Circular dependency detected: " << package_name << " depends on itself.\n";
                     continue;
                 }
@@ -393,7 +393,7 @@ void MuukLockGenerator::search_and_parse_dependency(const std::string& package_n
             }
         }
     }
-    logger_->warn("Dependency '{}' not found in '{}'", package_name, modules_dir.string());
+    logger::warning("Dependency '{}' not found in '{}'", package_name, modules_dir.string());
 }
 
 void MuukLockGenerator::generate_lockfile(const std::string& output_path, bool is_release) {
@@ -404,7 +404,7 @@ void MuukLockGenerator::generate_lockfile(const std::string& output_path, bool i
 
     std::ofstream lockfile(output_path);
     if (!lockfile) {
-        logger_->error("Failed to open lockfile: {}", output_path);
+        logger::error("Failed to open lockfile: {}", output_path);
         return;
     }
 
@@ -517,7 +517,7 @@ void MuukLockGenerator::generate_lockfile(const std::string& output_path, bool i
 
     for (auto& [pkg_name, pkg] : resolved_packages_["library"]) {
         if (!pkg) {
-            logger_->error("Package '{}' is null! Skipping.", pkg_name);
+            logger::error("Package '{}' is null! Skipping.", pkg_name);
             continue;
         }
 
@@ -638,7 +638,7 @@ void MuukLockGenerator::resolve_system_dependency(const std::string& package_nam
     }
     else {
 #ifdef _WIN32
-        logger_->warn("System dependency '{}' resolution on Windows is not fully automated. Consider setting paths manually.", package_name);
+        logger::warning("System dependency '{}' resolution on Windows is not fully automated. Consider setting paths manually.", package_name);
 #else
         include_path = util::execute_command("pkg-config --cflags-only-I " + package_name + " | sed 's/-I//' | tr -d '\n'");
         lib_path = util::execute_command("pkg-config --libs-only-L " + package_name + " | sed 's/-L//' | tr -d '\n'");
@@ -651,7 +651,7 @@ void MuukLockGenerator::resolve_system_dependency(const std::string& package_nam
         logger_->info("  - Found Include Path: {}", include_path);
     }
     else {
-        logger_->warn("  - Include path for '{}' not found.", package_name);
+        logger::warning("  - Include path for '{}' not found.", package_name);
     }
 
     if (!lib_path.empty() && fs::exists(lib_path)) {
@@ -660,11 +660,11 @@ void MuukLockGenerator::resolve_system_dependency(const std::string& package_nam
         logger_->info("  - Found Library Path: {}", lib_path);
     }
     else {
-        logger_->warn("  - Library path for '{}' not found.", package_name);
+        logger::warning("  - Library path for '{}' not found.", package_name);
     }
 
     if (include_path.empty() && lib_path.empty()) {
-        logger_->error("Failed to resolve system dependency '{}'. Consider installing it or specifying paths manually.", package_name);
+        logger::error("Failed to resolve system dependency '{}'. Consider installing it or specifying paths manually.", package_name);
     }
 }
 

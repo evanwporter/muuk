@@ -88,7 +88,7 @@ namespace muuk {
 
         std::ofstream config_file("muuk.toml", std::ios::out | std::ios::trunc);
         if (!config_file.is_open()) {
-            logger_->error("Failed to create muuk.toml.");
+            logger::error("Failed to create muuk.toml.");
             return;
         }
 
