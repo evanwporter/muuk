@@ -52,11 +52,14 @@
     },
     {
       "type": "shell",
-      "label": "Build Muuk Debug (GCC)",
+      "label": "Build Debug (GCC)",
       "command": "build/release/bin/muuk",
       "args": [
-        "build"
-        // "--release",
+        "build",
+        "--compiler",
+        "gcc",
+        "-p",
+        "debug",
       ],
       "problemMatcher": ["$gcc"],
       "group": {
@@ -65,7 +68,8 @@
       },
       "options": {
         "statusbar": {
-          "hide": true
+          "hide": true,
+          "label": "Debug"
         }
       },
       "presentation": {

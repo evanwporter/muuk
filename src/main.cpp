@@ -277,10 +277,10 @@ int main(int argc, char* argv[]) {
         }
 
 #ifdef DEBUG
-        if (program.get<bool>("--repl")) {
-            start_repl(command_map);
-            return 0;
-        }
+        // if (program.get<bool>("--repl")) {
+        //     start_repl(command_map);
+        //     return 0;
+        // }
 #endif
     }
     catch (const std::runtime_error& err) {

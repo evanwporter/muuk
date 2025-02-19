@@ -20,4 +20,4 @@ github_api_response.json
 subprojects/
 
 # TODO: Eventually remove vscode folder from remote
-# .vscode
+.vscode

@@ -159,6 +159,8 @@ void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
     }
 
     if (data.contains("platform") && data["platform"].is_table()) {
+        bool platform_found = false;
+
         for (const auto& [platform_name, platform_data] : *data["platform"].as_table()) {
             if (platform_data.is_table() && platform_data.as_table()->contains("cflags")) {
                 const auto& cflag_array = *platform_data.as_table()->at("cflags").as_array();
@@ -167,7 +169,12 @@ void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
                     cflags.insert(*cflag.value<std::string>());
                 }
                 platform_cflags_[std::string(platform_name.str())] = cflags;
+                platform_found = true;
             }
+        }
+
+        if (!platform_found) {
+            logger::warning("No valid 'platform' key found in muuk.toml.");
         }
     }
 

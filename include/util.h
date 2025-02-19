@@ -37,8 +37,8 @@ namespace util {
 
     bool command_exists(const std::string& command);
 
-    std::string normalize_flag(const std::string& flag);
-    std::string normalize_flags(const std::vector<std::string>& flags);
+    // std::string normalize_flag(const std::string& flag);
+    // std::string normalize_flags(const std::vector<std::string>& flags);
 
     // template <Streamable T>
     template <Streamable T>
