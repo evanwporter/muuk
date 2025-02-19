@@ -32,14 +32,15 @@ private:
     toml::table config_;
     std::shared_ptr<spdlog::logger> logger_;
 
-    void write_ninja_header(std::ofstream& out, std::vector<std::string> profile_cflags_);
+    void write_ninja_header(std::ofstream& out, std::string profile);
 
     std::pair<std::unordered_map<std::string, std::vector<std::string>>, std::vector<std::string>> compile_objects(std::ofstream& out, const std::unordered_map<std::string, std::vector<std::string>>& dependencies_map, const std::unordered_map<std::string, std::vector<std::string>>& modules_map);
     // std::pair<std::unordered_map<std::string, std::vector<std::string>>, std::vector<std::string>> compile_objects(std::ofstream& out);
     void archive_libraries(std::ofstream& out, const std::unordered_map<std::string, std::vector<std::string>>& objects, std::vector<std::string>& libraries);
     void link_executable(std::ofstream& out, const std::unordered_map<std::string, std::vector<std::string>>& objects, const std::vector<std::string>& libraries, const std::string& build_name);
 
-    void extract_platform_flags();
+    std::pair<std::string, std::string> extract_platform_flags();
+    std::pair<std::string, std::string> extract_profile_flags(std::string profile);
 
     std::vector<std::string> platform_cflags_;
 

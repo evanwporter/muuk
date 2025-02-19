@@ -48,21 +48,7 @@ void NinjaGenerator::generate_ninja_file(const std::string& profile, const std::
 
     logger_->info("Generating Ninja build rules...");
 
-    std::vector<std::string> profile_cflags;
-    if (auto profile_table = config_["profile"].as_table()) {
-        if (auto profile_entry = profile_table->at(profile).as_table()) {
-            if (profile_entry->contains("cflags")) {
-                auto cflags_array = profile_entry->at("cflags").as_array();
-                if (cflags_array) {
-                    for (const auto& flag : *cflags_array) {
-                        profile_cflags.push_back(flag.value<std::string>().value_or(""));
-                    }
-                }
-            }
-        }
-    }
-
-    write_ninja_header(out, profile_cflags);
+    write_ninja_header(out, profile);
 
     // Check if config is populated
     if (config_.empty()) {
@@ -142,7 +128,7 @@ void NinjaGenerator::generate_ninja_file(const std::string& profile, const std::
     logger_->info("Ninja build file '{}' generated successfully!", ninja_file_);
 }
 
-void NinjaGenerator::write_ninja_header(std::ofstream& out, std::vector<std::string> profile_cflags_) {
+void NinjaGenerator::write_ninja_header(std::ofstream& out, std::string profile) {
     logger_->info("Writing Ninja header...");
 
     out << "# ------------------------------------------------------------\n"
@@ -161,21 +147,17 @@ void NinjaGenerator::write_ninja_header(std::ofstream& out, std::vector<std::str
     util::ensure_directory_exists(module_dir);
     logger_->info("Created module build directory: {}", module_dir);
 
-    std::string profile_cflags_str;
-    for (const auto& cflag : profile_cflags_) {
-        profile_cflags_str += cflag + " ";
-    }
+    auto [profile_cflags, profile_lflags] = extract_profile_flags(profile);
+    auto [platform_cflags, platform_lflags] = extract_platform_flags();
 
-    std::string platform_cflags_str;
-    for (const auto& cflag : platform_cflags_) {
-        platform_cflags_str += cflag + " ";
-    }
-
+    // Write extracted flags to the Ninja file
     out << "# Platform-Specific Flags\n"
-        << "platform_cflags = " << platform_cflags_str << "\n\n";
+        << "platform_cflags = " << platform_cflags << "\n"
+        << "platform_lflags = " << platform_lflags << "\n\n";
 
     out << "# Profile-Specific Flags\n"
-        << "profile_cflags = " << profile_cflags_str << "\n\n";
+        << "profile_cflags = " << profile_cflags << "\n"
+        << "profile_lflags = " << profile_lflags << "\n\n";
 
     out << "# ------------------------------------------------------------\n"
         << "# Rules for Compiling C++ Modules\n"
@@ -214,7 +196,7 @@ void NinjaGenerator::write_ninja_header(std::ofstream& out, std::vector<std::str
         out << "rule compile\n"
             << "  command = $cxx /c $in /ifcSearchDir "
             << module_dir
-            << " /Fo$out $cflags\n"
+            << " /Fo$out $profile_cflags $platform_cflags $cflags\n"
             << "  description = Compiling $in\n\n"
 
             << "rule archive\n"
@@ -228,7 +210,7 @@ void NinjaGenerator::write_ninja_header(std::ofstream& out, std::vector<std::str
     else {
         // MinGW or Clang on Windows / Unix
         out << "rule compile\n"
-            << "  command = $cxx -c $in -o $out $cflags\n"
+            << "  command = $cxx -c $in -o $out $profile_cflags $platform_cflags $cflags\n"
             << "  description = Compiling $in\n\n"
 
             << "rule archive\n"
@@ -236,7 +218,7 @@ void NinjaGenerator::write_ninja_header(std::ofstream& out, std::vector<std::str
             << "  description = Archiving $out\n\n"
 
             << "rule link\n"
-            << "  command = $linker $in -o $out $lflags $libraries\n"
+            << "  command = $linker $in -o $out $profile_lflags $platform_lflags $lflags $libraries\n"
             << "  description = Linking $out\n\n";
     }
 }
@@ -462,13 +444,6 @@ void NinjaGenerator::link_executable(std::ofstream& out,
         }
     }
 
-    // TODO: Only add this when its in debug mode
-#ifdef _WIN32
-    lflags += " /DEBUG ";
-#else
-    lflags += " -g ";
-#endif
-
     // // TODO: Find a better location for this
     // lflags += "/LTCG";
 
@@ -477,20 +452,8 @@ void NinjaGenerator::link_executable(std::ofstream& out,
         << "  libraries = " << lib_files << "\n";
 }
 
-void NinjaGenerator::extract_platform_flags() {
-    logger_->info("Extracting platform-specific flags from lockfile...");
-
-    // Check if the "platform" section exists
-    if (!config_.contains("platform")) {
-        logger::warning("No 'platform' section found in lockfile.");
-        return;
-    }
-
-    auto platform_table = config_["platform"].as_table();
-    if (!platform_table) {
-        logger::warning("Platform section found but is not a valid table.");
-        return;
-    }
+std::pair<std::string, std::string> NinjaGenerator::extract_platform_flags() {
+    logger_->info("Extracting platform-specific flags...");
 
     std::string detected_platform;
 
@@ -506,47 +469,67 @@ void NinjaGenerator::extract_platform_flags() {
 
     logger_->info("Detected platform: {}", detected_platform);
 
-    if (!platform_table->contains(detected_platform)) {
-        logger::warning("No configuration found for platform '{}'.", detected_platform);
-        return;
-    }
+    std::string platform_cflags_str, platform_lflags_str;
 
-    auto flags_table = platform_table->at(detected_platform).as_table();
-    if (!flags_table || !flags_table->contains("cflags")) {
-        logger::warning("No 'cflags' entry found for platform '{}'.", detected_platform);
-        return;
-    }
+    if (config_.contains("platform") && config_["platform"].as_table()) {
+        if (auto platform_table = config_["platform"].as_table()) {
+            if (auto platform_entry = platform_table->at(detected_platform).as_table()) {
+                // Extract `cflags`
+                if (platform_entry->contains("cflags")) {
+                    for (const auto& flag : *platform_entry->at("cflags").as_array()) {
+                        platform_cflags_str += flag.value<std::string>().value_or("") + " ";
+                    }
+                    logger_->info("Platform '{}' CFLAGS: {}", detected_platform, platform_cflags_str);
+                }
 
-    auto flags_array = flags_table->at("cflags").as_array();
-    if (!flags_array) {
-        logger::warning("'flags' entry for platform '{}' is not an array.", detected_platform);
-        return;
-    }
-
-    // Extract flags
-    platform_cflags_.clear();
-    for (const auto& flag : *flags_array) {
-        if (flag.is_string()) {
-            std::string flag_value = flag.value<std::string>().value_or("");
-            platform_cflags_.push_back(flag_value);
-            logger_->info("Added platform-specific flag: {}", flag_value);
+                // Extract `lflags`
+                if (platform_entry->contains("lflags")) {
+                    for (const auto& flag : *platform_entry->at("lflags").as_array()) {
+                        platform_lflags_str += flag.value<std::string>().value_or("") + " ";
+                    }
+                    logger_->info("Platform '{}' LFLAGS: {}", detected_platform, platform_lflags_str);
+                }
+            }
+            else {
+                logger::warning("No configuration found for platform '{}'.", detected_platform);
+            }
         }
-        else {
-            logger::warning("Ignoring non-string flag entry for platform '{}'.", detected_platform);
-        }
-    }
-
-    // Log the final list of extracted flags
-    std::string platform_cflags_str;
-    for (const auto& flag : platform_cflags_) {
-        platform_cflags_str += flag + " ";
-    }
-
-    if (!platform_cflags_.empty()) {
-        logger_->info("Final platform-specific flags: {}", platform_cflags_str);
     }
     else {
-        logger::warning("No valid platform-specific flags were extracted.");
+        logger::warning("No 'platform' section found in lockfile.");
     }
+
+    return { platform_cflags_str, platform_lflags_str };
+}
+
+std::pair<std::string, std::string> NinjaGenerator::extract_profile_flags(std::string profile) {
+    logger_->info("Extracting profile-specific flags...");
+
+    std::string profile_cflags_str, profile_lflags_str;
+
+    if (auto profile_table = config_["profile"].as_table()) {
+        if (auto profile_entry = profile_table->at(profile).as_table()) {
+            // Extract `cflags`
+            if (profile_entry->contains("cflags")) {
+                for (const auto& flag : *profile_entry->at("cflags").as_array()) {
+                    profile_cflags_str += flag.value<std::string>().value_or("") + " ";
+                }
+                logger_->info("Profile '{}' CFLAGS: {}", profile, profile_cflags_str);
+            }
+
+            // Extract `lflags`
+            if (profile_entry->contains("lflags")) {
+                for (const auto& flag : *profile_entry->at("lflags").as_array()) {
+                    profile_lflags_str += flag.value<std::string>().value_or("") + " ";
+                }
+                logger_->info("Profile '{}' LFLAGS: {}", profile, profile_lflags_str);
+            }
+        }
+    }
+    else {
+        logger::warning("No profile flags found for '{}'.", build_type_);
+    }
+
+    return { profile_cflags_str, profile_lflags_str };
 }
 
