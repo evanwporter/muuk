@@ -1,6 +1,6 @@
 [library.argparse]
 base_path = 'deps/argparse'
-cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/Od', '/W4', '/std:c++20', '/utf-8' ]
+cflags = []
 dependencies = []
 include = [ 'deps\argparse\include' ]
 libs = []
@@ -10,7 +10,7 @@ sources = []
 
 [library.cracklib]
 base_path = 'deps/cracklib'
-cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/Od', '/W4', '/std:c++20', '/utf-8' ]
+cflags = []
 dependencies = []
 include = [ 'deps\cracklib\include' ]
 libs = []
@@ -20,7 +20,7 @@ sources = [ 'deps\cracklib\src\cracklib.cpp' ]
 
 [library.json]
 base_path = 'deps/json'
-cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/Od', '/W4', '/std:c++20', '/utf-8' ]
+cflags = []
 dependencies = []
 include = [ 'deps\json\single_include' ]
 libs = []
@@ -30,7 +30,7 @@ sources = []
 
 [library.glob]
 base_path = 'deps/glob'
-cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/Od', '/W4', '/std:c++20', '/utf-8' ]
+cflags = []
 dependencies = []
 include = [ 'deps\glob\include\' ]
 libs = []
@@ -40,7 +40,7 @@ sources = [ 'deps\glob\source\glob.cpp' ]
 
 [library.zip]
 base_path = 'deps/zip'
-cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/Od', '/W4', '/std:c++20', '/utf-8' ]
+cflags = []
 dependencies = []
 include = [ 'deps\zip\src' ]
 libs = []
@@ -50,18 +50,7 @@ sources = [ 'deps\zip\src\zip.c' ]
 
 [library.spdlog]
 base_path = 'deps/spdlog'
-cflags = [
-    '-DDEBUG',
-    '-g',
-    '/DSPDLOG_COMPILED_LIB',
-    '/DSPDLOG_USE_STD_FORMAT',
-    '/EHsc',
-    '/FS',
-    '/Od',
-    '/W4',
-    '/std:c++20',
-    '/utf-8'
-]
+cflags = [ '/DSPDLOG_COMPILED_LIB', '/DSPDLOG_USE_STD_FORMAT' ]
 dependencies = []
 include = [ 'deps\spdlog\include' ]
 libs = []
@@ -79,7 +68,7 @@ sources = [
 
 [library.tomlplusplus]
 base_path = 'deps/tomlplusplus'
-cflags = [ '-DDEBUG', '-g', '/EHsc', '/FS', '/Od', '/W4', '/std:c++20', '/utf-8' ]
+cflags = []
 dependencies = []
 include = [ 'deps\tomlplusplus\include\' ]
 libs = []
@@ -89,18 +78,7 @@ sources = [ 'deps\tomlplusplus\src\toml.cpp' ]
 
 [library.muuk]
 base_path = '.'
-cflags = [
-    '-DDEBUG',
-    '-g',
-    '/DSPDLOG_COMPILED_LIB',
-    '/DSPDLOG_USE_STD_FORMAT',
-    '/EHsc',
-    '/FS',
-    '/Od',
-    '/W4',
-    '/std:c++20',
-    '/utf-8'
-]
+cflags = [ '/DSPDLOG_COMPILED_LIB', '/DSPDLOG_USE_STD_FORMAT' ]
 dependencies = [ 'argparse', 'cracklib', 'glob', 'json', 'spdlog', 'tomlplusplus', 'zip' ]
 include = [
     'deps\argparse\include',
@@ -130,7 +108,7 @@ sources = [
 
 [build.bin]
 base_path = '.'
-cflags = [ '/DSPDLOG_COMPILED_LIB', '/DSPDLOG_USE_STD_FORMAT', '/EHsc', '/FS', '/std:c++20', '/utf-8' ]
+cflags = [ '/DSPDLOG_COMPILED_LIB', '/DSPDLOG_USE_STD_FORMAT' ]
 dependencies = [ 'argparse', 'cracklib', 'glob', 'json', 'muuk', 'spdlog', 'tomlplusplus', 'zip' ]
 include = [
     'deps\argparse\include',
@@ -183,9 +161,9 @@ version = 'v1.0.0'
 cflags = [ '/I.' ]
 [profile.debug]
 cflags = [ '/DDEBUG', '/FS', '/Od', '/RTC1', '/Zi' ]
-gflags = [ '/Od', '/Zi' ]
+lflags = [ '/DEBUG' ]
 
 [profile.release]
-cflags = [ '/DNDEBUG', '/GL', '/LTCG', '/O2' ]
-gflags = [ '/GL', '/O2' ]
+cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/O2', '/std:c++20', '/utf-8' ]
+lflags = [ '/LTCG', '/OPT:ICF', '/OPT:REF' ]
 

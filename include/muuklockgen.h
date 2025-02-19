@@ -81,8 +81,6 @@ private:
 
     void resolve_system_dependency(const std::string& package_name, std::optional<std::shared_ptr<Package>> package);
 
-    void merge_down();
-
     void parse_muuk_toml(const std::string& path, bool is_base = false);
     void resolve_dependencies(const std::string& package_name, std::optional<std::string> search_path = std::nullopt);
 };
