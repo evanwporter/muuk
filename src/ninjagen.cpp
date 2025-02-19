@@ -3,7 +3,7 @@
 #include "../include/ninjagen.h"
 #include "../include/buildconfig.h"
 #include "../include/util.h"
-
+#include "../include/flags.h"
 
 #include <fstream>
 #include <iostream>
@@ -300,7 +300,7 @@ NinjaGenerator::compile_objects(std::ofstream& out,
                 for (const auto& flag : *cflags_array) {
                     flag_list.push_back(*flag.value<std::string>());
                 }
-                cflags_common += util::normalize_flags(flag_list);
+                cflags_common += muuk::normalize_flags(flag_list);
             }
         }
 
@@ -367,7 +367,6 @@ NinjaGenerator::compile_objects(std::ofstream& out,
     out << "\n";
     return { objects, libraries };
 }
-
 
 
 void NinjaGenerator::archive_libraries(std::ofstream& out,
@@ -440,7 +439,7 @@ void NinjaGenerator::link_executable(std::ofstream& out,
             for (const auto& flag : *lflags_array) {
                 flag_list.push_back(*flag.value<std::string>());
             }
-            lflags += util::normalize_flags(flag_list);
+            lflags += muuk::normalize_flags(flag_list);
         }
     }
 
@@ -477,7 +476,7 @@ std::pair<std::string, std::string> NinjaGenerator::extract_platform_flags() {
                 // Extract `cflags`
                 if (platform_entry->contains("cflags")) {
                     for (const auto& flag : *platform_entry->at("cflags").as_array()) {
-                        platform_cflags_str += flag.value<std::string>().value_or("") + " ";
+                        platform_cflags_str += muuk::normalize_flag(flag.value<std::string>().value_or("")) + " ";
                     }
                     logger_->info("Platform '{}' CFLAGS: {}", detected_platform, platform_cflags_str);
                 }
@@ -485,7 +484,7 @@ std::pair<std::string, std::string> NinjaGenerator::extract_platform_flags() {
                 // Extract `lflags`
                 if (platform_entry->contains("lflags")) {
                     for (const auto& flag : *platform_entry->at("lflags").as_array()) {
-                        platform_lflags_str += flag.value<std::string>().value_or("") + " ";
+                        platform_lflags_str += muuk::normalize_flag(flag.value<std::string>().value_or("")) + " ";
                     }
                     logger_->info("Platform '{}' LFLAGS: {}", detected_platform, platform_lflags_str);
                 }
@@ -512,7 +511,7 @@ std::pair<std::string, std::string> NinjaGenerator::extract_profile_flags(std::s
             // Extract `cflags`
             if (profile_entry->contains("cflags")) {
                 for (const auto& flag : *profile_entry->at("cflags").as_array()) {
-                    profile_cflags_str += flag.value<std::string>().value_or("") + " ";
+                    profile_cflags_str += muuk::normalize_flag(flag.value<std::string>().value_or("")) + " ";
                 }
                 logger_->info("Profile '{}' CFLAGS: {}", profile, profile_cflags_str);
             }
@@ -520,7 +519,7 @@ std::pair<std::string, std::string> NinjaGenerator::extract_profile_flags(std::s
             // Extract `lflags`
             if (profile_entry->contains("lflags")) {
                 for (const auto& flag : *profile_entry->at("lflags").as_array()) {
-                    profile_lflags_str += flag.value<std::string>().value_or("") + " ";
+                    profile_lflags_str += muuk::normalize_flag(flag.value<std::string>().value_or("")) + " ";
                 }
                 logger_->info("Profile '{}' LFLAGS: {}", profile, profile_lflags_str);
             }
@@ -532,4 +531,3 @@ std::pair<std::string, std::string> NinjaGenerator::extract_profile_flags(std::s
 
     return { profile_cflags_str, profile_lflags_str };
 }
-

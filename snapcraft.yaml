@@ -1,0 +1,24 @@
+name: muuk
+base: core20  # Change to core22 if you need newer dependencies
+version: "1.0.0"
+summary: "Muuk - A command-line utility"
+description: |
+  Muuk is a command-line utility that depends on Ninja, Git, and a C++ compiler.
+
+grade: stable
+confinement: strict  # Use "devmode" during testing
+
+apps:
+  muuk:
+    command: bin/muuk
+    plugs:
+      - home  # Allows access to user files
+
+parts:
+  muuk:
+    plugin: dump
+    source: .
+    stage-packages:
+      - ninja-build
+      - git
+      - g++

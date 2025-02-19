@@ -4,12 +4,13 @@ version = '1.0.0'
 
 [scripts]
 hello = 'echo Hello!'
+run = './build/debug/muuk'
 
 [clean]
-patterns = ['*.obj', '*.lib', '*.pdb']
+patterns = [ '*.obj', '*.lib', '*.pdb' ]
 
 [library.muuk]
-include = ['include']
+include = [ 'include' ]
 libs = []
 sources = [
     'src/muuker.cpp',
@@ -21,7 +22,7 @@ sources = [
     'src/muuklockgen.cpp',
     'src/installer.cpp',
     'src/package_manager.cpp',
-    'src/muukinitializer.cpp',
+    'src/muukinitializer.cpp'
 ]
 
 [library.muuk.dependencies]
@@ -34,26 +35,22 @@ tomlplusplus = { git = 'https://github.com/marzer/tomlplusplus.git', muuk_path =
 zip = { git = 'https://github.com/kuba--/zip.git', muuk_path = 'deps/zip/muuk.toml', revision = 'd7a2252a537926cbdef8512741a322a183fcfd09' }
 
 [build.bin]
-profile = ["release", "debug"]
 dependencies = { muuk = 'v1.0.0' }
-gflags = ['/std:c++20', '/utf-8', '/EHsc', '/FS']
-sources = ['src/main.cpp']
+gflags = [ '/std:c++20', '/utf-8', '/EHsc', '/FS' ]
+profile = [ 'release', 'debug' ]
+sources = [ 'src/main.cpp' ]
 
 [platform.windows]
-cflags = ["/I."]
+cflags = [ '/I.' ]
+
+[platform.linux]
+cflags = []
 
 [profile.release]
-cflags = ["/O2", "/DNDEBUG", "/GL", "/EHsc", "/FS", "/std:c++20", "/utf-8"]
-lflags = ["/OPT:REF", "/OPT:ICF", "/LTCG"]
+cflags = [ '/O2', '/DNDEBUG', '/GL', '/EHsc', '/FS', '/std:c++20', '/utf-8' ]
+lflags = [ '/OPT:REF', '/OPT:ICF', '/LTCG' ]
 
 [profile.debug]
-cflags = [
-    "/Od",
-    "/DDEBUG", # Define DEBUG macro
-    "/Zi",     # Generate debugging info
-    "/RTC1",   # Enable runtime checks
-    "/FS",     # Multi-threaded compilation
-]
-lflags = [
-    "/DEBUG", # Generate debug symbols
-]
+cflags = [ '/Od', '/DDEBUG', '/Zi', '/RTC1', '/FS', '/std:c++20', '/utf-8' ]
+lflags = [ '/DEBUG' ]
+
