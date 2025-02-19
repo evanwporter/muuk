@@ -15,7 +15,7 @@ Package::Package(const std::string& name,
 
 void Package::merge(const Package& child_pkg) {
     if (&child_pkg == nullptr) {
-        logger_->error("[MuukLockGenerator] 'child_pkg' is NULL or corrupted. Cannot merge into '{}'", name);
+        logger::error("[MuukLockGenerator] 'child_pkg' is NULL or corrupted. Cannot merge into '{}'", name);
         return;
     }
 
@@ -55,7 +55,7 @@ toml::table Package::serialize() const {
                 }
             }
             catch (const std::exception& e) {
-                logger_->warn("Error while globbing '{}': {}", source_path.string(), e.what());
+                logger::warning("Error while globbing '{}': {}", source_path.string(), e.what());
             }
 
         }
@@ -97,7 +97,7 @@ MuukLockGenerator::MuukLockGenerator(const std::string& base_path) : base_path_(
 void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
     // logger_->info("Attempting to parse muuk.toml: {}", path);
     if (!fs::exists(path)) {
-        logger_->error("Error: '{}' not found!", path);
+        logger::error("Error: '{}' not found!", path);
         return;
     }
 
@@ -105,7 +105,7 @@ void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
     auto data = muuk_filer.get_config();
 
     if (!data.contains("package") || !data["package"].is_table()) {
-        logger_->error("Missing 'package' section in TOML file.");
+        logger::error("Missing 'package' section in TOML file.");
         return;
     }
 
@@ -127,7 +127,7 @@ void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
             }
         }
         else {
-            logger_->warn("No 'library' section found in TOML for {}", package_name);
+            logger::warning("No 'library' section found in TOML for {}", package_name);
         }
     }
 
@@ -183,14 +183,14 @@ void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
                     profiles_[std::string(profile_name.str())]["cflags"] = cflags;
                     logger_->info("Profile '{}' loaded with {} cflags.", profile_name.str(), cflags.size());
                 }
-                if (profile_data.as_table()->contains("gflags")) {
-                    const auto& gflag_array = *profile_data.as_table()->at("gflags").as_array();
-                    std::set<std::string> gflags;
-                    for (const auto& gflag : gflag_array) {
-                        gflags.insert(*gflag.value<std::string>());
+                if (profile_data.as_table()->contains("lflags")) {
+                    const auto& lflag_array = *profile_data.as_table()->at("lflags").as_array();
+                    std::set<std::string> lflags;
+                    for (const auto& lflag : lflag_array) {
+                        lflags.insert(*lflag.value<std::string>());
                     }
-                    profiles_[std::string(profile_name.str())]["gflags"] = gflags;
-                    logger_->info("Profile '{}' loaded with {} gflags.", profile_name.str(), gflags.size());
+                    profiles_[std::string(profile_name.str())]["lflags"] = lflags;
+                    logger_->info("Profile '{}' loaded with {} lflags.", profile_name.str(), lflags.size());
                 }
             }
         }
@@ -220,14 +220,6 @@ void MuukLockGenerator::parse_section(const toml::table& section, Package& packa
         }
     }
 
-    if (section.contains("gflags")) {
-        for (const auto& flag : *section["gflags"].as_array()) {
-            package.gflags.insert(*flag.value<std::string>());
-            package.cflags.insert(*flag.value<std::string>());
-
-        }
-    }
-
     if (section.contains("dependencies")) {
         logger_->debug("Dependencies of '{}':", package.name);
         for (const auto& [dep_name, dep_value] : *section["dependencies"].as_table()) {
@@ -247,7 +239,7 @@ void MuukLockGenerator::parse_section(const toml::table& section, Package& packa
                 dependency_info["version"] = *dep_value.value<std::string>();
             }
             else {
-                logger_->error("Invalid format for dependency '{}'. Expected a string or table.", std::string(dep_name.str()));
+                logger::error("Invalid format for dependency '{}'. Expected a string or table.", std::string(dep_name.str()));
                 continue;
             }
 
@@ -282,7 +274,7 @@ void MuukLockGenerator::parse_section(const toml::table& section, Package& packa
 
 void MuukLockGenerator::resolve_dependencies(const std::string& package_name, std::optional<std::string> search_path) {
     if (visited.count(package_name)) {
-        logger_->warn("Circular dependency detected for '{}'. Skipping resolution.", package_name);
+        logger::warning("Circular dependency detected for '{}'. Skipping resolution.", package_name);
         return;
     }
 
@@ -311,7 +303,7 @@ void MuukLockGenerator::resolve_dependencies(const std::string& package_name, st
                         package = resolved_packages_["library"][package_name];
 
                         if (!package) {
-                            logger_->error("Error: Package '{}' not found after parsing '{}'.", package_name, *search_path);
+                            logger::error("Error: Package '{}' not found after parsing '{}'.", package_name, *search_path);
                             return;
                         }
                     }
@@ -322,7 +314,7 @@ void MuukLockGenerator::resolve_dependencies(const std::string& package_name, st
                     package = resolved_packages_["library"][package_name];
 
                     if (!package) {
-                        logger_->error("Error: Package '{}' not found after search.", package_name);
+                        logger::error("Error: Package '{}' not found after search.", package_name);
                         return;
                     }
                 }
@@ -333,7 +325,7 @@ void MuukLockGenerator::resolve_dependencies(const std::string& package_name, st
 
             for (const auto& [dep_name, dep_info] : package->dependencies) {
                 if (dep_name == package_name) {
-                    logger_->warn("Circular dependency detected: '{}' depends on itself. Skipping.", package_name);
+                    logger::warning("Circular dependency detected: '{}' depends on itself. Skipping.", package_name);
                     std::cerr << "Warning: Circular dependency detected: " << package_name << " depends on itself.\n";
                     continue;
                 }
@@ -393,7 +385,7 @@ void MuukLockGenerator::search_and_parse_dependency(const std::string& package_n
             }
         }
     }
-    logger_->warn("Dependency '{}' not found in '{}'", package_name, modules_dir.string());
+    logger::warning("Dependency '{}' not found in '{}'", package_name, modules_dir.string());
 }
 
 void MuukLockGenerator::generate_lockfile(const std::string& output_path, bool is_release) {
@@ -404,7 +396,7 @@ void MuukLockGenerator::generate_lockfile(const std::string& output_path, bool i
 
     std::ofstream lockfile(output_path);
     if (!lockfile) {
-        logger_->error("Failed to open lockfile: {}", output_path);
+        logger::error("Failed to open lockfile: {}", output_path);
         return;
     }
 
@@ -413,121 +405,6 @@ void MuukLockGenerator::generate_lockfile(const std::string& output_path, bool i
     logger_->info("Resolving dependencies for build packages...");
     for (const auto& [build_name, _] : resolved_packages_["build"]) {
         resolve_dependencies(build_name);
-    }
-
-    std::set<std::string> gflags;
-
-    logger_->info("Extracting global flags from build packages...");
-    for (const auto& [pkg_name, pkg] : resolved_packages_["build"]) {
-        logger_->info("Extracting gflags from build package: {}", pkg_name);
-
-        std::string build_gflags_str;
-        for (const auto& flag : pkg->gflags) {
-            build_gflags_str += flag + " ";
-            gflags.insert(flag);
-        }
-
-        if (!build_gflags_str.empty()) {
-            logger_->info("  → Flags from '{}': {}", pkg_name, build_gflags_str);
-        }
-        else {
-            logger_->info("  → No flags found in '{}'", pkg_name);
-        }
-    }
-
-    // if (!profiles_.empty()) {
-    //     logger_->info("Applying profile-specific gflags and cflags to relevant builds...");
-
-    //     for (const auto& [profile_name, profile_settings] : profiles_) {
-    //         if (profile_settings.count("gflags") || profile_settings.count("cflags")) {
-    //             logger_->info(std::format("Checking profile '{}' for applicable builds...", profile_name));
-
-    //             for (auto& [pkg_name, pkg] : resolved_packages_["build"]) {
-    //                 if (!pkg) continue;
-
-    //                 if (pkg->inherited_profiles.count(profile_name)) {
-    //                     logger_->info(std::format("  → Build '{}' inherits '{}', applying flags.", pkg_name, profile_name));
-
-    //                     // Apply gflags from profile
-    //                     if (profile_settings.count("gflags")) {
-    //                         std::set<std::string> profile_gflags = profile_settings.at("gflags");
-    //                         pkg->gflags.insert(profile_gflags.begin(), profile_gflags.end());
-
-    //                         logger_->info(std::format("    - Applied gflags: {}", std::accumulate(
-    //                             std::next(profile_gflags.begin()), profile_gflags.end(), *profile_gflags.begin(),
-    //                             [](const std::string& a, const std::string& b) { return a + " " + b; })));
-    //                     }
-
-    //                     // Apply cflags from profile
-    //                     if (profile_settings.count("cflags")) {
-    //                         std::set<std::string> profile_cflags = profile_settings.at("cflags");
-    //                         pkg->cflags.insert(profile_cflags.begin(), profile_cflags.end());
-
-    //                         logger_->info(std::format("    - Applied cflags: {}", std::accumulate(
-    //                             std::next(profile_cflags.begin()), profile_cflags.end(), *profile_cflags.begin(),
-    //                             [](const std::string& a, const std::string& b) { return a + " " + b; })));
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
-
-    merge_down();
-
-    // TODO: Move to NINJAGEN or CREATE SEPERATE BUILD CONFIGURATIONS
-    if (!is_release) {
-        logger_->info("Applying debug-specific flags...");
-        gflags.insert("-g");
-        gflags.insert("/Od");
-        gflags.insert("-DDEBUG");
-        gflags.insert("/W4");
-        // gflags.insert("/MDdb");
-        // gflags.insert("-fsanitize=address");
-        // gflags.insert("-fsanitize=undefined");
-        // gflags.insert("-fno-omit-frame-pointer");
-#ifdef __linux__
-        gflags.insert("-rdynamic");
-#endif
-    }
-    else {
-        logger_->info("Applying release-specific flags...");
-#ifdef _MSC_VER
-        gflags.insert("/O2");   // Full optimization
-        gflags.insert("/DNDEBUG");
-        gflags.insert("/GL");   // Whole program optimization
-        gflags.insert("/Oi");   // Enable intrinsic functions
-        gflags.insert("/Gy");   // Function-level linking
-#else
-        gflags.insert("-O3");   // Max optimization
-        gflags.insert("-DNDEBUG");
-        gflags.insert("-march=native");
-        gflags.insert("-mtune=native");
-#endif
-    }
-
-#ifdef DEBUG
-    std::string gflags_str;
-    for (const auto& flag : gflags) {
-        gflags_str += flag + " ";
-    }
-
-    logger_->info("Applying global flags to all library packages: {}", gflags_str);
-#endif
-
-    for (auto& [pkg_name, pkg] : resolved_packages_["library"]) {
-        if (!pkg) {
-            logger_->error("Package '{}' is null! Skipping.", pkg_name);
-            continue;
-        }
-
-        if (pkg->cflags.empty()) {
-            logger_->info("Package '{}' has no cflags defined. Initializing cflags set before applying gflags.", pkg_name);
-        }
-
-        pkg->cflags.insert(gflags.begin(), gflags.end());
-
-        logger_->info("Applied gflags to package: {}", pkg_name);
     }
 
     for (const auto& package_name : resolved_order_) {
@@ -638,7 +515,7 @@ void MuukLockGenerator::resolve_system_dependency(const std::string& package_nam
     }
     else {
 #ifdef _WIN32
-        logger_->warn("System dependency '{}' resolution on Windows is not fully automated. Consider setting paths manually.", package_name);
+        logger::warning("System dependency '{}' resolution on Windows is not fully automated. Consider setting paths manually.", package_name);
 #else
         include_path = util::execute_command("pkg-config --cflags-only-I " + package_name + " | sed 's/-I//' | tr -d '\n'");
         lib_path = util::execute_command("pkg-config --libs-only-L " + package_name + " | sed 's/-L//' | tr -d '\n'");
@@ -651,7 +528,7 @@ void MuukLockGenerator::resolve_system_dependency(const std::string& package_nam
         logger_->info("  - Found Include Path: {}", include_path);
     }
     else {
-        logger_->warn("  - Include path for '{}' not found.", package_name);
+        logger::warning("  - Include path for '{}' not found.", package_name);
     }
 
     if (!lib_path.empty() && fs::exists(lib_path)) {
@@ -660,53 +537,10 @@ void MuukLockGenerator::resolve_system_dependency(const std::string& package_nam
         logger_->info("  - Found Library Path: {}", lib_path);
     }
     else {
-        logger_->warn("  - Library path for '{}' not found.", package_name);
+        logger::warning("  - Library path for '{}' not found.", package_name);
     }
 
     if (include_path.empty() && lib_path.empty()) {
-        logger_->error("Failed to resolve system dependency '{}'. Consider installing it or specifying paths manually.", package_name);
-    }
-}
-
-void MuukLockGenerator::merge_down() {
-    logger_->info("Merging gflags down the dependency chain...");
-
-    std::unordered_map<std::string, std::set<std::string>> gflags_map;
-
-    // Collect gflags from build dependencies
-    for (const auto& [build_name, pkg] : resolved_packages_["build"]) {
-        if (!pkg) continue;
-        logger_->info("Collecting gflags from build package: {}", build_name);
-        gflags_map[build_name] = pkg->gflags;
-    }
-
-    // Propagate gflags down the dependency chain
-    for (const auto& package_name : resolved_order_) {
-        auto package_opt = find_package(package_name);
-        if (!package_opt) continue;
-
-        auto package = package_opt.value();
-
-        // Find dependencies that should inherit gflags
-        for (const auto& dep_name : package->deps) {
-            if (gflags_map.count(package_name)) {
-                logger_->info("Propagating gflags from '{}' → '{}'", package_name, dep_name);
-
-                auto dep_package_opt = find_package(dep_name);
-                if (!dep_package_opt) continue;
-
-                auto dep_package = dep_package_opt.value();
-                dep_package->cflags.insert(gflags_map[package_name].begin(), gflags_map[package_name].end());
-                gflags_map[dep_name].insert(gflags_map[package_name].begin(), gflags_map[package_name].end());
-            }
-        }
-    }
-
-    // Log final gflags
-    for (const auto& [pkg_name, flags] : gflags_map) {
-        std::string flags_str = std::accumulate(std::next(flags.begin()), flags.end(), *flags.begin(),
-            [](const std::string& a, const std::string& b) { return a + " " + b; });
-
-        logger_->info(std::format("Final gflags for '{}': {}", pkg_name, flags_str));
+        logger::error("Failed to resolve system dependency '{}'. Consider installing it or specifying paths manually.", package_name);
     }
 }

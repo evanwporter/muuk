@@ -13,7 +13,8 @@
         "build",
         "-c",
         "cl",
-        "--release"
+        "--profile",
+        "release"
         // "install",
         // "add",
         // "libgit2/libgit2"

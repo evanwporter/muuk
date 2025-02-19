@@ -37,6 +37,7 @@ void logger::initialize() {
 }
 
 std::shared_ptr<spdlog::logger> logger::get_logger(const std::string& name) {
+    (void)name;
     initialize();
 
     return logger_;
@@ -47,10 +48,12 @@ void logger::log_important_info(const std::string& message) {
     get_logger()->info(message);
 }
 
-void logger::error(const std::string& message, const std::string& help) {
-    std::string error_prefix = "\033[1;31merror:\033[0m ";
-    std::cerr << error_prefix << message << "\n";
-    if (!help.empty()) {
-        std::cerr << "  \033[1;34mhelp:\033[0m " << help << "\n";
-    }
-}
+// template<typename... Args>
+// void logger::error(const std::string& format_str, Args&&... args) {
+//     std::string formatted_message = std::format(format_str, std::forward<Args>(args)...);
+
+//     std::string error_prefix = "\033[1;31merror:\033[0m ";
+//     std::cerr << error_prefix << formatted_message << "\n";
+
+//     get_logger()->error(formatted_message);
+// }

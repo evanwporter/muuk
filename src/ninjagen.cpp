@@ -18,58 +18,56 @@ NinjaGenerator::NinjaGenerator(const std::string& lockfile_path, const std::stri
     const std::string& compiler, const std::string& archiver, const std::string& linker)
     : lockfile_path_(lockfile_path), build_type_(build_type), compiler_(compiler),
     archiver_(archiver), linker_(linker), ninja_file_("build.ninja"),
-    build_dir_(fs::path("build") / build_type) {
+    build_dir_(fs::path("build") / build_type),
+    muuk_filer_(std::make_unique<MuukFiler>(lockfile_path)) {
+
+    config_ = muuk_filer_->get_config();
 
     logger_ = logger::get_logger("ninjagen_logger");
     logger_->info("Initializing with Compiler: '{}', Archiver: '{}', Linker: '{}'", compiler_, archiver_, linker_);
 }
 
-void NinjaGenerator::generate_ninja_file(const std::string& target_build) {
-    // TODO: target build  
-    (void)target_build;
+void NinjaGenerator::generate_ninja_file(const std::string& profile, const std::string& target_build) {
 
-    logger_->info(" Generating Ninja build script...");
-    logger_->info("----------------------------------");
+    logger_->info("");
+    logger_->info("  Generating Ninja file for '{}'...", profile);
+    logger_->info("----------------------------------------");
 
-    muuk_filer_ = std::make_unique<MuukFiler>(lockfile_path_);
-    config_ = muuk_filer_->get_config();
 
-    std::vector<std::string> section_order = muuk_filer_->parse_section_order();
+    build_dir_ = fs::path("build") / profile;
+    ninja_file_ = "build/" + profile + ".ninja";
 
-    logger_->info("Keys in config_ (ordered from TOML):");
+    // TODO: Change to `ninja_file_`
+    const std::string profile_ninja_file_ = "build/" + profile + ".ninja";
 
-    for (const auto& section : section_order) {
-        logger_->info("  {}", section);
-    }
-
-    if (config_.empty()) {
-        logger_->error("Error: No TOML data loaded.");
-        return;
-    }
-
-    extract_platform_flags();
-
-    fs::create_directories(build_dir_);
-    logger_->info("Created build directory: {}", build_dir_.string());
-
-    std::ofstream out(ninja_file_);
+    std::ofstream out(profile_ninja_file_);
     if (!out) {
-        logger_->error("Failed to create Ninja build file '{}'", ninja_file_);
+        logger::error("Failed to create Ninja build file '{}'", profile_ninja_file_);
         throw std::runtime_error("Failed to create Ninja build file.");
     }
 
     logger_->info("Generating Ninja build rules...");
-    write_ninja_header(out);
 
-    // Parse dependencies
+    write_ninja_header(out, profile);
+
+    // Check if config is populated
+    if (config_.empty()) {
+        logger::error("Config is empty! Is the lockfile loaded?");
+        return;
+    }
+
     std::unordered_map<std::string, std::vector<std::string>> dependencies_map;
     std::unordered_map<std::string, std::vector<std::string>> modules_map;
 
+    auto section_order = muuk_filer_->parse_section_order();
     for (const auto& package_name : section_order) {
         if (!package_name.starts_with("library.")) continue;
 
         auto package_table = config_.at_path(package_name).as_table();
-        if (!package_table) continue;
+        if (!package_table) {
+            logger::warning("Skipping '{}' because it's not a valid table.", package_name);
+            continue;
+        }
 
         std::string lib_name = package_name.substr(8);
 
@@ -92,25 +90,51 @@ void NinjaGenerator::generate_ninja_file(const std::string& target_build) {
         }
     }
 
+    logger_->info("Compiling objects...");
     auto [objects, libraries] = compile_objects(out, dependencies_map, modules_map);
+
+    if (objects.empty()) {
+        logger::error("No objects compiled! Check if sources are defined.");
+    }
+    else {
+        logger_->info("{} objects compiled.", objects.size());
+    }
+
     archive_libraries(out, objects, libraries);
 
     if (config_.contains("build")) {
         auto build_section = config_["build"].as_table();
-        for (const auto& [build_name, _] : *build_section) {
-            link_executable(out, objects, libraries, std::string(build_name.str()));
+
+        if (target_build.empty()) {
+            // Build all targets
+            for (const auto& [build_name, _] : *build_section) {
+                logger_->info("Linking executable: {}", std::string(build_name.str()));
+                link_executable(out, objects, libraries, std::string(build_name.str()));
+            }
+        }
+        else {
+            // Build only the specified target
+            if (build_section->contains(target_build)) {
+                logger_->info("Building specific target: {}", target_build);
+                link_executable(out, objects, libraries, target_build);
+            }
+            else {
+                logger::error("Target build '{}' not found in 'muuk.lock.toml'", target_build);
+                throw std::runtime_error("Specified target build does not exist.");
+            }
         }
     }
 
     logger_->info("Ninja build file '{}' generated successfully!", ninja_file_);
 }
 
-void NinjaGenerator::write_ninja_header(std::ofstream& out) {
+void NinjaGenerator::write_ninja_header(std::ofstream& out, std::string profile) {
     logger_->info("Writing Ninja header...");
 
     out << "# ------------------------------------------------------------\n"
         << "# Auto-generated Ninja build file\n"
         << "# Generated by Muuk\n"
+        << "# Profile: " << build_dir_.filename().string() << "\n"
         << "# ------------------------------------------------------------\n\n";
 
     out << "# Toolchain Configuration\n"
@@ -123,13 +147,17 @@ void NinjaGenerator::write_ninja_header(std::ofstream& out) {
     util::ensure_directory_exists(module_dir);
     logger_->info("Created module build directory: {}", module_dir);
 
-    std::string platform_cflags_str;
-    for (const auto& cflag : platform_cflags_) {
-        platform_cflags_str += cflag + " ";
-    }
+    auto [profile_cflags, profile_lflags] = extract_profile_flags(profile);
+    auto [platform_cflags, platform_lflags] = extract_platform_flags();
 
+    // Write extracted flags to the Ninja file
     out << "# Platform-Specific Flags\n"
-        << "platform_cflags = " << platform_cflags_str << "\n\n";
+        << "platform_cflags = " << platform_cflags << "\n"
+        << "platform_lflags = " << platform_lflags << "\n\n";
+
+    out << "# Profile-Specific Flags\n"
+        << "profile_cflags = " << profile_cflags << "\n"
+        << "profile_lflags = " << profile_lflags << "\n\n";
 
     out << "# ------------------------------------------------------------\n"
         << "# Rules for Compiling C++ Modules\n"
@@ -168,7 +196,7 @@ void NinjaGenerator::write_ninja_header(std::ofstream& out) {
         out << "rule compile\n"
             << "  command = $cxx /c $in /ifcSearchDir "
             << module_dir
-            << " /Fo$out $cflags\n"
+            << " /Fo$out $profile_cflags $platform_cflags $cflags\n"
             << "  description = Compiling $in\n\n"
 
             << "rule archive\n"
@@ -182,7 +210,7 @@ void NinjaGenerator::write_ninja_header(std::ofstream& out) {
     else {
         // MinGW or Clang on Windows / Unix
         out << "rule compile\n"
-            << "  command = $cxx -c $in -o $out $cflags\n"
+            << "  command = $cxx -c $in -o $out $profile_cflags $platform_cflags $cflags\n"
             << "  description = Compiling $in\n\n"
 
             << "rule archive\n"
@@ -190,7 +218,7 @@ void NinjaGenerator::write_ninja_header(std::ofstream& out) {
             << "  description = Archiving $out\n\n"
 
             << "rule link\n"
-            << "  command = $linker $in -o $out $lflags $libraries\n"
+            << "  command = $linker $in -o $out $profile_lflags $platform_lflags $lflags $libraries\n"
             << "  description = Linking $out\n\n";
     }
 }
@@ -213,7 +241,7 @@ NinjaGenerator::compile_objects(std::ofstream& out,
 
         size_t dot_pos = package_name.find('.');
         if (dot_pos == std::string::npos) {
-            logger_->error("Invalid package format in 'muuk.lock.toml': {}", package_name);
+            logger::error("Invalid package format in 'muuk.lock.toml': {}", package_name);
             continue;
         }
 
@@ -416,13 +444,6 @@ void NinjaGenerator::link_executable(std::ofstream& out,
         }
     }
 
-    // TODO: Only add this when its in debug mode
-#ifdef _WIN32
-    lflags += " /DEBUG ";
-#else
-    lflags += " -g ";
-#endif
-
     // // TODO: Find a better location for this
     // lflags += "/LTCG";
 
@@ -431,20 +452,8 @@ void NinjaGenerator::link_executable(std::ofstream& out,
         << "  libraries = " << lib_files << "\n";
 }
 
-void NinjaGenerator::extract_platform_flags() {
-    logger_->info("Extracting platform-specific flags from lockfile...");
-
-    // Check if the "platform" section exists
-    if (!config_.contains("platform")) {
-        logger_->warn("No 'platform' section found in lockfile.");
-        return;
-    }
-
-    auto platform_table = config_["platform"].as_table();
-    if (!platform_table) {
-        logger_->warn("Platform section found but is not a valid table.");
-        return;
-    }
+std::pair<std::string, std::string> NinjaGenerator::extract_platform_flags() {
+    logger_->info("Extracting platform-specific flags...");
 
     std::string detected_platform;
 
@@ -460,47 +469,67 @@ void NinjaGenerator::extract_platform_flags() {
 
     logger_->info("Detected platform: {}", detected_platform);
 
-    if (!platform_table->contains(detected_platform)) {
-        logger_->warn("No configuration found for platform '{}'.", detected_platform);
-        return;
-    }
+    std::string platform_cflags_str, platform_lflags_str;
 
-    auto flags_table = platform_table->at(detected_platform).as_table();
-    if (!flags_table || !flags_table->contains("cflags")) {
-        logger_->warn("No 'cflags' entry found for platform '{}'.", detected_platform);
-        return;
-    }
+    if (config_.contains("platform") && config_["platform"].as_table()) {
+        if (auto platform_table = config_["platform"].as_table()) {
+            if (auto platform_entry = platform_table->at(detected_platform).as_table()) {
+                // Extract `cflags`
+                if (platform_entry->contains("cflags")) {
+                    for (const auto& flag : *platform_entry->at("cflags").as_array()) {
+                        platform_cflags_str += flag.value<std::string>().value_or("") + " ";
+                    }
+                    logger_->info("Platform '{}' CFLAGS: {}", detected_platform, platform_cflags_str);
+                }
 
-    auto flags_array = flags_table->at("cflags").as_array();
-    if (!flags_array) {
-        logger_->warn("'flags' entry for platform '{}' is not an array.", detected_platform);
-        return;
-    }
-
-    // Extract flags
-    platform_cflags_.clear();
-    for (const auto& flag : *flags_array) {
-        if (flag.is_string()) {
-            std::string flag_value = flag.value<std::string>().value_or("");
-            platform_cflags_.push_back(flag_value);
-            logger_->info("Added platform-specific flag: {}", flag_value);
+                // Extract `lflags`
+                if (platform_entry->contains("lflags")) {
+                    for (const auto& flag : *platform_entry->at("lflags").as_array()) {
+                        platform_lflags_str += flag.value<std::string>().value_or("") + " ";
+                    }
+                    logger_->info("Platform '{}' LFLAGS: {}", detected_platform, platform_lflags_str);
+                }
+            }
+            else {
+                logger::warning("No configuration found for platform '{}'.", detected_platform);
+            }
         }
-        else {
-            logger_->warn("Ignoring non-string flag entry for platform '{}'.", detected_platform);
-        }
-    }
-
-    // Log the final list of extracted flags
-    std::string platform_cflags_str;
-    for (const auto& flag : platform_cflags_) {
-        platform_cflags_str += flag + " ";
-    }
-
-    if (!platform_cflags_.empty()) {
-        logger_->info("Final platform-specific flags: {}", platform_cflags_str);
     }
     else {
-        logger_->warn("No valid platform-specific flags were extracted.");
+        logger::warning("No 'platform' section found in lockfile.");
     }
+
+    return { platform_cflags_str, platform_lflags_str };
+}
+
+std::pair<std::string, std::string> NinjaGenerator::extract_profile_flags(std::string profile) {
+    logger_->info("Extracting profile-specific flags...");
+
+    std::string profile_cflags_str, profile_lflags_str;
+
+    if (auto profile_table = config_["profile"].as_table()) {
+        if (auto profile_entry = profile_table->at(profile).as_table()) {
+            // Extract `cflags`
+            if (profile_entry->contains("cflags")) {
+                for (const auto& flag : *profile_entry->at("cflags").as_array()) {
+                    profile_cflags_str += flag.value<std::string>().value_or("") + " ";
+                }
+                logger_->info("Profile '{}' CFLAGS: {}", profile, profile_cflags_str);
+            }
+
+            // Extract `lflags`
+            if (profile_entry->contains("lflags")) {
+                for (const auto& flag : *profile_entry->at("lflags").as_array()) {
+                    profile_lflags_str += flag.value<std::string>().value_or("") + " ";
+                }
+                logger_->info("Profile '{}' LFLAGS: {}", profile, profile_lflags_str);
+            }
+        }
+    }
+    else {
+        logger::warning("No profile flags found for '{}'.", build_type_);
+    }
+
+    return { profile_cflags_str, profile_lflags_str };
 }
 

@@ -4,7 +4,7 @@
       "type": "shell",
       "label": "Build Debug (MSVC)",
       "command": "muuk",
-      "args": ["build", "--compiler", "cl"],
+      "args": ["build", "--compiler", "cl", "-p", "debug"],
       "problemMatcher": ["$msCompile"],
       "group": {
         "kind": "build",
@@ -29,7 +29,7 @@
       "type": "shell",
       "label": "Build Release (MSVC)",
       "command": "muuk",
-      "args": ["build", "--release", "-c", "cl"],
+      "args": ["build", "-p", "release", "-c", "cl"],
       "problemMatcher": ["$msCompile"],
       "group": {
         "kind": "build",

@@ -52,7 +52,7 @@ public:
             logger_->info("TOML configuration loaded successfully.");
         }
         catch (const std::exception& e) {
-            logger_->error("Error loading TOML file: {}", e.what());
+            logger::error("Error loading TOML file: {}", e.what());
         }
     }
 
@@ -61,7 +61,7 @@ public:
         auto library_config = config["library"]["muuk"]["modules"];
 
         if (!library_config.is_array()) {
-            logger_->error("Invalid or missing 'modules' list in TOML.");
+            logger::error("Invalid or missing 'modules' list in TOML.");
             return module_paths;
         }
 
@@ -94,7 +94,7 @@ public:
         // TODO: it gives an error if the module is in the same dir as the one the program is run from
         std::ifstream file(file_path);
         if (!file) {
-            logger_->error("Error reading file: {}", file_path);
+            logger::error("Error reading file: {}", file_path);
             return { "", {}, file_path };
         }
 
@@ -142,12 +142,12 @@ public:
         }
 
         if (visiting.find(module_name) != visiting.end()) {
-            logger_->error("Circular dependency detected: {}", module_name);
+            logger::error("Circular dependency detected: {}", module_name);
             throw std::runtime_error("Circular dependency detected: " + module_name);
         }
 
         if (modules_dict.find(module_name) == modules_dict.end()) {
-            logger_->warn("Warning: {} is imported but not found in modules!", module_name);
+            logger::warning("Warning: {} is imported but not found in modules!", module_name);
             return;
         }
 

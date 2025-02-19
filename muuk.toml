@@ -43,5 +43,17 @@ sources = ['src/main.cpp']
 cflags = ["/I."]
 
 [profile.release]
-gflags = ["/HELLO"]
-profile = ["release", "debug"]
+cflags = ["/O2", "/DNDEBUG", "/GL", "/EHsc", "/FS", "/std:c++20", "/utf-8"]
+lflags = ["/OPT:REF", "/OPT:ICF", "/LTCG"]
+
+[profile.debug]
+cflags = [
+    "/Od",
+    "/DDEBUG", # Define DEBUG macro
+    "/Zi",     # Generate debugging info
+    "/RTC1",   # Enable runtime checks
+    "/FS",     # Multi-threaded compilation
+]
+lflags = [
+    "/DEBUG", # Generate debug symbols
+]

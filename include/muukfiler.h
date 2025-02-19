@@ -30,6 +30,7 @@ private:
 
     std::string config_file_;
     std::unordered_map<std::string, toml::table> sections_;
+
     std::vector<std::string> section_order_;
 
     void parse_file();
