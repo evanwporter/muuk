@@ -1,46 +1,18 @@
-[library.zip]
-base_path = 'deps/zip'
+[library.argparse]
+base_path = 'deps/argparse'
 cflags = []
 dependencies = []
-include = [ 'deps/zip/src' ]
+include = [ 'deps\argparse\include' ]
 libs = []
 modules = []
 profiles = []
-sources = [ 'deps/zip/src/zip.c' ]
+sources = []
 
-[library.tomlplusplus]
-base_path = 'deps/tomlplusplus'
+[library.compile-time-regular-expressions]
+base_path = 'deps/compile-time-regular-expressions'
 cflags = []
 dependencies = []
-include = [ 'deps/tomlplusplus/include/' ]
-libs = []
-modules = []
-profiles = []
-sources = [ 'deps/tomlplusplus/src/toml.cpp' ]
-
-[library.spdlog]
-base_path = 'deps/spdlog'
-cflags = [ '/DSPDLOG_COMPILED_LIB', '/DSPDLOG_USE_STD_FORMAT' ]
-dependencies = []
-include = [ 'deps/spdlog/include' ]
-libs = []
-modules = []
-profiles = []
-sources = [
-    'deps/spdlog/src/async.cpp',
-    'deps/spdlog/src/cfg.cpp',
-    'deps/spdlog/src/spdlog.cpp',
-    'deps/spdlog/src/color_sinks.cpp',
-    'deps/spdlog/src/stdout_sinks.cpp',
-    'deps/spdlog/src/bundled_fmtlib_format.cpp',
-    'deps/spdlog/src/file_sinks.cpp'
-]
-
-[library.json]
-base_path = 'deps/json'
-cflags = []
-dependencies = []
-include = [ 'deps/json/single_include' ]
+include = [ 'deps\compile-time-regular-expressions\single-header' ]
 libs = []
 modules = []
 profiles = []
@@ -50,122 +22,154 @@ sources = []
 base_path = 'deps/cracklib'
 cflags = []
 dependencies = []
-include = [ 'deps/cracklib/include' ]
+include = [ 'deps\cracklib\include' ]
 libs = []
 modules = []
 profiles = []
-sources = [ 'deps/cracklib/src/cracklib.cpp' ]
+sources = [ 'deps\cracklib\src\cracklib.cpp' ]
 
-[library.glob]
-base_path = 'deps/glob'
+[library.json]
+base_path = 'deps/json'
 cflags = []
 dependencies = []
-include = [ 'deps/glob/include/' ]
-libs = []
-modules = []
-profiles = []
-sources = [ 'deps/glob/source/glob.cpp' ]
-
-[library.argparse]
-base_path = 'deps/argparse'
-cflags = []
-dependencies = []
-include = [ 'deps/argparse/include' ]
+include = [ 'deps\json\single_include' ]
 libs = []
 modules = []
 profiles = []
 sources = []
 
+[library.glob]
+base_path = 'deps/glob'
+cflags = []
+dependencies = []
+include = [ 'deps\glob\include\' ]
+libs = []
+modules = []
+profiles = []
+sources = [ 'deps\glob\source\glob.cpp' ]
+
+[library.zip]
+base_path = 'deps/zip'
+cflags = []
+dependencies = []
+include = [ 'deps\zip\src' ]
+libs = []
+modules = []
+profiles = []
+sources = [ 'deps\zip\src\zip.c' ]
+
+[library.spdlog]
+base_path = 'deps/spdlog'
+cflags = [ '/DSPDLOG_COMPILED_LIB', '/DSPDLOG_USE_STD_FORMAT' ]
+dependencies = []
+include = [ 'deps\spdlog\include' ]
+libs = []
+modules = []
+profiles = []
+sources = [
+    'deps\spdlog\src\async.cpp',
+    'deps\spdlog\src\cfg.cpp',
+    'deps\spdlog\src\spdlog.cpp',
+    'deps\spdlog\src\color_sinks.cpp',
+    'deps\spdlog\src\stdout_sinks.cpp',
+    'deps\spdlog\src\bundled_fmtlib_format.cpp',
+    'deps\spdlog\src\file_sinks.cpp'
+]
+
+[library.tomlplusplus]
+base_path = 'deps/tomlplusplus'
+cflags = []
+dependencies = []
+include = [ 'deps\tomlplusplus\include\' ]
+libs = []
+modules = []
+profiles = []
+sources = [ 'deps\tomlplusplus\src\toml.cpp' ]
+
 [library.muuk]
 base_path = '.'
 cflags = [ '/DSPDLOG_COMPILED_LIB', '/DSPDLOG_USE_STD_FORMAT' ]
-dependencies = [ 'argparse', 'cracklib', 'glob', 'json', 'spdlog', 'tomlplusplus', 'zip' ]
+dependencies = [ 'argparse', 'compile-time-regular-expressions', 'cracklib', 'glob', 'json', 'spdlog', 'tomlplusplus', 'zip' ]
 include = [
-    'deps/argparse/include',
-    'deps/cracklib/include',
-    'deps/glob/include/',
-    'deps/json/single_include',
-    'deps/spdlog/include',
-    'deps/tomlplusplus/include/',
-    'deps/zip/src',
+    'deps\argparse\include',
+    'deps\compile-time-regular-expressions\single-header',
+    'deps\cracklib\include',
+    'deps\glob\include\',
+    'deps\json\single_include',
+    'deps\spdlog\include',
+    'deps\tomlplusplus\include\',
+    'deps\zip\src',
     'include'
 ]
 libs = []
 modules = []
 profiles = []
 sources = [
-    'src/muuker.cpp',
-    'src/util.cpp',
-    'src/logger.cpp',
-    'src/muukfiler.cpp',
-    'src/muukbuilder.cpp',
-    'src/ninjagen.cpp',
-    'src/muuklockgen.cpp',
-    'src/installer.cpp',
-    'src/package_manager.cpp',
-    'src/muukinitializer.cpp'
+    'src\muuker.cpp',
+    'src\util.cpp',
+    'src\logger.cpp',
+    'src\muukfiler.cpp',
+    'src\muukbuilder.cpp',
+    'src\ninjagen.cpp',
+    'src\muuklockgen.cpp',
+    'src\installer.cpp',
+    'src\package_manager.cpp',
+    'src\muukinitializer.cpp',
+    'src\flags.cpp'
 ]
 
 [build.bin]
 base_path = '.'
 cflags = [ '/DSPDLOG_COMPILED_LIB', '/DSPDLOG_USE_STD_FORMAT' ]
-dependencies = [ 'argparse', 'cracklib', 'glob', 'json', 'muuk', 'spdlog', 'tomlplusplus', 'zip' ]
+dependencies = [
+    'argparse',
+    'compile-time-regular-expressions',
+    'cracklib',
+    'glob',
+    'json',
+    'muuk',
+    'spdlog',
+    'tomlplusplus',
+    'zip'
+]
 include = [
-    'deps/argparse/include',
-    'deps/cracklib/include',
-    'deps/glob/include/',
-    'deps/json/single_include',
-    'deps/spdlog/include',
-    'deps/tomlplusplus/include/',
-    'deps/zip/src',
+    'deps\argparse\include',
+    'deps\compile-time-regular-expressions\single-header',
+    'deps\cracklib\include',
+    'deps\glob\include\',
+    'deps\json\single_include',
+    'deps\spdlog\include',
+    'deps\tomlplusplus\include\',
+    'deps\zip\src',
     'include'
 ]
 libs = []
 modules = []
 profiles = [ 'debug', 'release' ]
-sources = [ 'src/main.cpp' ]
+sources = [ 'src\main.cpp' ]
 
 [dependencies]
-[dependencies.muuk]
-version = 'v1.0.0'
-[dependencies.argparse]
-git = 'https://github.com/p-ranav/argparse.git'
-muuk_path = 'deps/argparse/muuk.toml'
-revision = 'd924b84eba1f0f0adf38b20b7b4829f6f65b6570'
-[dependencies.glob]
-git = 'https://github.com/p-ranav/glob.git'
-muuk_path = 'deps/glob/muuk.toml'
-revision = 'd025092c0e1eb1a8b226d3a799fd32680d2fd13f'
-[dependencies.cracklib]
-git = 'https://github.com/evanwporter/cracklib.git'
-muuk_path = 'deps/cracklib/muuk.toml'
-revision = '2014acb865cd04d97102f29d9d07d2a490b32629'
-[dependencies.json]
-git = 'https://github.com/nlohmann/json.git'
-muuk_path = 'deps/json/muuk.toml'
-revision = '0b6881a95f8aaf60bd2324ecdf2258a65bf33baf'
-[dependencies.spdlog]
-git = 'https://github.com/gabime/spdlog.git'
-muuk_path = 'deps/spdlog/muuk.toml'
-revision = '3335c380a08c5e0f5117a66622df6afdb3d74959'
-[dependencies.tomlplusplus]
-git = 'https://github.com/marzer/tomlplusplus.git'
-muuk_path = 'deps/tomlplusplus/muuk.toml'
-revision = 'cbc00d6766f14bcd2b3e72de2a3c369a0d48b98a'
-[dependencies.zip]
-git = 'https://github.com/kuba--/zip.git'
-muuk_path = 'deps/zip/muuk.toml'
-revision = 'd7a2252a537926cbdef8512741a322a183fcfd09'
+argparse = { git = 'https://github.com/p-ranav/argparse.git', muuk_path = 'deps/argparse/muuk.toml', revision = 'd924b84eba1f0f0adf38b20b7b4829f6f65b6570' }
+compile-time-regular-expressions = { git = 'https://github.com/hanickadot/compile-time-regular-expressions.git', muuk_path = 'deps/compile-time-regular-expressions/muuk.toml', revision = 'a9418a5d8bd60afa0b71565ab95c16b1eab168e7' }
+cracklib = { git = 'https://github.com/evanwporter/cracklib.git', muuk_path = 'deps/cracklib/muuk.toml', revision = '2014acb865cd04d97102f29d9d07d2a490b32629' }
+glob = { git = 'https://github.com/p-ranav/glob.git', muuk_path = 'deps/glob/muuk.toml', revision = 'd025092c0e1eb1a8b226d3a799fd32680d2fd13f' }
+json = { git = 'https://github.com/nlohmann/json.git', muuk_path = 'deps/json/muuk.toml', revision = '0b6881a95f8aaf60bd2324ecdf2258a65bf33baf' }
+spdlog = { git = 'https://github.com/gabime/spdlog.git', muuk_path = 'deps/spdlog/muuk.toml', revision = '3335c380a08c5e0f5117a66622df6afdb3d74959' }
+zip = { git = 'https://github.com/kuba--/zip.git', muuk_path = 'deps/zip/muuk.toml', revision = 'd7a2252a537926cbdef8512741a322a183fcfd09' }
+tomlplusplus = { git = 'https://github.com/marzer/tomlplusplus.git', muuk_path = 'deps/tomlplusplus/muuk.toml', revision = 'cbc00d6766f14bcd2b3e72de2a3c369a0d48b98a' }
+muuk = { version = 'v1.0.0' }
 
-[platform.windows]
-cflags = [ '/I.' ]
 [platform.linux]
 cflags = []
-[profile.release]
-lflags = [ '/LTCG', '/OPT:ICF', '/OPT:REF' ]
-cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/O2', '/std:c++20', '/utf-8' ]
+
+[platform.windows]
+cflags = []
 
 [profile.debug]
-lflags = [ '/DEBUG' ]
-cflags = [ '/DDEBUG', '/FS', '/Od', '/RTC1', '/Zi', '/std:c++20', '/utf-8' ]
+cflags = [ '/DDEBUG', '/EHsc', '/FS', '/Od', '/RTC1', '/Zi', '/std:c++20', '/utf-8' ]
+lflags = [ '/DEBUG', '/MACHINE:X86' ]
+
+[profile.release]
+cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/O2', '/std:c++20', '/utf-8' ]
+lflags = [ '/LTCG', '/OPT:ICF', '/OPT:REF' ]
 

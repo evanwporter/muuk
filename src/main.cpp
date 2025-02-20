@@ -87,7 +87,7 @@ int main(int argc, char* argv[]) {
         .default_value(std::vector<std::string>{});
 
     argparse::ArgumentParser build_command("build", "Build the project");
-    build_command.add_argument("-t", "--target-build") // TODO
+    build_command.add_argument("-t", "--target-build")
         .help("Specify a specific build target")
         .default_value(std::string(""))
         .nargs(1);
@@ -173,7 +173,7 @@ int main(int argc, char* argv[]) {
 
 
     if (argc < 2) {
-        logger::error("Usage: " + std::string(argv[0]) + " <command> [--muuk-path <path>] [other options]\n");
+        logger_->error("Usage: " + std::string(argv[0]) + " <command> [--muuk-path <path>] [other options]\n");
         return 1;
     }
 
@@ -193,12 +193,12 @@ int main(int argc, char* argv[]) {
             return 0;
         }
 
-        // TODO: Implement
-        // if (program.is_subcommand_used("remove")) {
-        //     const auto package_name = remove_command.get<std::string>("package_name");
-        //     muuk::package_manager::remove_dependency("muuk.toml", package_name);
-        //     return 0;
-        // }
+        if (program.is_subcommand_used("remove")) {
+            const auto package_name = remove_command.get<std::string>("package_name");
+            logger_->info("Removing dependency: {}", package_name);
+            muuk::package_manager::remove_package(package_name, "muuk.toml", "muuk.lock.toml");
+            return 0;
+        }
 
         // TODO: Do something with
         // if (program.is_subcommand_used("upload-patch")) {
@@ -260,7 +260,7 @@ int main(int argc, char* argv[]) {
             const auto script = run_command.present<std::string>("script");
             const auto extra_args = run_command.get<std::vector<std::string>>("extra_args");
             if (!script.has_value()) {
-                logger::error("Error: No script name provided for 'run'.\n");
+                logger_->error("Error: No script name provided for 'run'.\n");
                 return 1;
             }
             muuk.run_script(script.value(), extra_args);
@@ -284,7 +284,7 @@ int main(int argc, char* argv[]) {
 #endif
     }
     catch (const std::runtime_error& err) {
-        logger::error(std::string(err.what()) + "\n");
+        logger_->error(std::string(err.what()) + "\n");
         return 1;
     }
 

@@ -5,6 +5,34 @@
 
 #include <glob/glob.h>
 
+inline std::string join_strings(const std::vector<std::string>& elements, const std::string& delimiter) {
+    if (elements.empty()) return "";
+
+    std::ostringstream oss;
+    for (size_t i = 0; i < elements.size(); ++i) {
+        oss << elements[i];
+        if (i != elements.size() - 1) {
+            oss << delimiter;
+        }
+    }
+    return oss.str();
+}
+
+template <typename Container>
+void print_array(std::ostringstream& stream, std::string_view key, const Container& values) {
+    stream << key << " = [";
+    bool first = true;
+    for (const auto& value : values) {
+        if (!first) {
+            stream << ", ";
+        }
+        stream << "\"" << value << "\"";
+        first = false;
+    }
+    stream << "]\n";
+}
+
+
 Package::Package(const std::string& name,
     const std::string& version,
     const std::string& base_path,
@@ -15,7 +43,7 @@ Package::Package(const std::string& name,
 
 void Package::merge(const Package& child_pkg) {
     if (&child_pkg == nullptr) {
-        logger::error("[MuukLockGenerator] 'child_pkg' is NULL or corrupted. Cannot merge into '{}'", name);
+        logger_->error("[MuukLockGenerator] 'child_pkg' is NULL or corrupted. Cannot merge into '{}'", name);
         return;
     }
 
@@ -33,55 +61,62 @@ void Package::merge(const Package& child_pkg) {
     // dependencies.insert(child_pkg.dependencies.begin(), child_pkg.dependencies.end());
 }
 
-toml::table Package::serialize() const {
+std::string Package::serialize() const {
+    std::ostringstream toml_stream; // switch to a string steam to allow more control over the final product
     toml::table data;
     toml::array include_array, cflags_array, sources_array, modules_array, libs_array, deps_array, profiles_array;
 
-    for (const auto& path : include) include_array.push_back((fs::path(base_path) / path).lexically_normal().string());
-
-    for (const auto& flag : cflags) cflags_array.push_back(flag);
-
-    for (const auto& source : sources) {
-        fs::path source_path = fs::path(base_path) / source;
-
-        if (source.find('*') != std::string::npos) {
-            try {
-                logger_->info("Globbing {}...", source_path.string());
-                std::vector<std::filesystem::path> globbed_paths = glob::glob(source_path.string());
-
-                for (const auto& path : globbed_paths) {
-                    logger_->info("  - Globbed file: {}", path.string());
-                    sources_array.push_back(path.string());
-                }
-            }
-            catch (const std::exception& e) {
-                logger::warning("Error while globbing '{}': {}", source_path.string(), e.what());
-            }
-
+    if (!include.empty()) {
+        toml_stream << "include = [";
+        for (const auto& path : include) {
+            toml_stream << "  \"" << util::to_linux_path((fs::path(base_path) / path).lexically_normal().string()) << "\",";
         }
-        else {
-            sources_array.push_back(source_path.lexically_normal().string());
-        }
+        toml_stream << "]\n";
     }
 
-    for (const auto& lib : libs) libs_array.push_back(lib);
+    print_array(toml_stream, "cflags", cflags);
 
-    for (const auto& module : modules) modules_array.push_back(module);
+    if (!sources.empty()) {
+        toml_stream << "sources = [\n";
+        for (const auto& [source, source_cflags] : sources) {
+            fs::path source_path = fs::path(base_path) / source;
 
-    for (const auto& dep : deps) deps_array.push_back(dep);
+            if (source.find('*') != std::string::npos) {  // Handle globbing
+                try {
+                    logger_->info("Globbing {}...", source_path.string());
+                    std::vector<std::filesystem::path> globbed_paths = glob::glob(source_path.string());
 
-    for (const auto& profile : inherited_profiles) profiles_array.push_back(profile);
+                    for (const auto& path : globbed_paths) {
+                        toml_stream << "  { path = \"" << util::to_linux_path(path.string()) << "\", cflags = [";
+                        for (size_t i = 0; i < source_cflags.size(); ++i) {
+                            toml_stream << "\"" << source_cflags[i] << "\"";
+                            if (i != source_cflags.size() - 1) toml_stream << ", ";
+                        }
+                        toml_stream << "] },\n";
+                    }
+                }
+                catch (const std::exception& e) {
+                    logger::warning("Error while globbing '{}': {}", source_path.string(), e.what());
+                }
+            }
+            else {  // Standard case without globbing
+                toml_stream << "  { path = \"" << util::to_linux_path(source_path.lexically_normal().string()) << "\", cflags = [";
+                for (size_t i = 0; i < source_cflags.size(); ++i) {
+                    toml_stream << "\"" << source_cflags[i] << "\"";
+                    if (i != source_cflags.size() - 1) toml_stream << ", ";
+                }
+                toml_stream << "] },\n";
+            }
+        }
+        toml_stream << "]\n";
+    }
 
-    data.insert("include", include_array);
-    data.insert("cflags", cflags_array);
-    data.insert("sources", sources_array);
-    data.insert("base_path", base_path);
-    data.insert("modules", modules_array);
-    data.insert("libs", libs_array);
-    data.insert("dependencies", deps_array);
-    data.insert("profiles", profiles_array);
+    print_array(toml_stream, "libs", libs);
+    print_array(toml_stream, "modules", modules);
+    print_array(toml_stream, "dependencies", deps);
+    print_array(toml_stream, "profiles", inherited_profiles);
 
-    return data;
+    return toml_stream.str();
 }
 
 MuukLockGenerator::MuukLockGenerator(const std::string& base_path) : base_path_(base_path) {
@@ -97,7 +132,7 @@ MuukLockGenerator::MuukLockGenerator(const std::string& base_path) : base_path_(
 void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
     // logger_->info("Attempting to parse muuk.toml: {}", path);
     if (!fs::exists(path)) {
-        logger::error("Error: '{}' not found!", path);
+        logger_->error("Error: '{}' not found!", path);
         return;
     }
 
@@ -105,7 +140,7 @@ void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
     auto data = muuk_filer.get_config();
 
     if (!data.contains("package") || !data["package"].is_table()) {
-        logger::error("Missing 'package' section in TOML file.");
+        logger_->error("Missing 'package' section in TOML file.");
         return;
     }
 
@@ -216,8 +251,29 @@ void MuukLockGenerator::parse_section(const toml::table& section, Package& packa
 
     if (section.contains("sources")) {
         for (const auto& src : *section["sources"].as_array()) {
-            package.sources.push_back(*src.value<std::string>());
-            logger_->debug(" Added source file: {}", *src.value<std::string>());
+            std::string source_entry = *src.value<std::string>();
+
+            std::vector<std::string> extracted_cflags;
+            std::string file_path;
+
+            // Splitting "source.cpp CFLAGS" into file_path and flags
+            size_t space_pos = source_entry.find(' ');
+            if (space_pos != std::string::npos) {
+                file_path = source_entry.substr(0, space_pos);
+                std::string flags_str = source_entry.substr(space_pos + 1);
+
+                std::istringstream flag_stream(flags_str);
+                std::string flag;
+                while (flag_stream >> flag) {
+                    extracted_cflags.push_back(flag);
+                }
+            }
+            else {
+                file_path = source_entry;
+            }
+
+            package.sources.emplace_back(file_path, extracted_cflags);
+            logger_->debug("Added source file: {}, CFLAGS: {}", file_path, join_strings(extracted_cflags, " "));
         }
     }
 
@@ -246,7 +302,7 @@ void MuukLockGenerator::parse_section(const toml::table& section, Package& packa
                 dependency_info["version"] = *dep_value.value<std::string>();
             }
             else {
-                logger::error("Invalid format for dependency '{}'. Expected a string or table.", std::string(dep_name.str()));
+                logger_->error("Invalid format for dependency '{}'. Expected a string or table.", std::string(dep_name.str()));
                 continue;
             }
 
@@ -310,7 +366,7 @@ void MuukLockGenerator::resolve_dependencies(const std::string& package_name, st
                         package = resolved_packages_["library"][package_name];
 
                         if (!package) {
-                            logger::error("Error: Package '{}' not found after parsing '{}'.", package_name, *search_path);
+                            logger_->error("Error: Package '{}' not found after parsing '{}'.", package_name, *search_path);
                             return;
                         }
                     }
@@ -321,7 +377,7 @@ void MuukLockGenerator::resolve_dependencies(const std::string& package_name, st
                     package = resolved_packages_["library"][package_name];
 
                     if (!package) {
-                        logger::error("Error: Package '{}' not found after search.", package_name);
+                        logger_->error("Error: Package '{}' not found after search.", package_name);
                         return;
                     }
                 }
@@ -395,7 +451,7 @@ void MuukLockGenerator::search_and_parse_dependency(const std::string& package_n
     logger::warning("Dependency '{}' not found in '{}'", package_name, modules_dir.string());
 }
 
-void MuukLockGenerator::generate_lockfile(const std::string& output_path, bool is_release) {
+void MuukLockGenerator::generate_lockfile(const std::string& output_path) {
     // logger_->info("------------------------------");
     logger_->info("");
     logger_->info(" Generating muuk.lock.toml...");
@@ -403,7 +459,7 @@ void MuukLockGenerator::generate_lockfile(const std::string& output_path, bool i
 
     std::ofstream lockfile(output_path);
     if (!lockfile) {
-        logger::error("Failed to open lockfile: {}", output_path);
+        logger_->error("Failed to open lockfile: {}", output_path);
         return;
     }
 
@@ -421,21 +477,15 @@ void MuukLockGenerator::generate_lockfile(const std::string& output_path, bool i
         auto package = package_opt.value();
         std::string package_type = package->package_type;
 
-        toml::table package_table = package->serialize();
+        std::string package_table = package->serialize();
 
         lockfile << "[" << package_type << "." << package_name << "]\n";
-        lockfile << package_table << "\n\n";
+        lockfile << package_table << "\n";
 
         logger_->info("Written package '{}' to lockfile.", package_name);
     }
 
-    // TODO: Format this nicely
-    lockfile << "[dependencies]\n";
-    for (const auto& [dep_name, dep_info] : dependencies_) {
-        lockfile << "[" << "dependencies." << dep_name << "]\n";
-        lockfile << dep_info << "\n";
-    }
-    lockfile << "\n";
+    lockfile << MuukFiler::format_dependencies(dependencies_);
 
     if (!platform_cflags_.empty()) {
         for (const auto& [platform, cflags] : platform_cflags_) {
@@ -444,7 +494,7 @@ void MuukLockGenerator::generate_lockfile(const std::string& output_path, bool i
                 cflag_array.push_back(cflag);
             }
             // platform_table.insert(toml::table{ {"flags", flag_array} });
-            lockfile << "[platform." << platform << "]\n" << toml::table{ {"cflags", cflag_array} } << "\n";
+            lockfile << "[platform." << platform << "]\n" << toml::table{ {"cflags", cflag_array} } << "\n\n";
 
         }
     }
@@ -503,8 +553,8 @@ void MuukLockGenerator::resolve_system_dependency(const std::string& package_nam
     // Special handling for Python
     if (package_name == "python" || package_name == "python3") {
 #ifdef _WIN32
-        include_path = util::execute_command("python -c \"import sysconfig; print(sysconfig.get_path('include'))\"");
-        lib_path = util::execute_command("python -c \"import sysconfig; print(sysconfig.get_config_var('LIBDIR'))\"");
+        include_path = util::execute_command_get_out("python -c \"import sysconfig; print(sysconfig.get_path('include'))\"");
+        lib_path = util::execute_command_get_out("python -c \"import sysconfig; print(sysconfig.get_config_var('LIBDIR'))\"");
 #else
         include_path = util::execute_command("python3 -c \"import sysconfig; print(sysconfig.get_path('include'))\"");
         lib_path = util::execute_command("python3 -c \"import sysconfig; print(sysconfig.get_config_var('LIBDIR'))\"");
@@ -513,8 +563,8 @@ void MuukLockGenerator::resolve_system_dependency(const std::string& package_nam
     // Special handling for Boost
     else if (package_name == "boost") {
 #ifdef _WIN32
-        include_path = util::execute_command("where boostdep");
-        lib_path = util::execute_command("where boost");
+        include_path = util::execute_command_get_out("where boostdep");
+        lib_path = util::execute_command_get_out("where boost");
 #else
         include_path = util::execute_command("boostdep --include-path");
         lib_path = util::execute_command("boostdep --lib-path");
@@ -548,6 +598,6 @@ void MuukLockGenerator::resolve_system_dependency(const std::string& package_nam
     }
 
     if (include_path.empty() && lib_path.empty()) {
-        logger::error("Failed to resolve system dependency '{}'. Consider installing it or specifying paths manually.", package_name);
+        logger_->error("Failed to resolve system dependency '{}'. Consider installing it or specifying paths manually.", package_name);
     }
 }

@@ -3,7 +3,7 @@
 #include "../include/ninjagen.h"
 #include "../include/buildconfig.h"
 #include "../include/util.h"
-#include "../include/flags.h"
+#include "../include/muuk.h"
 
 #include <fstream>
 #include <iostream>
@@ -15,7 +15,7 @@
 namespace fs = std::filesystem;
 
 NinjaGenerator::NinjaGenerator(const std::string& lockfile_path, const std::string& build_type,
-    const std::string& compiler, const std::string& archiver, const std::string& linker)
+    muuk::compiler::Compiler compiler, const std::string& archiver, const std::string& linker)
     : lockfile_path_(lockfile_path), build_type_(build_type), compiler_(compiler),
     archiver_(archiver), linker_(linker), ninja_file_("build.ninja"),
     build_dir_(fs::path("build") / build_type),
@@ -24,7 +24,7 @@ NinjaGenerator::NinjaGenerator(const std::string& lockfile_path, const std::stri
     config_ = muuk_filer_->get_config();
 
     logger_ = logger::get_logger("ninjagen_logger");
-    logger_->info("Initializing with Compiler: '{}', Archiver: '{}', Linker: '{}'", compiler_, archiver_, linker_);
+    logger_->info("Initializing with Compiler: '{}', Archiver: '{}', Linker: '{}'", muuk::compiler::to_string(compiler_), archiver_, linker_);
 }
 
 void NinjaGenerator::generate_ninja_file(const std::string& profile, const std::string& target_build) {
@@ -37,12 +37,11 @@ void NinjaGenerator::generate_ninja_file(const std::string& profile, const std::
     build_dir_ = fs::path("build") / profile;
     ninja_file_ = "build/" + profile + ".ninja";
 
-    // TODO: Change to `ninja_file_`
-    const std::string profile_ninja_file_ = "build/" + profile + ".ninja";
+    const std::string ninja_file_ = "build/" + profile + ".ninja";
 
-    std::ofstream out(profile_ninja_file_);
+    std::ofstream out(ninja_file_);
     if (!out) {
-        logger::error("Failed to create Ninja build file '{}'", profile_ninja_file_);
+        logger_->error("Failed to create Ninja build file '{}'", ninja_file_);
         throw std::runtime_error("Failed to create Ninja build file.");
     }
 
@@ -52,7 +51,7 @@ void NinjaGenerator::generate_ninja_file(const std::string& profile, const std::
 
     // Check if config is populated
     if (config_.empty()) {
-        logger::error("Config is empty! Is the lockfile loaded?");
+        logger_->error("Config is empty! Is the lockfile loaded?");
         return;
     }
 
@@ -94,7 +93,7 @@ void NinjaGenerator::generate_ninja_file(const std::string& profile, const std::
     auto [objects, libraries] = compile_objects(out, dependencies_map, modules_map);
 
     if (objects.empty()) {
-        logger::error("No objects compiled! Check if sources are defined.");
+        logger_->error("No objects compiled! Check if sources are defined.");
     }
     else {
         logger_->info("{} objects compiled.", objects.size());
@@ -119,7 +118,7 @@ void NinjaGenerator::generate_ninja_file(const std::string& profile, const std::
                 link_executable(out, objects, libraries, target_build);
             }
             else {
-                logger::error("Target build '{}' not found in 'muuk.lock.toml'", target_build);
+                logger_->error("Target build '{}' not found in 'muuk.lock.toml'", target_build);
                 throw std::runtime_error("Specified target build does not exist.");
             }
         }
@@ -138,7 +137,7 @@ void NinjaGenerator::write_ninja_header(std::ofstream& out, std::string profile)
         << "# ------------------------------------------------------------\n\n";
 
     out << "# Toolchain Configuration\n"
-        << "cxx = " << compiler_ << "\n"
+        << "cxx = " << muuk::compiler::to_string(compiler_) << "\n"
         << "ar = " << archiver_ << "\n"
         << "linker = " << linker_ << "\n\n";
 
@@ -163,7 +162,7 @@ void NinjaGenerator::write_ninja_header(std::ofstream& out, std::string profile)
         << "# Rules for Compiling C++ Modules\n"
         << "# ------------------------------------------------------------\n";
 
-    if (compiler_ == "cl") {
+    if (compiler_ == muuk::compiler::Compiler::MSVC) {
         // MSVC Compiler
         out << "rule module_compile\n"
             << "  command = $cxx /std:c++20 /utf-8 /c /interface $in /Fo$out /IFC:"
@@ -172,26 +171,29 @@ void NinjaGenerator::write_ninja_header(std::ofstream& out, std::string profile)
             << module_dir << " $cflags $platform_cflags\n"
             << "  description = Compiling C++ module $in\n\n";
     }
-    else if (compiler_ == "clang++") {
+    else if (compiler_ == muuk::compiler::Compiler::Clang) {
         // Clang Compiler
         out << "rule module_compile\n"
             << "  command = $cxx -std=c++20 -fmodules-ts -c $in -o $out -fmodule-output="
             << module_dir << " $cflags $platform_cflags\n"
             << "  description = Compiling C++ module $in\n\n";
     }
-    else {
+    else if (compiler_ == muuk::compiler::Compiler::GCC) {
         // GCC Compiler
         out << "rule module_compile\n"
             << "  command = $cxx -std=c++20 -fmodules-ts -c $in -o $out -fmodule-output="
             << module_dir << " $cflags\n"
             << "  description = Compiling C++ module $in\n\n";
     }
+    else { // This code won't be reached ever
+        logger_->error("Unsupported compiler: {}", muuk::compiler::to_string(compiler_));
+    }
 
     out << "# ------------------------------------------------------------\n"
         << "# Compilation, Archiving, and Linking Rules\n"
         << "# ------------------------------------------------------------\n";
 
-    if (compiler_ == "cl") {
+    if (compiler_ == muuk::compiler::Compiler::MSVC) {
         // MSVC (cl)
         out << "rule compile\n"
             << "  command = $cxx /c $in /ifcSearchDir "
@@ -241,7 +243,7 @@ NinjaGenerator::compile_objects(std::ofstream& out,
 
         size_t dot_pos = package_name.find('.');
         if (dot_pos == std::string::npos) {
-            logger::error("Invalid package format in 'muuk.lock.toml': {}", package_name);
+            logger_->error("Invalid package format in 'muuk.lock.toml': {}", package_name);
             continue;
         }
 
@@ -300,7 +302,7 @@ NinjaGenerator::compile_objects(std::ofstream& out,
                 for (const auto& flag : *cflags_array) {
                     flag_list.push_back(*flag.value<std::string>());
                 }
-                cflags_common += muuk::normalize_flags(flag_list);
+                cflags_common += muuk::normalize_flags(flag_list, compiler_);
             }
         }
 
@@ -344,19 +346,40 @@ NinjaGenerator::compile_objects(std::ofstream& out,
         if (package_table->contains("sources")) {
             auto sources = package_table->at("sources").as_array();
             if (sources) {
-                for (const auto& src : *sources) {
-                    std::string src_path = util::to_linux_path(fs::absolute(fs::path(*src.value<std::string>())).string());
+                for (const auto& src_entry : *sources) {
+                    if (!src_entry.is_table()) {
+                        logger_->error("Invalid 'sources' entry in '{}'. Expected a table.", package_name);
+                        continue;
+                    }
+
+                    auto source_table = src_entry.as_table();
+                    if (!source_table->contains("path")) {
+                        logger_->error("Skipping invalid 'sources' entry. Missing 'path' key.");
+                        continue;
+                    }
+
+                    std::string src_path = util::to_linux_path(fs::absolute(fs::path(*source_table->at("path").value<std::string>())).string());
                     std::string obj_path = util::to_linux_path((module_dir / fs::path(src_path).stem()).string() + OBJ_EXT);
                     obj_files.push_back(obj_path);
 
                     logger_->info("Compiling source: {} -> {}", src_path, obj_path);
 
-                    // Ensure that each source depends on the last compiled module
-                    out << "build " << obj_path << ": compile " << src_path;
-                    if (!previous_module_obj.empty()) {
-                        out << " | " << previous_module_obj;
+                    // Extract source-specific cflags if they exist
+                    std::string src_cflags;
+                    if (source_table->contains("cflags")) {
+                        auto src_cflags_array = source_table->at("cflags").as_array();
+                        if (src_cflags_array) {
+                            std::vector<std::string> flag_list;
+                            for (const auto& flag : *src_cflags_array) {
+                                flag_list.push_back(*flag.value<std::string>());
+                            }
+                            src_cflags += muuk::normalize_flags(flag_list, compiler_);
+                        }
                     }
-                    out << "\n  cflags = " << cflags_common << "\n";
+
+                    // Ensure that each source depends on modules, if present
+                    out << "build " << obj_path << ": compile " << src_path << "\n";
+                    out << "  cflags = " << cflags_common << " " << src_cflags << "\n";
                 }
             }
         }
@@ -439,12 +462,9 @@ void NinjaGenerator::link_executable(std::ofstream& out,
             for (const auto& flag : *lflags_array) {
                 flag_list.push_back(*flag.value<std::string>());
             }
-            lflags += muuk::normalize_flags(flag_list);
+            lflags += muuk::normalize_flags(flag_list, compiler_);
         }
     }
-
-    // // TODO: Find a better location for this
-    // lflags += "/LTCG";
 
     out << "\nbuild " << normalized_exe << ": link " << build_objs << lib_files << "\n"
         << "  lflags =" << lflags << "\n"
@@ -476,7 +496,7 @@ std::pair<std::string, std::string> NinjaGenerator::extract_platform_flags() {
                 // Extract `cflags`
                 if (platform_entry->contains("cflags")) {
                     for (const auto& flag : *platform_entry->at("cflags").as_array()) {
-                        platform_cflags_str += muuk::normalize_flag(flag.value<std::string>().value_or("")) + " ";
+                        platform_cflags_str += muuk::normalize_flag(flag.value<std::string>().value_or(""), compiler_) + " ";
                     }
                     logger_->info("Platform '{}' CFLAGS: {}", detected_platform, platform_cflags_str);
                 }
@@ -484,7 +504,7 @@ std::pair<std::string, std::string> NinjaGenerator::extract_platform_flags() {
                 // Extract `lflags`
                 if (platform_entry->contains("lflags")) {
                     for (const auto& flag : *platform_entry->at("lflags").as_array()) {
-                        platform_lflags_str += muuk::normalize_flag(flag.value<std::string>().value_or("")) + " ";
+                        platform_lflags_str += muuk::normalize_flag(flag.value<std::string>().value_or(""), compiler_) + " ";
                     }
                     logger_->info("Platform '{}' LFLAGS: {}", detected_platform, platform_lflags_str);
                 }
@@ -511,7 +531,7 @@ std::pair<std::string, std::string> NinjaGenerator::extract_profile_flags(std::s
             // Extract `cflags`
             if (profile_entry->contains("cflags")) {
                 for (const auto& flag : *profile_entry->at("cflags").as_array()) {
-                    profile_cflags_str += muuk::normalize_flag(flag.value<std::string>().value_or("")) + " ";
+                    profile_cflags_str += muuk::normalize_flag(flag.value<std::string>().value_or(""), compiler_) + " ";
                 }
                 logger_->info("Profile '{}' CFLAGS: {}", profile, profile_cflags_str);
             }
@@ -519,7 +539,7 @@ std::pair<std::string, std::string> NinjaGenerator::extract_profile_flags(std::s
             // Extract `lflags`
             if (profile_entry->contains("lflags")) {
                 for (const auto& flag : *profile_entry->at("lflags").as_array()) {
-                    profile_lflags_str += muuk::normalize_flag(flag.value<std::string>().value_or("")) + " ";
+                    profile_lflags_str += muuk::normalize_flag(flag.value<std::string>().value_or(""), compiler_) + " ";
                 }
                 logger_->info("Profile '{}' LFLAGS: {}", profile, profile_lflags_str);
             }

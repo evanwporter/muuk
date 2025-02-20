@@ -16,6 +16,7 @@
 #include <cstdio>
 #include <chrono>
 #include <ctime>
+#include <string>
 
 extern "C" {
 #include "zip.h"
@@ -47,7 +48,7 @@ namespace util {
                     logger_->info("Created .gitignore file in directory: {}", dir_path);
                 }
                 else {
-                    logger::error("Failed to create .gitignore file in directory: {}", dir_path);
+                    logger_->error("Failed to create .gitignore file in directory: {}", dir_path);
                 }
             }
         }
@@ -88,7 +89,7 @@ namespace util {
             ensure_directory_exists(target_dir);
 
             if (!fs::exists(archive)) {
-                logger::error("Zip file does not exist: {}", archive);
+                logger_->error("Zip file does not exist: {}", archive);
                 throw std::runtime_error("Zip file not found: " + archive);
             }
 
@@ -107,18 +108,18 @@ namespace util {
             );
 
             if (result < 0) {
-                logger::error("Failed to extract zip archive '{}'. Error code: {}", archive, result);
+                logger_->error("Failed to extract zip archive '{}'. Error code: {}", archive, result);
                 throw std::runtime_error("Zip extraction failed.");
             }
 
             logger_->info("Extraction completed successfully for: {}", archive);
         }
         catch (const std::exception& ex) {
-            logger::error("Exception during zip extraction: {}", ex.what());
+            logger_->error("Exception during zip extraction: {}", ex.what());
             throw;
         }
         catch (...) {
-            logger::error("Unknown error occurred during zip extraction.");
+            logger_->error("Unknown error occurred during zip extraction.");
             throw;
         }
     }
@@ -191,6 +192,8 @@ namespace util {
 #ifdef _WIN32
 #include <windows.h>
 #endif
+#include <set>
+#include <vector>
 
     std::string to_utf8(const std::wstring& wstr) {
 #ifdef _WIN32
@@ -245,9 +248,26 @@ namespace util {
             return path;
         }
         catch (...) {
-            logger::error("Unknown error occurred during normalize path.");
+            logger_->error("Unknown error occurred during normalize path.");
             throw;
         }
+    }
+
+    std::vector<std::string> to_linux_path(const std::vector<std::string>& paths) {
+        std::vector<std::string> new_paths;
+        new_paths.reserve(paths.size());  // Optimize memory allocation
+        for (const auto& path : paths) {
+            new_paths.push_back(to_linux_path(path));
+        }
+        return new_paths;
+    }
+
+    std::set<std::string> to_linux_path(const std::set<std::string>& paths) {
+        std::set<std::string> new_paths;
+        for (const auto& path : paths) {
+            new_paths.insert(to_linux_path(path));
+        }
+        return new_paths;
     }
 
     std::string to_linux_path(const std::string& path) {
@@ -277,7 +297,7 @@ namespace util {
 #endif
 
         if (!pipe) {
-            logger::error("Failed to execute command: {}", command);
+            logger_->error("Failed to execute command: {}", command);
             throw std::runtime_error("Failed to execute command: " + command);
         }
 

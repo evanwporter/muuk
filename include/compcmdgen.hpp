@@ -27,7 +27,7 @@ public:
         config_ = muuk_filer_->get_config();
 
         if (config_.empty()) {
-            logger::error("[CompileCommandsGenerator] Error: No TOML data loaded.");
+            logger_->error("[CompileCommandsGenerator] Error: No TOML data loaded.");
             return;
         }
 
@@ -112,7 +112,7 @@ private:
     void write_compile_commands(const json& compile_commands) {
         std::ofstream out("compile_commands.json");
         if (!out) {
-            logger::error("[CompileCommandsGenerator] Failed to create compile_commands.json");
+            logger_->error("[CompileCommandsGenerator] Failed to create compile_commands.json");
             throw std::runtime_error("Failed to create compile_commands.json.");
         }
 

@@ -1,8 +1,10 @@
 #ifndef NINJA_GENERATOR_H
 #define NINJA_GENERATOR_H
 
-#include "../include/muukfiler.h"
-#include "../include/logger.h"
+#include "./muukfiler.h"
+#include "./logger.h"
+#include "./muuk.h"
+
 #include <fstream>
 #include <iostream>
 #include <filesystem>
@@ -15,14 +17,14 @@ namespace fs = std::filesystem;
 
 class NinjaGenerator {
 public:
-    NinjaGenerator(const std::string& lockfile_path, const std::string& build_type, const std::string& compiler, const std::string& archiver, const std::string& linker);
+    NinjaGenerator(const std::string& lockfile_path, const std::string& build_type, const muuk::compiler::Compiler compiler, const std::string& archiver, const std::string& linker);
     void generate_ninja_file(const std::string& profile, const std::string& target_build);
 
 private:
     std::string lockfile_path_;
     std::string build_type_;
 
-    std::string compiler_;
+    muuk::compiler::Compiler compiler_;
     std::string archiver_;
     std::string linker_;
 
@@ -43,8 +45,6 @@ private:
     std::pair<std::string, std::string> extract_profile_flags(std::string profile);
 
     std::vector<std::string> platform_cflags_;
-
-    std::string gather_cflags(const toml::table& pkg_table);
 };
 
 #endif // NINJA_GENERATOR_H

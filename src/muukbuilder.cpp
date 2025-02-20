@@ -2,7 +2,28 @@
 #include "util.h"
 #include "logger.h"
 #include "muukfiler.h"
+#include "muuk.h"
 
+#include <string>
+#include <stdexcept>
+
+namespace muuk::compiler {
+    std::string to_string(Compiler compiler) {
+        switch (compiler) {
+        case Compiler::GCC: return "g++";
+        case Compiler::Clang: return "clang++";
+        case Compiler::MSVC: return "cl";
+        }
+        throw std::invalid_argument("Invalid compiler type");
+    }
+
+    Compiler from_string(const std::string& compiler_str) {
+        if (compiler_str == "g++" || compiler_str == "gcc") return Compiler::GCC;
+        if (compiler_str == "clang++" || compiler_str == "clang") return Compiler::Clang;
+        if (compiler_str == "cl") return Compiler::MSVC;
+        throw std::invalid_argument("Unsupported compiler: " + compiler_str);
+    }
+}
 
 MuukBuilder::MuukBuilder(MuukFiler& config_manager)
     : config_manager_(config_manager)
@@ -16,23 +37,39 @@ void MuukBuilder::build(std::string& target_build, const std::string& compiler, 
     lock_generator_ = std::make_unique<MuukLockGenerator>("./");
     lock_generator_->generate_lockfile("muuk.lock.toml");
 
-    std::string selected_compiler = compiler.empty() ? detect_default_compiler() : compiler;
+    muuk::compiler::Compiler selected_compiler = compiler.empty() ? detect_default_compiler() : muuk::compiler::from_string(compiler);
     std::string selected_archiver = detect_archiver(selected_compiler);
     std::string selected_linker = detect_linker(selected_compiler);
 
     std::string selected_profile = profile;
 
-    // TODO: Allow specifying default profile
     if (selected_profile.empty()) {
         auto config = config_manager_.get_config();
         if (!config.contains("profile") || !config["profile"].is_table()) {
-            logger::error("No profiles found in 'muuk.lock.toml'. Exiting...");
+            logger_->error("No profiles found in 'muuk.lock.toml'. Exiting...");
             return;
         }
 
         auto profiles_table = config["profile"].as_table();
-        selected_profile = std::string(profiles_table->begin()->first.str());
-        logger_->info("No profile specified. Using first available profile: '{}'", selected_profile);
+
+        for (const auto& [profile_name, profile_data] : *profiles_table) {
+            if (profile_data.is_table()) {
+                auto profile_table = profile_data.as_table();
+                if (
+                    profile_table->contains("default") &&
+                    profile_table->at("default").is_boolean() &&
+                    profile_table->at("default").as_boolean()
+                    ) {
+                    selected_profile = profile_name.str();
+                    break;
+                }
+            }
+        }
+
+        if (selected_profile.empty()) {
+            selected_profile = std::string(profiles_table->begin()->first.str());
+            logger_->info("No default profile specified. Using first available profile: '{}'", selected_profile);
+        }
 
         if (!profiles_table->empty() && profiles_table->begin()->first.str() == selected_profile) {
             logger_->info("Default profile detected. Adding script entry to 'muuk.toml'...");
@@ -61,7 +98,7 @@ void MuukBuilder::execute_build(const std::string& profile) const {
     int result = util::execute_command(ninja_command.c_str());
 
     if (result != 0) {
-        logger::error("Build for profile '{}' failed with error code: {}", profile, result);
+        logger_->error("Build for profile '{}' failed with error code: {}", profile, result);
     }
     else {
         logger_->info("Build for profile '{}' completed successfully.", profile);
@@ -71,7 +108,7 @@ void MuukBuilder::execute_build(const std::string& profile) const {
         int compdb_result = util::execute_command(compdb_command.c_str());
 
         if (compdb_result != 0) {
-            logger::error("Failed to generate compile_commands.json for profile '{}'", profile);
+            logger_->error("Failed to generate compile_commands.json for profile '{}'", profile);
         }
         else {
             logger_->info("Successfully generated compile_commands.json for profile '{}'", profile);
@@ -89,44 +126,40 @@ bool MuukBuilder::is_compiler_available() const {
         }
     }
 
-    logger::error("No compatible C++ compiler found on PATH. Install MSVC, GCC, or Clang.");
+    logger_->error("No compatible C++ compiler found on PATH. Install MSVC, GCC, or Clang.");
     return false;
 }
 
-std::string MuukBuilder::detect_archiver(const std::string& compiler) const {
-#ifdef _WIN32
-    if (compiler == "cl") return "lib";  // MSVC
-    if (compiler.find("clang") != std::string::npos) return "llvm-ar"; // Clang
-    return "ar"; // MinGW (GCC)
-#else
-    // (void)compiler;
-    if (compiler == "clang++") return "llvm-ar"; // Use `llvm-ar` with Clang
-    return "ar"; // Default for Linux/macOS GCC
-#endif
+std::string MuukBuilder::detect_archiver(muuk::compiler::Compiler compiler) const {
+    switch (compiler) {
+    case muuk::compiler::Compiler::MSVC: return "lib";
+    case muuk::compiler::Compiler::Clang: return "llvm-ar";
+    case muuk::compiler::Compiler::GCC: return "ar";
+    }
+    return "ar"; // Default case
 }
 
-std::string MuukBuilder::detect_linker(const std::string& compiler) const {
-#ifdef _WIN32
-    if (compiler == "cl") return "link"; // MSVC
-    return compiler; // MinGW & Clang use the same compiler for linking
-#else
-    return compiler; // On Linux/macOS, the compiler also acts as the linker
-#endif
+std::string MuukBuilder::detect_linker(muuk::compiler::Compiler compiler) const {
+    switch (compiler) {
+    case muuk::compiler::Compiler::MSVC: return "link";
+    case muuk::compiler::Compiler::Clang:
+    case muuk::compiler::Compiler::GCC: return to_string(compiler); // Compiler acts as linker
+    }
+    return to_string(compiler); // Default case
 }
 
-
-std::string MuukBuilder::detect_default_compiler() const {
+muuk::compiler::Compiler MuukBuilder::detect_default_compiler() const {
     const char* compilers[] = { "g++", "clang++", "cl" };
 
     for (const char* compiler : compilers) {
         if (util::command_exists(compiler)) {
             logger_->info("Found default compiler: {}", compiler);
-            return compiler;
+            return muuk::compiler::from_string(compiler);
         }
     }
 
-    logger::error("No suitable C++ compiler found. Install GCC, Clang, or MSVC.");
-    return "g++";
+    logger_->error("No suitable C++ compiler found. Install GCC, Clang, or MSVC.");
+    return muuk::compiler::Compiler::GCC; // Default to GCC
 }
 
 
@@ -148,7 +181,7 @@ void MuukBuilder::add_script(const std::string& profile) {
         logger_->info("Successfully added run script to 'muuk.toml': {}", executable_path);
     }
     catch (const std::exception& e) {
-        logger::error("Failed to add run script: {}", e.what());
+        logger_->error("Failed to add run script: {}", e.what());
     }
 }
 

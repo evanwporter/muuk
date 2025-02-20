@@ -25,6 +25,8 @@ public:
 
     std::vector<std::string> parse_section_order();
 
+    static std::string format_dependencies(const std::unordered_map<std::string, toml::table>& dependencies);
+
 private:
     std::shared_ptr<spdlog::logger> logger_;
 
@@ -34,6 +36,7 @@ private:
     std::vector<std::string> section_order_;
 
     void parse_file();
+
 };
 
 #endif // MUUK_FILER_H

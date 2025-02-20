@@ -21,3 +21,4 @@ subprojects/
 
 # TODO: Eventually remove vscode folder from remote
 .vscode
+muuk.code-workspace

@@ -7,10 +7,10 @@ hello = 'echo Hello!'
 run = './build/debug/muuk'
 
 [clean]
-patterns = [ '*.obj', '*.lib', '*.pdb' ]
+patterns = ['*.obj', '*.lib', '*.pdb']
 
 [library.muuk]
-include = [ 'include' ]
+include = ['include']
 libs = []
 sources = [
     'src/muuker.cpp',
@@ -22,11 +22,13 @@ sources = [
     'src/muuklockgen.cpp',
     'src/installer.cpp',
     'src/package_manager.cpp',
-    'src/muukinitializer.cpp'
+    'src/muukinitializer.cpp',
+    "src/flags.cpp",
 ]
 
 [library.muuk.dependencies]
 argparse = { git = 'https://github.com/p-ranav/argparse.git', muuk_path = 'deps/argparse/muuk.toml', revision = 'd924b84eba1f0f0adf38b20b7b4829f6f65b6570' }
+compile-time-regular-expressions = { git = 'https://github.com/hanickadot/compile-time-regular-expressions.git', muuk_path = 'deps/compile-time-regular-expressions/muuk.toml', revision = 'a9418a5d8bd60afa0b71565ab95c16b1eab168e7' }
 cracklib = { git = 'https://github.com/evanwporter/cracklib.git', muuk_path = 'deps/cracklib/muuk.toml', revision = '2014acb865cd04d97102f29d9d07d2a490b32629' }
 glob = { git = 'https://github.com/p-ranav/glob.git', muuk_path = 'deps/glob/muuk.toml', revision = 'd025092c0e1eb1a8b226d3a799fd32680d2fd13f' }
 json = { git = 'https://github.com/nlohmann/json.git', muuk_path = 'deps/json/muuk.toml', revision = '0b6881a95f8aaf60bd2324ecdf2258a65bf33baf' }
@@ -36,21 +38,29 @@ zip = { git = 'https://github.com/kuba--/zip.git', muuk_path = 'deps/zip/muuk.to
 
 [build.bin]
 dependencies = { muuk = 'v1.0.0' }
-gflags = [ '/std:c++20', '/utf-8', '/EHsc', '/FS' ]
-profile = [ 'release', 'debug' ]
-sources = [ 'src/main.cpp' ]
+gflags = ['/std:c++20', '/utf-8', '/EHsc', '/FS']
+profile = ['release', 'debug']
+sources = ['src/main.cpp']
 
 [platform.windows]
-cflags = [ '/I.' ]
+cflags = []
 
 [platform.linux]
 cflags = []
 
 [profile.release]
-cflags = [ '/O2', '/DNDEBUG', '/GL', '/EHsc', '/FS', '/std:c++20', '/utf-8' ]
-lflags = [ '/OPT:REF', '/OPT:ICF', '/LTCG' ]
+cflags = ['/O2', '/DNDEBUG', '/GL', '/EHsc', '/FS', '/std:c++20', '/utf-8']
+lflags = ['/OPT:REF', '/OPT:ICF', '/LTCG']
 
 [profile.debug]
-cflags = [ '/Od', '/DDEBUG', '/Zi', '/RTC1', '/FS', '/std:c++20', '/utf-8' ]
-lflags = [ '/DEBUG' ]
-
+cflags = [
+    '/Od',
+    '/DDEBUG',
+    '/Zi',
+    '/EHsc',
+    '/RTC1',
+    '/FS',
+    '/std:c++20',
+    '/utf-8',
+]
+lflags = ['/DEBUG', '/MACHINE:X86']

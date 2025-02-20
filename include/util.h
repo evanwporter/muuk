@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <set>
 #include <unordered_map>
 #include <nlohmann/json.hpp>
 
@@ -31,6 +32,8 @@ namespace util {
     std::string to_utf8(const std::wstring& wstr);
     bool is_valid_utf8(const std::string& str);
 
+    std::vector<std::string> to_linux_path(const std::vector<std::string>& paths);
+    std::set<std::string> to_linux_path(const std::set<std::string>& paths);
     std::string normalize_path(const std::string& path);
     std::string to_linux_path(const std::string& path);
 

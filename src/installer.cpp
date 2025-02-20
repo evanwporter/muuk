@@ -38,7 +38,7 @@ namespace muuk {
             logger_->info("Cloning repository: {}", clone_cmd);
             int clone_result = util::execute_command(clone_cmd);
             if (clone_result != 0) {
-                logger::error("Failed to clone repository '{}'", repo_url);
+                logger_->error("Failed to clone repository '{}'", repo_url);
                 return;
             }
 
@@ -48,7 +48,7 @@ namespace muuk {
                 logger_->info("Checking out reference: {}", checkout_ref);
                 int checkout_result = util::execute_command(checkout_cmd);
                 if (checkout_result != 0) {
-                    logger::error("Failed to checkout reference '{}' in '{}'", checkout_ref, target_dir);
+                    logger_->error("Failed to checkout reference '{}' in '{}'", checkout_ref, target_dir);
                     return;
                 }
             }
@@ -73,7 +73,7 @@ namespace muuk {
             try {
                 std::ofstream muuk_toml(muuk_toml_path);
                 if (!muuk_toml) {
-                    logger::error("Failed to create muuk.toml at '{}'", muuk_toml_path);
+                    logger_->error("Failed to create muuk.toml at '{}'", muuk_toml_path);
                     return;
                 }
 
@@ -105,7 +105,7 @@ namespace muuk {
                 logger_->info("Generated default muuk.toml at '{}'", muuk_toml_path);
             }
             catch (const std::exception& e) {
-                logger::error("Error writing muuk.toml for '{}': {}", repo_name, e.what());
+                logger_->error("Error writing muuk.toml for '{}': {}", repo_name, e.what());
             }
         }
 
@@ -129,19 +129,19 @@ namespace muuk {
                 return (installed_version == version || installed_revision == revision || installed_tag == tag);
             }
             catch (const std::exception& e) {
-                logger::error("Error checking installed version: {}", e.what());
+                logger_->error("Error checking installed version: {}", e.what());
                 return false;
             }
         }
 
         void install(const std::string& lockfile_path = "muuk.lock.toml") {
             MuukLockGenerator lockgen("./");
-            lockgen.generate_lockfile(lockfile_path, true);
+            lockgen.generate_lockfile(lockfile_path);
 
             logger_->info("Reading dependencies from '{}'", lockfile_path);
 
             if (!fs::exists(lockfile_path)) {
-                logger::error("muuk.lock.toml not found.");
+                logger_->error("muuk.lock.toml not found.");
                 throw std::runtime_error("muuk.lock.toml file not found.");
             }
 
@@ -149,7 +149,7 @@ namespace muuk {
             toml::table lockfile_data = muukFiler.get_config();
 
             if (!lockfile_data.contains("dependencies") || !lockfile_data["dependencies"].is_table()) {
-                logger::error("No 'dependencies' section found in '{}'", lockfile_path);
+                logger_->error("No 'dependencies' section found in '{}'", lockfile_path);
                 return;
             }
 
@@ -213,6 +213,53 @@ namespace muuk {
             }
 
             logger_->info("Finished installing all dependencies.");
+        }
+
+        void remove_package(const std::string& package_name, const std::string& toml_path, const std::string& lockfile_path) {
+            logger_->info("Removing package: {}", package_name);
+
+            try {
+                if (!fs::exists(toml_path)) {
+                    logger_->error("muuk.toml file not found at '{}'", toml_path);
+                    throw std::runtime_error("muuk.toml file not found.");
+                }
+
+                MuukFiler muukFiler(toml_path);
+                toml::table& dependencies = muukFiler.get_section("dependencies");
+
+                if (!dependencies.contains(package_name)) {
+                    logger_->error("Package '{}' is not listed in '{}'", package_name, toml_path);
+                    throw std::runtime_error("Package not found in muuk.toml.");
+                }
+
+                dependencies.erase(package_name);
+                muukFiler.write_to_file();
+
+                if (fs::exists(lockfile_path)) {
+                    MuukFiler lockFiler(lockfile_path);
+                    toml::table& lock_dependencies = lockFiler.get_section("dependencies");
+
+                    if (lock_dependencies.contains(package_name)) {
+                        lock_dependencies.erase(package_name);
+                        lockFiler.write_to_file();
+                    }
+                }
+
+                std::string package_path = std::string(DEPENDENCY_FOLDER) + "/" + package_name;
+                if (fs::exists(package_path)) {
+                    fs::remove_all(package_path);
+                    logger_->info("Removed package directory: {}", package_path);
+                }
+                else {
+                    logger::warning("Package directory '{}' does not exist. Skipping.", package_path);
+                }
+
+                logger_->info("Successfully removed package '{}'", package_name);
+            }
+            catch (const std::exception& e) {
+                logger_->error("Error removing package '{}': {}", package_name, e.what());
+                throw;
+            }
         }
     }
 }

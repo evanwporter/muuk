@@ -1,4 +1,5 @@
-#include "../include/logger.h"
+#include "logger.h"
+
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <filesystem>
@@ -13,16 +14,24 @@ void logger::initialize() {
         try {
             std::filesystem::create_directories("logs");
 
+            // File sink (logs to file)
             auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("logs/muuk.log", true);
             file_sink->set_level(spdlog::level::trace);
-            file_sink->set_pattern("[%Y-%m-%d %H:%M:%S] [%l] %v");
+            file_sink->set_pattern("[%Y-%m-%d %H:%M:%S] [%l] %v"); // Standard file log format
 
+            // Console sink (logs to console with colors and custom formatting)
             auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
             console_sink->set_level(spdlog::level::warn);
-            console_sink->set_pattern("[%l] %v");
+
+            console_sink->set_pattern("%^[%l]%$ %v");  // Colors levels based on severity
 
             logger_ = std::make_shared<spdlog::logger>("muuk", spdlog::sinks_init_list{ file_sink, console_sink });
             logger_->set_level(spdlog::level::trace);
+
+            logger_->set_error_handler([](const std::string& msg) {
+                std::cerr << "\033[1;31merror:\033[0m " << msg << std::endl;
+                std::exit(EXIT_FAILURE);
+                });
 
             spdlog::flush_every(std::chrono::seconds(1));
             spdlog::set_default_logger(logger_);
@@ -39,21 +48,5 @@ void logger::initialize() {
 std::shared_ptr<spdlog::logger> logger::get_logger(const std::string& name) {
     (void)name;
     initialize();
-
     return logger_;
 }
-
-void logger::log_important_info(const std::string& message) {
-    std::cout << message << std::endl;
-    get_logger()->info(message);
-}
-
-// template<typename... Args>
-// void logger::error(const std::string& format_str, Args&&... args) {
-//     std::string formatted_message = std::format(format_str, std::forward<Args>(args)...);
-
-//     std::string error_prefix = "\033[1;31merror:\033[0m ";
-//     std::cerr << error_prefix << formatted_message << "\n";
-
-//     get_logger()->error(formatted_message);
-// }

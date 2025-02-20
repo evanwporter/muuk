@@ -1,13 +1,14 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
-#include <regex>
+#include <ctre.hpp>
 #include <iostream>
+#include <unordered_map>
+
+#include "muuk.h"
 
 namespace muuk {
-    // TODO FIX
-    // Compiler based on compiler
-    std::string normalize_flag(const std::string& flag) {
+    std::string normalize_flag(const std::string& flag, const compiler::Compiler compiler) {
         static const std::unordered_map<std::string, std::string> msvc_to_gcc = {
             {"/I", "-I"},
             {"/Fe", "-o"},
@@ -74,8 +75,7 @@ namespace muuk {
             {"-O0", "/Od"}
         };
 
-        static const std::regex std_pattern(R"((?:\/std:c\+\+|-std=c\+\+)(\d+))");
-        std::smatch match;
+        constexpr auto std_pattern = ctll::fixed_string{ R"((?:/std:c\+\+|-std=c\+\+)(\d+))" };
         std::string normalized_flag = flag;
 
         if (flag.starts_with("/D") || flag.starts_with("-D")) {
@@ -106,23 +106,22 @@ namespace muuk {
         }
 #endif
 
-        // **Handle C++ standard flag conversion (-std=c++20 <-> /std:c++20)**
-        if (std::regex_match(flag, match, std_pattern)) {
+        // Handle C++ standard flag conversion (-std=c++20 <-> /std:c++20)
+        if (auto match = ctre::match<std_pattern>(flag)) {
 #ifdef _WIN32
-            return "/std:c++" + match[1].str();
+            return "/std:c++" + std::string(match.get<1>());
 #else
-            return "-std=c++" + match[1].str();
+            return "-std=c++" + std::string(match.get<1>());
 #endif
         }
-
         return normalized_flag;
     }
 
     // Normalize a vector of flags
-    std::string normalize_flags(const std::vector<std::string>& flags) {
+    std::string normalize_flags(const std::vector<std::string>& flags, const compiler::Compiler compiler) {
         std::string normalized;
         for (const auto& flag : flags) {
-            normalized += " " + normalize_flag(flag);
+            normalized += " " + normalize_flag(flag, compiler);
         }
         return normalized;
     }

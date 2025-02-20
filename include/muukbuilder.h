@@ -5,6 +5,9 @@
 #include "../include/muuklockgen.h"
 #include "../include/ninjagen.h"
 #include "../include/logger.h"
+
+#include "muuk.h"
+
 #include <vector>
 #include <memory>
 #include <spdlog/spdlog.h>
@@ -27,9 +30,9 @@ private:
 
     void execute_build(const std::string& profile) const;
 
-    std::string detect_default_compiler() const;
-    std::string detect_archiver(const std::string& compiler) const;
-    std::string detect_linker(const std::string& compiler) const;
+    muuk::compiler::Compiler detect_default_compiler() const;
+    std::string detect_archiver(muuk::compiler::Compiler compiler) const;
+    std::string detect_linker(muuk::compiler::Compiler compiler) const;
 
     void add_script(const std::string& profile);
 };

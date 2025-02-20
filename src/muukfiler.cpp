@@ -1,6 +1,7 @@
 #include "muukfiler.h"
 #include "logger.h"
 #include <iostream>
+#include <format>
 
 MuukFiler::MuukFiler(const std::string& config_file) : config_file_(config_file) {
     logger_ = logger::get_logger("muuk::filer");
@@ -120,13 +121,13 @@ std::vector<std::string> MuukFiler::parse_section_order() {
     logger_->debug("MuukFiler initialized with config file: {}", config_file_);
 
     if (config_file_.empty()) {
-        logger::error("[MuukFiler] Config file path is empty!");
+        logger_->error("[MuukFiler] Config file path is empty!");
         return parsed_order;
     }
 
     std::ifstream file(config_file_);
     if (!file.is_open()) {
-        logger::error("[MuukFiler] Failed to open TOML file for reading: {}", config_file_);
+        logger_->error("[MuukFiler] Failed to open TOML file for reading: {}", config_file_);
         return parsed_order;
     }
 
@@ -149,3 +150,27 @@ std::vector<std::string> MuukFiler::parse_section_order() {
 
     return parsed_order;
 }
+
+std::string MuukFiler::format_dependencies(const std::unordered_map<std::string, toml::table>& dependencies) {
+    std::ostringstream oss;
+    oss << "[dependencies]\n";
+
+    for (const auto& [dep_name, dep_info] : dependencies) {
+        oss << dep_name << " = { ";
+
+        std::string dep_entries;
+        bool first = true;
+
+        for (const auto& [key, val] : dep_info) {
+            if (!first) dep_entries += ", ";
+            dep_entries += std::format("{} = '{}'", std::string(key.str()), *val.value<std::string>());
+            first = false;
+        }
+
+        oss << std::format("{} }}\n", dep_entries);
+    }
+
+    oss << "\n";
+    return oss.str();
+}
+
