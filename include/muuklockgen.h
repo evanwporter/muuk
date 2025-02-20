@@ -26,7 +26,7 @@ public:
 
     void merge(const Package& child_pkg);
 
-    toml::table serialize() const;
+    std::string serialize() const;
 
     std::string name;
     std::string version;
@@ -37,7 +37,7 @@ public:
     std::set<std::string> system_include;
     std::set<std::string> cflags;
     std::set<std::string> gflags;
-    std::vector<std::string> sources;
+    std::vector < std::pair<std::string, std::vector<std::string>>> sources;
     std::vector<std::string> modules;
     std::vector<std::string> libs;
     std::set<std::string> inherited_profiles;

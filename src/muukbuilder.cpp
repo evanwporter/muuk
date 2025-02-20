@@ -31,8 +31,25 @@ void MuukBuilder::build(std::string& target_build, const std::string& compiler, 
         }
 
         auto profiles_table = config["profile"].as_table();
-        selected_profile = std::string(profiles_table->begin()->first.str());
-        logger_->info("No profile specified. Using first available profile: '{}'", selected_profile);
+
+        for (const auto& [profile_name, profile_data] : *profiles_table) {
+            if (profile_data.is_table()) {
+                auto profile_table = profile_data.as_table();
+                if (
+                    profile_table->contains("default") &&
+                    profile_table->at("default").is_boolean() &&
+                    profile_table->at("default").as_boolean()
+                    ) {
+                    selected_profile = profile_name.str();
+                    break;
+                }
+            }
+        }
+
+        if (selected_profile.empty()) {
+            selected_profile = std::string(profiles_table->begin()->first.str());
+            logger_->info("No default profile specified. Using first available profile: '{}'", selected_profile);
+        }
 
         if (!profiles_table->empty() && profiles_table->begin()->first.str() == selected_profile) {
             logger_->info("Default profile detected. Adding script entry to 'muuk.toml'...");

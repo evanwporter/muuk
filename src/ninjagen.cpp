@@ -3,7 +3,7 @@
 #include "../include/ninjagen.h"
 #include "../include/buildconfig.h"
 #include "../include/util.h"
-#include "../include/flags.h"
+#include "../include/muuk.h"
 
 #include <fstream>
 #include <iostream>
@@ -37,12 +37,11 @@ void NinjaGenerator::generate_ninja_file(const std::string& profile, const std::
     build_dir_ = fs::path("build") / profile;
     ninja_file_ = "build/" + profile + ".ninja";
 
-    // TODO: Change to `ninja_file_`
-    const std::string profile_ninja_file_ = "build/" + profile + ".ninja";
+    const std::string ninja_file_ = "build/" + profile + ".ninja";
 
-    std::ofstream out(profile_ninja_file_);
+    std::ofstream out(ninja_file_);
     if (!out) {
-        logger::error("Failed to create Ninja build file '{}'", profile_ninja_file_);
+        logger::error("Failed to create Ninja build file '{}'", ninja_file_);
         throw std::runtime_error("Failed to create Ninja build file.");
     }
 
@@ -301,8 +300,8 @@ NinjaGenerator::compile_objects(std::ofstream& out,
                     flag_list.push_back(*flag.value<std::string>());
                 }
                 cflags_common += muuk::normalize_flags(flag_list);
-            }
         }
+    }
 
         if (package_table->contains("modules")) {
             auto modules = package_table->at("modules").as_array();
@@ -344,25 +343,46 @@ NinjaGenerator::compile_objects(std::ofstream& out,
         if (package_table->contains("sources")) {
             auto sources = package_table->at("sources").as_array();
             if (sources) {
-                for (const auto& src : *sources) {
-                    std::string src_path = util::to_linux_path(fs::absolute(fs::path(*src.value<std::string>())).string());
+                for (const auto& src_entry : *sources) {
+                    if (!src_entry.is_table()) {
+                        logger_->error("Invalid 'sources' entry in '{}'. Expected a table.", package_name);
+                        continue;
+                    }
+
+                    auto source_table = src_entry.as_table();
+                    if (!source_table->contains("path")) {
+                        logger_->error("Skipping invalid 'sources' entry. Missing 'path' key.");
+                        continue;
+                    }
+
+                    std::string src_path = util::to_linux_path(fs::absolute(fs::path(*source_table->at("path").value<std::string>())).string());
                     std::string obj_path = util::to_linux_path((module_dir / fs::path(src_path).stem()).string() + OBJ_EXT);
                     obj_files.push_back(obj_path);
 
                     logger_->info("Compiling source: {} -> {}", src_path, obj_path);
 
-                    // Ensure that each source depends on the last compiled module
-                    out << "build " << obj_path << ": compile " << src_path;
-                    if (!previous_module_obj.empty()) {
-                        out << " | " << previous_module_obj;
+                    // Extract source-specific cflags if they exist
+                    std::string src_cflags;
+                    if (source_table->contains("cflags")) {
+                        auto src_cflags_array = source_table->at("cflags").as_array();
+                        if (src_cflags_array) {
+                            std::vector<std::string> flag_list;
+                            for (const auto& flag : *src_cflags_array) {
+                                flag_list.push_back(*flag.value<std::string>());
+                            }
+                            src_cflags += muuk::normalize_flags(flag_list);
+                        }
                     }
-                    out << "\n  cflags = " << cflags_common << "\n";
+
+                    // Ensure that each source depends on modules, if present
+                    out << "build " << obj_path << ": compile " << src_path << "\n";
+                    out << "  cflags = " << cflags_common << " " << src_cflags << "\n";
                 }
             }
         }
 
         objects[std::string(pkg_name)] = obj_files;
-    }
+}
 
     out << "\n";
     return { objects, libraries };
@@ -443,9 +463,6 @@ void NinjaGenerator::link_executable(std::ofstream& out,
         }
     }
 
-    // // TODO: Find a better location for this
-    // lflags += "/LTCG";
-
     out << "\nbuild " << normalized_exe << ": link " << build_objs << lib_files << "\n"
         << "  lflags =" << lflags << "\n"
         << "  libraries = " << lib_files << "\n";
@@ -492,8 +509,8 @@ std::pair<std::string, std::string> NinjaGenerator::extract_platform_flags() {
             else {
                 logger::warning("No configuration found for platform '{}'.", detected_platform);
             }
-        }
     }
+}
     else {
         logger::warning("No 'platform' section found in lockfile.");
     }

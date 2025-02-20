@@ -16,6 +16,7 @@
 #include <cstdio>
 #include <chrono>
 #include <ctime>
+#include <string>
 
 extern "C" {
 #include "zip.h"
@@ -191,6 +192,8 @@ namespace util {
 #ifdef _WIN32
 #include <windows.h>
 #endif
+#include <set>
+#include <vector>
 
     std::string to_utf8(const std::wstring& wstr) {
 #ifdef _WIN32
@@ -248,6 +251,23 @@ namespace util {
             logger::error("Unknown error occurred during normalize path.");
             throw;
         }
+    }
+
+    std::vector<std::string> to_linux_path(const std::vector<std::string>& paths) {
+        std::vector<std::string> new_paths;
+        new_paths.reserve(paths.size());  // Optimize memory allocation
+        for (const auto& path : paths) {
+            new_paths.push_back(to_linux_path(path));
+        }
+        return new_paths;
+    }
+
+    std::set<std::string> to_linux_path(const std::set<std::string>& paths) {
+        std::set<std::string> new_paths;
+        for (const auto& path : paths) {
+            new_paths.insert(to_linux_path(path));
+        }
+        return new_paths;
     }
 
     std::string to_linux_path(const std::string& path) {

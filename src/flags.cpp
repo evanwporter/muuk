@@ -1,8 +1,9 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
-#include <regex>
+#include "ctre.hpp"
 #include <iostream>
+#include "muuk.h"
 
 namespace muuk {
     // TODO: Change flags based on compiler not OS
@@ -73,8 +74,7 @@ namespace muuk {
             {"-O0", "/Od"}
         };
 
-        static const std::regex std_pattern(R"((?:\/std:c\+\+|-std=c\+\+)(\d+))");
-        std::smatch match;
+        constexpr auto std_pattern = ctll::fixed_string{ R"((?:/std:c\+\+|-std=c\+\+)(\d+))" };
         std::string normalized_flag = flag;
 
         if (flag.starts_with("/D") || flag.starts_with("-D")) {
@@ -106,14 +106,13 @@ namespace muuk {
 #endif
 
         // **Handle C++ standard flag conversion (-std=c++20 <-> /std:c++20)**
-        if (std::regex_match(flag, match, std_pattern)) {
+        if (auto match = ctre::match<std_pattern>(flag)) {
 #ifdef _WIN32
-            return "/std:c++" + match[1].str();
+            return "/std:c++" + std::string(match.get<1>());
 #else
-            return "-std=c++" + match[1].str();
+            return "-std=c++" + std::string(match.get<1>());
 #endif
         }
-
         return normalized_flag;
     }
 

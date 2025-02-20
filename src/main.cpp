@@ -87,7 +87,7 @@ int main(int argc, char* argv[]) {
         .default_value(std::vector<std::string>{});
 
     argparse::ArgumentParser build_command("build", "Build the project");
-    build_command.add_argument("-t", "--target-build") // TODO
+    build_command.add_argument("-t", "--target-build")
         .help("Specify a specific build target")
         .default_value(std::string(""))
         .nargs(1);
