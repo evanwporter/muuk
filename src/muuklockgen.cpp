@@ -395,7 +395,7 @@ void MuukLockGenerator::search_and_parse_dependency(const std::string& package_n
     logger::warning("Dependency '{}' not found in '{}'", package_name, modules_dir.string());
 }
 
-void MuukLockGenerator::generate_lockfile(const std::string& output_path, bool is_release) {
+void MuukLockGenerator::generate_lockfile(const std::string& output_path) {
     // logger_->info("------------------------------");
     logger_->info("");
     logger_->info(" Generating muuk.lock.toml...");
@@ -429,13 +429,7 @@ void MuukLockGenerator::generate_lockfile(const std::string& output_path, bool i
         logger_->info("Written package '{}' to lockfile.", package_name);
     }
 
-    // TODO: Format this nicely
-    lockfile << "[dependencies]\n";
-    for (const auto& [dep_name, dep_info] : dependencies_) {
-        lockfile << "[" << "dependencies." << dep_name << "]\n";
-        lockfile << dep_info << "\n";
-    }
-    lockfile << "\n";
+    lockfile << MuukFiler::format_dependencies(dependencies_);
 
     if (!platform_cflags_.empty()) {
         for (const auto& [platform, cflags] : platform_cflags_) {
@@ -444,7 +438,7 @@ void MuukLockGenerator::generate_lockfile(const std::string& output_path, bool i
                 cflag_array.push_back(cflag);
             }
             // platform_table.insert(toml::table{ {"flags", flag_array} });
-            lockfile << "[platform." << platform << "]\n" << toml::table{ {"cflags", cflag_array} } << "\n";
+            lockfile << "[platform." << platform << "]\n" << toml::table{ {"cflags", cflag_array} } << "\n\n";
 
         }
     }
@@ -503,8 +497,8 @@ void MuukLockGenerator::resolve_system_dependency(const std::string& package_nam
     // Special handling for Python
     if (package_name == "python" || package_name == "python3") {
 #ifdef _WIN32
-        include_path = util::execute_command("python -c \"import sysconfig; print(sysconfig.get_path('include'))\"");
-        lib_path = util::execute_command("python -c \"import sysconfig; print(sysconfig.get_config_var('LIBDIR'))\"");
+        include_path = util::execute_command_get_out("python -c \"import sysconfig; print(sysconfig.get_path('include'))\"");
+        lib_path = util::execute_command_get_out("python -c \"import sysconfig; print(sysconfig.get_config_var('LIBDIR'))\"");
 #else
         include_path = util::execute_command("python3 -c \"import sysconfig; print(sysconfig.get_path('include'))\"");
         lib_path = util::execute_command("python3 -c \"import sysconfig; print(sysconfig.get_config_var('LIBDIR'))\"");
@@ -513,8 +507,8 @@ void MuukLockGenerator::resolve_system_dependency(const std::string& package_nam
     // Special handling for Boost
     else if (package_name == "boost") {
 #ifdef _WIN32
-        include_path = util::execute_command("where boostdep");
-        lib_path = util::execute_command("where boost");
+        include_path = util::execute_command_get_out("where boostdep");
+        lib_path = util::execute_command_get_out("where boost");
 #else
         include_path = util::execute_command("boostdep --include-path");
         lib_path = util::execute_command("boostdep --lib-path");

@@ -52,7 +52,7 @@ private:
 class MuukLockGenerator {
 public:
     explicit MuukLockGenerator(const std::string& base_path);
-    void generate_lockfile(const std::string& output_path, bool is_release = false);
+    void generate_lockfile(const std::string& output_path);
 
 private:
     std::string base_path_;

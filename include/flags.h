@@ -5,8 +5,7 @@
 #include <iostream>
 
 namespace muuk {
-    // TODO FIX
-    // Compiler based on compiler
+    // TODO: Change flags based on compiler not OS
     std::string normalize_flag(const std::string& flag) {
         static const std::unordered_map<std::string, std::string> msvc_to_gcc = {
             {"/I", "-I"},

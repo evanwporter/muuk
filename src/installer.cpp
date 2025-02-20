@@ -136,7 +136,7 @@ namespace muuk {
 
         void install(const std::string& lockfile_path = "muuk.lock.toml") {
             MuukLockGenerator lockgen("./");
-            lockgen.generate_lockfile(lockfile_path, true);
+            lockgen.generate_lockfile(lockfile_path);
 
             logger_->info("Reading dependencies from '{}'", lockfile_path);
 
