@@ -10,7 +10,6 @@
 namespace fs = std::filesystem;
 
 namespace muuk {
-    std::shared_ptr<spdlog::logger> logger_ = logger::get_logger("muuk::installer");
 
     void generate_license(const std::string& license, const std::string& author) {
         std::string license_text;
@@ -51,12 +50,12 @@ namespace muuk {
         std::ofstream license_file("LICENSE");
         if (license_file) {
             license_file << license_text;
-            logger_->info("[muuk] Generated LICENSE file.");
+            muuk::logger::info("[muuk] Generated LICENSE file.");
         }
     }
 
     void init_project() {
-        logger_->info("Initializing a new muuk.toml configuration...");
+        muuk::logger::info("Initializing a new muuk.toml configuration...");
 
         std::string project_name, author, version, license, include_path;
 
@@ -88,7 +87,7 @@ namespace muuk {
 
         std::ofstream config_file("muuk.toml", std::ios::out | std::ios::trunc);
         if (!config_file.is_open()) {
-            logger_->error("Failed to create muuk.toml.");
+            muuk::logger::error("Failed to create muuk.toml.");
             return;
         }
 
@@ -162,7 +161,23 @@ namespace muuk {
 
         filer.write_to_file();
 
-        logger_->info("Successfully created structured muuk.toml!");
+        muuk::logger::trace("Successfully created structured muuk.toml!");
+
+        std::ifstream toml_file("muuk.toml");
+        if (toml_file.is_open()) {
+            std::cout << "\nCurrent muuk.toml content:\n";
+            std::cout << toml_file.rdbuf();
+            toml_file.close();
+        }
+
+        std::string confirmation;
+        std::cout << "\nIs this OK? (yes): ";
+        std::getline(std::cin, confirmation);
+        if (confirmation != "yes") {
+            std::cout << "Initialization aborted.\n";
+            return;
+        }
+
         std::cout << "\nSuccessfully initialized muuk project!\n";
 
         std::ofstream main_file("src/main.cpp");
@@ -195,6 +210,6 @@ void hello_muuk() {
             lib_file.close();
         }
 
-        logger_->info("Project structure initialized.");
+        muuk::logger::trace("Project structure initialized.");
     }
 }

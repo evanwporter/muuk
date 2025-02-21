@@ -32,11 +32,10 @@ namespace util {
     std::string to_utf8(const std::wstring& wstr);
     bool is_valid_utf8(const std::string& str);
 
-    std::vector<std::string> to_linux_path(const std::vector<std::string>& paths);
-    std::set<std::string> to_linux_path(const std::set<std::string>& paths);
+    std::string to_linux_path(const std::string& path, const std::string& prefix = "");
+    std::set<std::string> to_linux_path(const std::set<std::string>& paths, const std::string& prefix = "");
     std::string normalize_path(const std::string& path);
-    std::string to_linux_path(const std::string& path);
-
+    std::vector<std::string> to_linux_path(const std::vector<std::string>& paths, const std::string& prefix = "");
 
     bool command_exists(const std::string& command);
 

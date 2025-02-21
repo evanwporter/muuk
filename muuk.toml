@@ -18,12 +18,16 @@ sources = [
     'src/logger.cpp',
     'src/muukfiler.cpp',
     'src/muukbuilder.cpp',
-    'src/ninjagen.cpp',
     'src/muuklockgen.cpp',
     'src/installer.cpp',
     'src/package_manager.cpp',
     'src/muukinitializer.cpp',
-    "src/flags.cpp",
+    'src/flags.cpp',
+    'src/builder/buildtargets.cpp',
+    'src/builder/ninjabackend.cpp',
+    'src/builder/buildparser.cpp',
+    'src/builder/buildmanager.cpp',
+    'src/muukvalidator.cpp',
 ]
 
 [library.muuk.dependencies]
@@ -35,12 +39,22 @@ json = { git = 'https://github.com/nlohmann/json.git', muuk_path = 'deps/json/mu
 spdlog = { git = 'https://github.com/gabime/spdlog.git', muuk_path = 'deps/spdlog/muuk.toml', revision = '3335c380a08c5e0f5117a66622df6afdb3d74959' }
 tomlplusplus = { git = 'https://github.com/marzer/tomlplusplus.git', muuk_path = 'deps/tomlplusplus/muuk.toml', revision = 'cbc00d6766f14bcd2b3e72de2a3c369a0d48b98a' }
 zip = { git = 'https://github.com/kuba--/zip.git', muuk_path = 'deps/zip/muuk.toml', revision = 'd7a2252a537926cbdef8512741a322a183fcfd09' }
+fmt = { git = 'https://github.com/fmtlib/fmt.git', muuk_path = 'deps/fmt/muuk.toml', revision = '577fd3be883accf8629423ed77fcca8a24bccee2' }
 
 [build.bin]
 dependencies = { muuk = 'v1.0.0' }
-gflags = ['/std:c++20', '/utf-8', '/EHsc', '/FS']
 profile = ['release', 'debug']
 sources = ['src/main.cpp']
+
+[build.test]
+dependencies = { muuk = 'v1.0.0', googletest = { git = 'https://github.com/google/googletest.git', muuk_path = 'deps/googletest/muuk.toml', revision = '3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f' }, FakeIt = { git = 'https://github.com/eranpeer/FakeIt.git', muuk_path = 'deps/fakeit/muuk.toml', revision = '1d172eb87929b8bd5a8dd9a981fc0e43b9245475' } }
+profile = ['debug']
+sources = ['test/internal/muuk_test.cpp']
+
+[build.test_util]
+dependencies = { muuk = 'v1.0.0', googletest = { git = 'https://github.com/google/googletest.git', muuk_path = 'deps/googletest/muuk.toml', revision = '3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f' }, FakeIt = { git = 'https://github.com/eranpeer/FakeIt.git', muuk_path = 'deps/fakeit/muuk.toml', revision = '1d172eb87929b8bd5a8dd9a981fc0e43b9245475' } }
+profile = ['debug']
+sources = ['test/internal/test_util.cpp']
 
 [platform.windows]
 cflags = []
@@ -48,19 +62,23 @@ cflags = []
 [platform.linux]
 cflags = []
 
+[profile.base]
+cflags = ['/std:c++20', '/utf-8', '/EHsc', '/FS']
+
 [profile.release]
-cflags = ['/O2', '/DNDEBUG', '/GL', '/EHsc', '/FS', '/std:c++20', '/utf-8']
+# Can be an array of profiles or a single profile
+inherits = ['base']
+cflags = ['/O2', '/DNDEBUG', '/GL']
 lflags = ['/OPT:REF', '/OPT:ICF', '/LTCG']
 
+[profile.release_x86]
+inherits = 'release'
+lflags = ['/MACHINE:X86']
+
 [profile.debug]
-cflags = [
-    '/Od',
-    '/DDEBUG',
-    '/Zi',
-    '/EHsc',
-    '/RTC1',
-    '/FS',
-    '/std:c++20',
-    '/utf-8',
-]
+cflags = ['/Od', '/DDEBUG', '/Zi', '/RTC1']
+default = true
+inherits = 'base'
 lflags = ['/DEBUG', '/MACHINE:X86']
+include = ['include']
+libs = []

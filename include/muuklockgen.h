@@ -24,6 +24,8 @@ public:
         const std::string& base_path,
         const std::string& package_type);
 
+    void add_include_path(const std::string& path);
+
     void merge(const Package& child_pkg);
 
     std::string serialize() const;
@@ -41,6 +43,9 @@ public:
     std::vector<std::string> modules;
     std::vector<std::string> libs;
     std::set<std::string> inherited_profiles;
+
+    std::unordered_map<std::string, std::unordered_map<std::string, std::set<std::string>>> platform_;
+    std::unordered_map<std::string, std::unordered_map<std::string, std::set<std::string>>> compiler_;
 
     std::set<std::string> deps;
     std::unordered_map<std::string, std::unordered_map<std::string, std::string>> dependencies;
@@ -70,16 +75,19 @@ private:
 
     std::unordered_map<std::string, std::unordered_map<std::string, std::set<std::string>>> profiles_;
 
-    std::unordered_map<std::string, std::set<std::string>> platform_cflags_;
-
     void parse_section(const toml::table& section, Package& package);
     void search_and_parse_dependency(const std::string& package_name);
 
+    // TODO: Use or Remove
     void process_modules(const std::vector<std::string>& module_paths, Package& package);
 
+    // TODO: Use or Remove
     std::optional<std::shared_ptr<Package>> find_package(const std::string& package_name);
 
+    // TODO: Use or Remove
     void resolve_system_dependency(const std::string& package_name, std::optional<std::shared_ptr<Package>> package);
+
+    void merge_profiles(const std::string& base_profile, const std::string& inherited_profile);
 
     void parse_muuk_toml(const std::string& path, bool is_base = false);
     void resolve_dependencies(const std::string& package_name, std::optional<std::string> search_path = std::nullopt);
