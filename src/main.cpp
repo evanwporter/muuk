@@ -66,11 +66,11 @@ int main(int argc, char* argv[]) {
         .help("Specify the path to muuk.toml")
         .default_value(std::string("muuk.toml"));
 
-#ifdef DEBUG
-    program.add_argument("--repl")
-        .help("Start REPL mode for debugging")
-        .flag();
-#endif
+    // #ifdef DEBUG
+    //     program.add_argument("--repl")
+    //         .help("Start REPL mode for debugging")
+    //         .flag();
+    // #endif
 
     argparse::ArgumentParser clean_command("clean", "Clean the project");
     clean_command.add_argument("clean_args")
@@ -113,11 +113,6 @@ int main(int argc, char* argv[]) {
     argparse::ArgumentParser remove_command("remove", "Remove an installed package or submodule");
     remove_command.add_argument("package_name")
         .help("The name of the package to remove");
-
-    argparse::ArgumentParser upload_patch_command("upload-patch", "Upload missing patches.");
-    upload_patch_command.add_argument("--dry-run")
-        .help("Only list patches that would be uploaded, without actually uploading them.")
-        .flag();
 
     argparse::ArgumentParser crack_command("crack", "Brute-force crack a RAR archive");
     crack_command.add_argument("rar_file")
@@ -166,7 +161,6 @@ int main(int argc, char* argv[]) {
     program.add_subparser(build_command);
     program.add_subparser(download_command);
     program.add_subparser(remove_command);
-    program.add_subparser(upload_patch_command);
     program.add_subparser(crack_command);
     program.add_subparser(init_command);
     program.add_subparser(add_command);
@@ -199,14 +193,6 @@ int main(int argc, char* argv[]) {
             muuk::package_manager::remove_package(package_name, "muuk.toml", "muuk.lock.toml");
             return 0;
         }
-
-        // TODO: Do something with
-        // if (program.is_subcommand_used("upload-patch")) {
-        //     bool dry_run = upload_patch_command.get<bool>("--dry-run");
-        //     logger_->info("[muuk] Running upload-patch with dry-run: {}", dry_run);
-        //     muuk::upload_patch(dry_run);
-        //     return 0;
-        // }
 
         if (program.is_subcommand_used("crack")) {
             const auto rar_file = crack_command.get<std::string>("rar_file");

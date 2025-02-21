@@ -17,7 +17,6 @@ public:
 
     void clean() const;
     void run_script(const std::string& script, const std::vector<std::string>& args) const;
-    void download_github_release(const std::string& repo_url, const std::string& version = "latest");
 
     void upload_patch(bool dry_run = false);
 

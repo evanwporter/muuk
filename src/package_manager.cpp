@@ -103,124 +103,52 @@ namespace muuk {
             return { author, repo_name };
         }
 
-        void download_github_release(const std::string& repo, const std::string& version) {
-            logger_->info("Downloading GitHub release. Repository: {}, Version: {}", repo, version);
-
-            auto [author, repo_name] = split_author_repo(repo);
-            if (repo_name.empty()) {
-                return;
-            }
-
-            std::string resolved_version = version;
-
-            // If version is "latest", fetch the latest release version
-            if (version == "latest") {
-                std::string api_url = "https://api.github.com/repos/" + author + "/" + repo_name + "/releases/latest";
-                logger_->info("Fetching latest release from: {}", api_url);
-
-                try {
-                    nlohmann::json response = util::fetch_json(api_url);
-                    if (response.contains("tag_name") && response["tag_name"].is_string()) {
-                        resolved_version = response["tag_name"].get<std::string>();
-                        logger_->info("Resolved latest version: {} of {}/{}", resolved_version, author, repo_name);
-                    }
-                    else {
-                        logger_->error("Failed to fetch latest release version of {}/{}", author, repo_name);
-                        return;
-                    }
-                }
-                catch (const std::exception& e) {
-                    logger_->error("Error fetching latest release: {}", e.what());
-                    return;
-                }
-            }
-
-            // Construct the GitHub release download URL
-            std::string archive_url = "https://github.com/" + author + "/" + repo_name + "/archive/refs/tags/" + resolved_version + ".zip";
-
-            util::ensure_directory_exists(DEPENDENCY_FOLDER, true);
-
-            const auto deps_path = std::string(DEPENDENCY_FOLDER);
-            std::string zip_path = deps_path + "/tmp.zip";
-            std::string expected_extracted_folder = deps_path + "/" + repo_name + "-" + resolved_version;
-            std::string renamed_folder = deps_path + "/" + author + "-" + repo_name + "-" + resolved_version;
+        void generate_default_muuk_toml(
+            const std::string& repo_path,
+            const std::string& repo_name,
+            const std::string& version,
+            const std::string& revision,
+            const std::string& tag
+        ) {
+            std::string muuk_toml_path = repo_path + "/muuk.toml";
 
             try {
-                logger_->info("Downloading file from URL: {}", archive_url);
-                download_file(archive_url, zip_path);
-
-                logger_->info("Extracting downloaded file: {}", zip_path);
-                extract_zip(zip_path, deps_path);
-
-                // Detect the extracted folder
-                bool renamed = false;
-                for (const auto& entry : fs::directory_iterator(deps_path)) {
-                    if (entry.is_directory() && entry.path().filename().string().find(repo_name) == 0) {
-                        fs::rename(entry.path(), renamed_folder);
-                        logger_->info("Renamed extracted folder '{}' to '{}'", entry.path().string(), renamed_folder);
-                        renamed = true;
-                        break;
-                    }
+                std::ofstream muuk_toml(muuk_toml_path);
+                if (!muuk_toml) {
+                    logger_->error("Failed to create muuk.toml at '{}'", muuk_toml_path);
+                    return;
                 }
 
-                if (!renamed) {
-                    logger_->error("Could not find the expected extracted folder: {}", expected_extracted_folder);
-                }
+                logger_->info("Creating default muuk.toml for '{}'", repo_name);
 
-                // Clean up ZIP file
-                util::remove_path(zip_path);
+                // // Determine which versioning key to use
+                // std::string version_key = "version";
+                // std::string version_value = version;
 
-                // download_patch(author, repo_name, resolved_version);
-                // add_dependency(author, repo_name, resolved_version);
+                // if (!revision.empty()) {
+                //     version_key = "revision";
+                //     version_value = revision;
+                // }
+                // else if (!tag.empty()) {
+                //     version_key = "tag";
+                //     version_value = tag;
+                // }
+
+                // Write default muuk.toml
+                muuk_toml << "[package]\n";
+                muuk_toml << "name = \"" << repo_name << "\"\n\n";
+                // muuk_toml << version_key << " = \"" << version_value << "\"\n\n";
+
+                muuk_toml << "[library." << repo_name << "]\n";
+                muuk_toml << "include = [\"include/\"]\n";
+                muuk_toml << "sources = [\"src/*.cpp\", \"src/*.cc\"]\n";
+
+                muuk_toml.close();
+                logger_->info("Generated default muuk.toml at '{}'", muuk_toml_path);
             }
             catch (const std::exception& e) {
-                logger_->error("Error downloading GitHub repository: {}", e.what());
+                logger_->error("Error writing muuk.toml for '{}': {}", repo_name, e.what());
             }
-        }
-
-        void install_submodule(const std::string& repo) {
-            logger_->info("Installing Git submodule: {}", repo);
-
-            size_t slash_pos = repo.find('/');
-            if (slash_pos == std::string::npos) {
-                logger_->error("Invalid repository format. Expected <author>/<repo> but got: {}", repo);
-                return;
-            }
-
-            std::string author = repo.substr(0, slash_pos);
-            std::string repo_name = repo.substr(slash_pos + 1);
-            std::string submodule_path = "deps/" + repo_name;
-
-            util::ensure_directory_exists("deps");
-
-            std::string git_command = "git submodule add https://github.com/" + repo + ".git " + submodule_path;
-            logger_->info("Executing: {}", git_command);
-
-            int result = util::execute_command(git_command.c_str());
-            if (result != 0) {
-                logger_->error("Failed to add submodule '{}'.", repo);
-                return;
-            }
-
-            std::string init_command = "git submodule update --init --recursive " + submodule_path;
-            logger_->info("Initializing submodule...");
-            result = util::execute_command(init_command.c_str());
-
-            if (result != 0) {
-                logger_->error("Failed to initialize submodule '{}'.", repo);
-                return;
-            }
-
-            // Retrieve the latest tag/version of the submodule
-            std::string get_version_cmd = "cd " + submodule_path + " && git describe --tags --abbrev=0";
-            std::string version = "";// = util::execute_command(get_version_cmd);
-
-            if (version.empty()) {
-                version = "latest"; // Fallback in case no tags are found
-            }
-
-            logger_->info("Submodule '{}' installed with version '{}'.", repo_name, version);
-
         }
 
         void add_dependency(
@@ -228,7 +156,7 @@ namespace muuk {
             const std::string& repo,
             const std::string& version,
             std::string& git_url,
-            const std::string& muuk_path,
+            std::string& muuk_path,
             std::string revision,
             const std::string& tag,
             const std::string& branch,
@@ -247,7 +175,6 @@ namespace muuk {
 
                 MuukFiler muukFiler(toml_path);
 
-                // Step 1: Get package name
                 toml::table package_section = muukFiler.get_section("package");
                 if (!package_section.contains("name") || !package_section["name"].is_string()) {
                     logger_->error("Missing 'name' in [package] section.");
@@ -265,7 +192,6 @@ namespace muuk {
 
                 toml::table& dependencies = muukFiler.get_section(dependencies_section);
 
-                // Step 3: Extract only the repo name using split_author_repo
                 auto [author, repo_name] = split_author_repo(repo);
                 if (repo_name.empty()) {
                     throw std::runtime_error("Invalid repository format. Expected <author>/<repo>");
@@ -309,12 +235,55 @@ namespace muuk {
 
 
                 std::string final_git_url = git_url.empty() ? "https://github.com/" + author + "/" + repo_name + ".git" : git_url;
+                std::string target_dir = std::string(DEPENDENCY_FOLDER) + "/" + repo_name;
 
-                // Step 5: Convert existing dependencies section to a string
                 std::ostringstream toml_string;
                 toml_string << dependencies;
 
-                // Step 6: Manually construct the TOML entry
+                // Ensure dependency folder exists
+                util::ensure_directory_exists(DEPENDENCY_FOLDER, true);
+                fs::create_directory(target_dir);
+
+                // #1
+                if (muuk_path.empty()) {
+                    muuk_path = target_dir + "/muuk.toml";
+
+                    // Attempt to fetch the dependency's `muuk.toml`
+                    std::string muuk_toml_url = "https://raw.githubusercontent.com/" + author + "/" + repo_name + "/" + revision + "/muuk.toml";
+
+                    bool muuk_toml_downloaded = false;
+                    try {
+                        logger_->info("Attempting to download muuk.toml from: {}", muuk_toml_url);
+                        download_file(muuk_toml_url, muuk_path);
+                        muuk_toml_downloaded = fs::exists(muuk_path);
+                    }
+                    catch (const std::exception& e) {
+                        logger_->warn("Could not download muuk.toml from dependency: {}", e.what());
+                    }
+
+                    // #2
+                    // If not found, attempt to get a patch version
+                    if (!muuk_toml_downloaded) {
+                        std::string patch_muuk_toml_url = "https://raw.githubusercontent.com/evanwporter/muuk/main/muuk-patches/" + repo_name + "/muuk.toml";
+                        try {
+                            logger_->info("Attempting to download muuk.toml patch from: {}", patch_muuk_toml_url);
+                            download_file(patch_muuk_toml_url, muuk_path);
+                            muuk_toml_downloaded = fs::exists(muuk_path);
+                        }
+                        catch (const std::exception& e) {
+                            logger_->warn("Could not download muuk.toml patch: {}", e.what());
+                        }
+                    }
+
+                    // #3
+                    // If neither worked, generate a default `muuk.toml`
+                    if (!muuk_toml_downloaded) {
+                        logger_->warn("No valid muuk.toml found. Generating a default one.");
+                        generate_default_muuk_toml(target_dir, repo_name, version, revision, tag);
+                    }
+                }
+
+                // Modify the base `muuk.toml` adding to new dependency to the dependencies section
                 std::ostringstream new_entry;
                 new_entry << repo_name << " = { ";
                 bool has_previous = false;
@@ -333,24 +302,24 @@ namespace muuk {
                     new_entry << "branch = \"" << branch << "\"";
                     has_previous = true;
                 }
-                if (!muuk_path.empty()) {
-                    if (has_previous) new_entry << ", ";
-                    new_entry << "muuk_path = \"" << muuk_path << "\"";
-                    has_previous = true;
-                }
+
+                if (has_previous) new_entry << ", ";
+                new_entry << "muuk_path = \"" << muuk_path << "\"";
+                has_previous = true;
+
                 if (has_previous) new_entry << ", ";
                 new_entry << "git = \"" << final_git_url << "\" }";
 
-                // Step 7: Append new dependency entry to TOML string
+                // Append new dependency entry to TOML string
                 toml_string << "\n" << new_entry.str() << "\n";
 
                 logger_->info("Updated TOML dependencies:\n{}", toml_string.str());
 
-                // Step 8: Re-parse as a TOML table
+                // Re-parse as a TOML table
                 std::istringstream new_table_stream(toml_string.str());
                 toml::table new_dependencies = toml::parse(new_table_stream);
 
-                // Step 9: Replace the `[library.{package.name}.dependencies]` table
+                // Replace the `[library.{package.name}.dependencies]` table
                 muukFiler.modify_section(dependencies_section, new_dependencies);
                 muukFiler.write_to_file();
 

@@ -21,6 +21,18 @@ namespace muuk {
     namespace package_manager {
 
         void clone_shallow_repo(const std::string& repo_url, const std::string& target_dir, const std::string& checkout_ref) {
+            fs::path muuk_toml_path = target_dir + "/muuk.toml";
+            fs::path parent_repo_dir = fs::path(target_dir).parent_path(); // Get parent directory
+            fs::path temp_muuk_toml_path = parent_repo_dir / (fs::path(target_dir).filename().string() + "_muuk_backup.toml");
+
+            logger_->info("Cloning repository: {} in target dir {}", repo_url, target_dir);
+            // Move `muuk.toml` to the parent directory before deleting the old repository
+            if (fs::exists(muuk_toml_path)) {
+                logger_->info("Moving 'muuk.toml' to parent directory '{}' before removing old repository.", parent_repo_dir.string());
+                fs::rename(muuk_toml_path, temp_muuk_toml_path);
+            }
+
+            // Remove entire target directory
             if (fs::exists(target_dir)) {
                 logger_->info("Repository already exists. Removing old version...");
                 fs::remove_all(target_dir);
@@ -53,6 +65,12 @@ namespace muuk {
                 }
             }
 
+            // Move `muuk.toml` back from the parent directory to the newly cloned repository
+            if (fs::exists(temp_muuk_toml_path)) {
+                logger_->info("Restoring 'muuk.toml' from parent directory.");
+                fs::rename(temp_muuk_toml_path, muuk_toml_path);
+            }
+
             // Remove the .git folder to keep things clean
             std::string git_folder = target_dir + "/.git";
             if (fs::exists(git_folder)) {
@@ -61,53 +79,6 @@ namespace muuk {
             }
         }
 
-        void generate_default_muuk_toml(
-            const std::string& repo_path,
-            const std::string& repo_name,
-            const std::string& version,
-            const std::string& revision,
-            const std::string& tag
-        ) {
-            std::string muuk_toml_path = repo_path + "/muuk.toml";
-
-            try {
-                std::ofstream muuk_toml(muuk_toml_path);
-                if (!muuk_toml) {
-                    logger_->error("Failed to create muuk.toml at '{}'", muuk_toml_path);
-                    return;
-                }
-
-                logger_->info("Creating default muuk.toml for '{}'", repo_name);
-
-                // Determine which versioning key to use
-                std::string version_key = "version";
-                std::string version_value = version;
-
-                if (!revision.empty()) {
-                    version_key = "revision";
-                    version_value = revision;
-                }
-                else if (!tag.empty()) {
-                    version_key = "tag";
-                    version_value = tag;
-                }
-
-                // Write default muuk.toml
-                muuk_toml << "[package]\n";
-                muuk_toml << "name = \"" << repo_name << "\"\n";
-                muuk_toml << version_key << " = \"" << version_value << "\"\n\n";
-
-                muuk_toml << "[library." << repo_name << "]\n";
-                muuk_toml << "include = [\"include/\"]\n";
-                muuk_toml << "sources = [\"src/*.cpp\", \"src/*.cc\"]\n";
-
-                muuk_toml.close();
-                logger_->info("Generated default muuk.toml at '{}'", muuk_toml_path);
-            }
-            catch (const std::exception& e) {
-                logger_->error("Error writing muuk.toml for '{}': {}", repo_name, e.what());
-            }
-        }
 
         bool is_installed_version_matching(const std::string& muuk_toml_path,
             const std::string& version, const std::string& revision, const std::string& tag) {
@@ -125,6 +96,11 @@ namespace muuk {
                 std::string installed_version = package_section.contains("version") ? *package_section["version"].value<std::string>() : "";
                 std::string installed_revision = package_section.contains("revision") ? *package_section["revision"].value<std::string>() : "";
                 std::string installed_tag = package_section.contains("tag") ? *package_section["tag"].value<std::string>() : "";
+
+                if (installed_version.empty() && installed_revision.empty() && installed_tag.empty()) {
+                    logger_->warn("No versioning information found in '{}'. Assuming outdated.", muuk_toml_path);
+                    return false;
+                }
 
                 return (installed_version == version || installed_revision == revision || installed_tag == tag);
             }
@@ -181,6 +157,13 @@ namespace muuk {
                 }
 
                 std::string ref = version.empty() ? (revision.empty() ? branch : revision) : version;
+
+                if (ref.empty()) {
+                    logger_->warn("No version, revision, or branch specified for '{}'. Defaulting to 'main'.", repo_name);
+                    ref = "main";  // Fallback to 'main' if nothing is specified
+                }
+
+
                 logger_->info("Installing '{}': ref={}, git={}", repo_name, ref, git_url);
 
                 std::string target_dir = std::string(DEPENDENCY_FOLDER) + "/" + repo_name;
@@ -192,23 +175,22 @@ namespace muuk {
                         continue;
                     }
                     logger::warning("'{}' version mismatch. Reinstalling...", repo_name);
-                    fs::remove_all(target_dir); // Remove outdated version
-                }
-
-                if (fs::exists(target_dir)) {
-                    for (const auto& entry : fs::directory_iterator(target_dir)) {
-                        if (entry.path() != muuk_toml_path) {
-                            fs::remove_all(entry.path());
-                        }
-                    }
+                    // fs::remove_all(target_dir); // Remove outdated version
                 }
 
                 logger_->info("Installing '{}': ref={}, git={}", repo_name, version, git_url);
                 clone_shallow_repo(git_url, target_dir, ref);
 
-                if (!fs::exists(muuk_toml_path)) {
-                    logger::warning("No muuk.toml found for '{}'. Generating a default one.", repo_name);
-                    generate_default_muuk_toml(target_dir, repo_name, version, revision, tag);
+                if (fs::exists(muuk_toml_path)) {
+                    logger_->info("Updating '{}' with installed version information.", muuk_toml_path);
+                    MuukFiler muukFiler(muuk_toml_path);
+                    toml::table& package_section = muukFiler.get_section("package");
+
+                    if (!version.empty()) package_section.insert_or_assign("version", version);
+                    if (!revision.empty()) package_section.insert_or_assign("revision", revision);
+                    if (!tag.empty()) package_section.insert_or_assign("tag", tag);
+
+                    muukFiler.write_to_file();
                 }
             }
 

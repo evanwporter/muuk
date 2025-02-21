@@ -19,7 +19,7 @@ inline std::string join_strings(const std::vector<std::string>& elements, const 
 }
 
 template <typename Container>
-void print_array(std::ostringstream& stream, std::string_view key, const Container& values) {
+void print_array(std::ostringstream& stream, std::string_view key, const Container& values, bool new_line_at_end = true) {
     stream << key << " = [";
     bool first = true;
     for (const auto& value : values) {
@@ -29,7 +29,12 @@ void print_array(std::ostringstream& stream, std::string_view key, const Contain
         stream << "\"" << value << "\"";
         first = false;
     }
-    stream << "]\n";
+    if (new_line_at_end) {
+        stream << "]\n";
+    }
+    else {
+        stream << "]";
+    }
 }
 
 
@@ -42,10 +47,10 @@ Package::Package(const std::string& name,
 }
 
 void Package::merge(const Package& child_pkg) {
-    if (&child_pkg == nullptr) {
-        logger_->error("[MuukLockGenerator] 'child_pkg' is NULL or corrupted. Cannot merge into '{}'", name);
-        return;
-    }
+    // if (&child_pkg == nullptr) {
+    //     logger_->error("[MuukLockGenerator] 'child_pkg' is NULL or corrupted. Cannot merge into '{}'", name);
+    //     return;
+    // }
 
     logger_->info("[MuukLockGenerator] Merging {} into {}", child_pkg.name, name);
 
@@ -58,11 +63,23 @@ void Package::merge(const Package& child_pkg) {
 
     deps.insert(child_pkg.deps.begin(), child_pkg.deps.end());
 
+    for (const auto& [compiler, flags] : child_pkg.compiler_) {
+        for (const auto& [flag_type, flag_values] : flags) {
+            compiler_[compiler][flag_type].insert(flag_values.begin(), flag_values.end());
+        }
+    }
+
+    for (const auto& [platform, flags] : child_pkg.platform_) {
+        for (const auto& [flag_type, flag_values] : flags) {
+            platform_[platform][flag_type].insert(flag_values.begin(), flag_values.end());
+        }
+    }
+
     // dependencies.insert(child_pkg.dependencies.begin(), child_pkg.dependencies.end());
 }
 
 std::string Package::serialize() const {
-    std::ostringstream toml_stream; // switch to a string steam to allow more control over the final product
+    std::ostringstream toml_stream; // string steam to allow more control over the final product
     toml::table data;
     toml::array include_array, cflags_array, sources_array, modules_array, libs_array, deps_array, profiles_array;
 
@@ -116,6 +133,28 @@ std::string Package::serialize() const {
     print_array(toml_stream, "dependencies", deps);
     print_array(toml_stream, "profiles", inherited_profiles);
 
+    if (!platform_.empty()) {
+        for (const auto& [platform, flags] : platform_) {
+            toml_stream << "platform." << platform << " = { ";
+            auto cflags_it = flags.find("cflags");
+            if (cflags_it != flags.end()) {
+                print_array(toml_stream, "cflags", cflags_it->second, false);
+            }
+            toml_stream << " }\n";
+        }
+    }
+
+    if (!compiler_.empty()) {
+        for (const auto& [compiler, flags] : compiler_) {
+            toml_stream << "compiler." << compiler << " = { ";
+            auto cflags_it = flags.find("cflags");
+            if (cflags_it != flags.end()) {
+                print_array(toml_stream, "cflags", cflags_it->second, false);
+            }
+            toml_stream << " }\n";
+        }
+    }
+
     return toml_stream.str();
 }
 
@@ -157,8 +196,40 @@ void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
     if (data.contains("library")) {
         const auto& library_node = data["library"];
         if (const toml::table* library_table = library_node.as_table()) {
-            if (library_table->contains(package_name)) {
+            if (library_table->contains(package_name)) { // TODO: Allow multiple libraries in a file
                 parse_section(*library_table->at(package_name).as_table(), *package);
+
+                if (data.contains("platform") && data["platform"].is_table()) {
+                    for (const auto& [platform_name, platform_data] : *data["platform"].as_table()) {
+                        if (platform_data.is_table() && platform_data.as_table()->contains("cflags")) {
+                            const auto& cflag_array = *platform_data.as_table()->at("cflags").as_array();
+                            std::set<std::string> cflags;
+                            for (const auto& cflag : cflag_array) {
+                                cflags.insert(*cflag.value<std::string>());
+                            }
+
+                            package->platform_[std::string(platform_name.str())]["cflags"] = cflags;
+
+                            logger_->info("Platform '{}' loaded with {} cflags.", platform_name.str(), cflags.size());
+                        }
+                    }
+                }
+
+                if (data.contains("compiler") && data["compiler"].is_table()) {
+                    for (const auto& [compiler_name, compiler_data] : *data["compiler"].as_table()) {
+                        if (compiler_data.is_table() && compiler_data.as_table()->contains("cflags")) {
+                            const auto& cflag_array = *compiler_data.as_table()->at("cflags").as_array();
+                            std::set<std::string> cflags;
+                            for (const auto& cflag : cflag_array) {
+                                cflags.insert(*cflag.value<std::string>());
+                            }
+
+                            package->compiler_[std::string(compiler_name.str())]["cflags"] = cflags;
+
+                            logger_->info("Compiler '{}' loaded with {} cflags.", compiler_name.str(), cflags.size());
+                        }
+                    }
+                }
             }
         }
         else {
@@ -192,27 +263,8 @@ void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
             resolved_packages_["build"][std::string(build_name.str())] = build_package;
         }
     }
-
-    if (data.contains("platform") && data["platform"].is_table()) {
-        bool platform_found = false;
-
-        for (const auto& [platform_name, platform_data] : *data["platform"].as_table()) {
-            if (platform_data.is_table() && platform_data.as_table()->contains("cflags")) {
-                const auto& cflag_array = *platform_data.as_table()->at("cflags").as_array();
-                std::set<std::string> cflags;
-                for (const auto& cflag : cflag_array) {
-                    cflags.insert(*cflag.value<std::string>());
-                }
-                platform_cflags_[std::string(platform_name.str())] = cflags;
-                platform_found = true;
-            }
-        }
-
-        if (!platform_found) {
-            logger::warning("No valid 'platform' key found in muuk.toml.");
-        }
-    }
-
+    // Two pass parsing for profiles
+    // First pass: Load all profiles into profiles_ variable
     if (data.contains("profile") && data["profile"].is_table()) {
         for (const auto& [profile_name, profile_data] : *data["profile"].as_table()) {
             if (profile_data.is_table()) {
@@ -225,6 +277,7 @@ void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
                     profiles_[std::string(profile_name.str())]["cflags"] = cflags;
                     logger_->info("Profile '{}' loaded with {} cflags.", profile_name.str(), cflags.size());
                 }
+
                 if (profile_data.as_table()->contains("lflags")) {
                     const auto& lflag_array = *profile_data.as_table()->at("lflags").as_array();
                     std::set<std::string> lflags;
@@ -233,6 +286,32 @@ void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
                     }
                     profiles_[std::string(profile_name.str())]["lflags"] = lflags;
                     logger_->info("Profile '{}' loaded with {} lflags.", profile_name.str(), lflags.size());
+                }
+            }
+        }
+    }
+
+    // Second pass: Process inheritance
+    if (data.contains("profile") && data["profile"].is_table()) {
+        for (const auto& [profile_name, profile_data] : *data["profile"].as_table()) {
+            if (profile_data.is_table()) {
+                try {
+                    logger_->info("Parsing profile '{}'", profile_name.str());
+                    logger_->flush();
+                    if (profile_data.as_table()->contains("inherits")) {
+                        if (profile_data.as_table()->at("inherits").is_array()) {
+                            const auto& inherits_array = *profile_data.as_table()->at("inherits").as_array();
+                            for (const auto& inherits : inherits_array) {
+                                merge_profiles(std::string(profile_name.str()), *inherits.value<std::string>());
+                            }
+                        }
+                        else if (profile_data.as_table()->at("inherits").is_string()) {
+                            merge_profiles(std::string(profile_name.str()), *profile_data.as_table()->at("inherits").value<std::string>());
+                        }
+                    }
+                }
+                catch (const std::exception& e) {
+                    logger_->error("Error while parsing profile '{}': {}", profile_name.str(), e.what());
                 }
             }
         }
@@ -487,18 +566,6 @@ void MuukLockGenerator::generate_lockfile(const std::string& output_path) {
 
     lockfile << MuukFiler::format_dependencies(dependencies_);
 
-    if (!platform_cflags_.empty()) {
-        for (const auto& [platform, cflags] : platform_cflags_) {
-            toml::array cflag_array;
-            for (const auto& cflag : cflags) {
-                cflag_array.push_back(cflag);
-            }
-            // platform_table.insert(toml::table{ {"flags", flag_array} });
-            lockfile << "[platform." << platform << "]\n" << toml::table{ {"cflags", cflag_array} } << "\n\n";
-
-        }
-    }
-
     if (!profiles_.empty()) {
         for (const auto& [profile_name, profile_settings] : profiles_) {
             lockfile << "[profile." << profile_name << "]\n";
@@ -599,5 +666,18 @@ void MuukLockGenerator::resolve_system_dependency(const std::string& package_nam
 
     if (include_path.empty() && lib_path.empty()) {
         logger_->error("Failed to resolve system dependency '{}'. Consider installing it or specifying paths manually.", package_name);
+    }
+}
+
+void MuukLockGenerator::merge_profiles(const std::string& base_profile, const std::string& inherited_profile) {
+    if (profiles_.find(inherited_profile) == profiles_.end()) {
+        logger_->error("Inherited profile '{}' not found.", inherited_profile);
+        return;
+    }
+
+    logger_->info("Merging profile '{}' into '{}'", inherited_profile, base_profile);
+
+    for (const auto& [key, values] : profiles_[inherited_profile]) {
+        profiles_[base_profile][key].insert(values.begin(), values.end());
     }
 }

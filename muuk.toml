@@ -23,7 +23,7 @@ sources = [
     'src/installer.cpp',
     'src/package_manager.cpp',
     'src/muukinitializer.cpp',
-    "src/flags.cpp",
+    'src/flags.cpp',
 ]
 
 [library.muuk.dependencies]
@@ -48,19 +48,21 @@ cflags = []
 [platform.linux]
 cflags = []
 
+[profile.base]
+cflags = ['/std:c++20', '/utf-8', '/EHsc', '/FS']
+
 [profile.release]
-cflags = ['/O2', '/DNDEBUG', '/GL', '/EHsc', '/FS', '/std:c++20', '/utf-8']
+# Can be an array of profiles or a single profile
+inherits = ['base']
+cflags = ['/O2', '/DNDEBUG', '/GL']
 lflags = ['/OPT:REF', '/OPT:ICF', '/LTCG']
 
+[profile.release_x86]
+inherits = 'release'
+lflags = ['/MACHINE:X86']
+
 [profile.debug]
-cflags = [
-    '/Od',
-    '/DDEBUG',
-    '/Zi',
-    '/EHsc',
-    '/RTC1',
-    '/FS',
-    '/std:c++20',
-    '/utf-8',
-]
+default = true
+inherits = 'base'
+cflags = ['/Od', '/DDEBUG', '/Zi', '/RTC1']
 lflags = ['/DEBUG', '/MACHINE:X86']

@@ -377,9 +377,77 @@ NinjaGenerator::compile_objects(std::ofstream& out,
                         }
                     }
 
+                    std::string platform_cflags;
+                    if (package_table->contains("platform")) {
+                        auto platform_table = package_table->at("platform").as_table();
+                        if (platform_table) {
+                            std::string detected_platform;
+
+#ifdef _WIN32
+                            detected_platform = "windows";
+#elif __APPLE__
+                            detected_platform = "macos";
+#elif __linux__
+                            detected_platform = "linux";
+#else
+                            detected_platform = "unknown";
+#endif
+
+                            if (platform_table->contains(detected_platform)) {
+                                auto flags = platform_table->at(detected_platform).as_table();
+                                if (!flags) {
+                                    logger_->error("Skipping invalid 'platform' entry in '{}'. Expected a table.", package_name);
+                                    continue;
+                                }
+
+                                if (flags->contains("cflags")) {
+                                    auto cflags_array = flags->at("cflags").as_array();
+                                    if (cflags_array) {
+                                        std::vector<std::string> flag_list;
+                                        for (const auto& flag : *cflags_array) {
+                                            flag_list.push_back(*flag.value<std::string>());
+                                        }
+                                        platform_cflags += muuk::normalize_flags(flag_list, compiler_);
+                                    }
+                                }
+                            }
+                            else {
+                                logger_->warn("No configuration found for platform '{}'.", detected_platform);
+                            }
+                        }
+                    }
+
+                    std::string compiler_cflags;
+                    if (package_table->contains("compiler")) {
+                        auto compiler_table = package_table->at("compiler").as_table();
+                        if (compiler_table) {
+                            if (compiler_table->contains(muuk::compiler::to_string(compiler_))) {
+                                auto flags = compiler_table->at(muuk::compiler::to_string(compiler_)).as_table();
+                                if (!flags) {
+                                    logger_->error("Skipping invalid 'platform' entry in '{}'. Expected a table.", package_name);
+                                    continue;
+                                }
+
+                                if (flags->contains("cflags")) {
+                                    auto cflags_array = flags->at("cflags").as_array();
+                                    if (cflags_array) {
+                                        std::vector<std::string> flag_list;
+                                        for (const auto& flag : *cflags_array) {
+                                            flag_list.push_back(*flag.value<std::string>());
+                                        }
+                                        compiler_cflags += muuk::normalize_flags(flag_list, compiler_);
+                                    }
+                                }
+                            }
+                            else {
+                                logger_->warn("No configuration found for compiler '{}'.", muuk::compiler::to_string(compiler_));
+                            }
+                        }
+                    }
+
                     // Ensure that each source depends on modules, if present
                     out << "build " << obj_path << ": compile " << src_path << "\n";
-                    out << "  cflags = " << cflags_common << " " << src_cflags << "\n";
+                    out << "  cflags = " << cflags_common << " " << src_cflags << " " << platform_cflags << " " << compiler_cflags << "\n";
                 }
             }
         }
