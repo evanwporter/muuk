@@ -18,8 +18,7 @@ class CompileCommandsGenerator {
 public:
     explicit CompileCommandsGenerator(const std::string& lockfile_path)
         : lockfile_path_(lockfile_path) {
-        logger_ = logger::get_logger("compile_commands_logger");
-        logger_->info("[CompileCommandsGenerator] Initializing with lockfile: '{}'", lockfile_path_);
+        muuk::logger::info("[CompileCommandsGenerator] Initializing with lockfile: '{}'", lockfile_path_);
     }
 
     void generate_compile_commands() {
@@ -27,11 +26,11 @@ public:
         config_ = muuk_filer_->get_config();
 
         if (config_.empty()) {
-            logger_->error("[CompileCommandsGenerator] Error: No TOML data loaded.");
+            muuk::logger::error("[CompileCommandsGenerator] Error: No TOML data loaded.");
             return;
         }
 
-        logger_->info("[CompileCommandsGenerator] Generating compile_commands.json...");
+        muuk::logger::info("[CompileCommandsGenerator] Generating compile_commands.json...");
         json compile_commands = json::array();
 
         for (const auto& [pkg_type, packages] : config_) {
@@ -55,7 +54,7 @@ private:
     std::shared_ptr<spdlog::logger> logger_;
 
     void process_package(const std::string& package_name, const toml::table& package_data, json& compile_commands) {
-        logger_->info("[CompileCommandsGenerator] Processing package: {}", package_name);
+        muuk::logger::info("[CompileCommandsGenerator] Processing package: {}", package_name);
 
         std::vector<std::string> includes, cflags, sources;
         std::string base_path;
@@ -93,7 +92,7 @@ private:
             entry["file"] = src;
             compile_commands.push_back(entry);
 
-            logger_->info("[CompileCommandsGenerator] Added compile command for {}", src);
+            muuk::logger::info("[CompileCommandsGenerator] Added compile command for {}", src);
         }
     }
 
@@ -112,12 +111,12 @@ private:
     void write_compile_commands(const json& compile_commands) {
         std::ofstream out("compile_commands.json");
         if (!out) {
-            logger_->error("[CompileCommandsGenerator] Failed to create compile_commands.json");
+            muuk::logger::error("[CompileCommandsGenerator] Failed to create compile_commands.json");
             throw std::runtime_error("Failed to create compile_commands.json.");
         }
 
         out << compile_commands.dump(4);
         out.close();
-        logger_->info("[CompileCommandsGenerator] compile_commands.json generated successfully!");
+        muuk::logger::info("[CompileCommandsGenerator] compile_commands.json generated successfully!");
     }
 };

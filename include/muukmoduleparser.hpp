@@ -40,19 +40,18 @@ private:
 
 public:
     MuukModuleParser(const std::string& path) : toml_path(path) {
-        logger_ = logger::get_logger("MuukModuleParser");
-        logger_->info("Initializing MuukModuleParser with path: {}", path);
+        muuk::logger::trace("Initializing MuukModuleParser with path: {}", path);
         loadToml();
     }
 
     void loadToml() {
         try {
-            logger_->info("Loading TOML configuration from: {}muuk.toml", toml_path);
+            muuk::logger::trace("Loading TOML configuration from: {}muuk.toml", toml_path);
             config = toml::parse_file(toml_path + "/muuk.toml");
-            logger_->info("TOML configuration loaded successfully.");
+            muuk::logger::trace("TOML configuration loaded successfully.");
         }
         catch (const std::exception& e) {
-            logger_->error("Error loading TOML file: {}", e.what());
+            muuk::logger::error("Error loading TOML file: {}", e.what());
         }
     }
 
@@ -61,19 +60,19 @@ public:
         auto library_config = config["library"]["muuk"]["modules"];
 
         if (!library_config.is_array()) {
-            logger_->error("Invalid or missing 'modules' list in TOML.");
+            muuk::logger::error("Invalid or missing 'modules' list in TOML.");
             return module_paths;
         }
 
-        logger_->info("Retrieving module paths from TOML configuration...");
+        muuk::logger::info("Retrieving module paths from TOML configuration...");
         for (const auto& pattern : *library_config.as_array()) {
             if (pattern.is_string()) {
                 std::string pattern_str = pattern.as_string()->get();
-                logger_->info("Searching for modules matching pattern: {}", pattern_str);
+                muuk::logger::info("Searching for modules matching pattern: {}", pattern_str);
                 for (const auto& entry : fs::recursive_directory_iterator(toml_path)) {
                     if (entry.path().string().find(pattern_str) != std::string::npos) {
                         module_paths.push_back(entry.path().string());
-                        logger_->info("Found module file: {}", entry.path().string());
+                        muuk::logger::info("Found module file: {}", entry.path().string());
                     }
                 }
             }
@@ -82,19 +81,19 @@ public:
     }
 
     std::string removeComments(const std::string& content) {
-        logger_->info("Removing comments from source file...");
+        muuk::logger::info("Removing comments from source file...");
         std::string cleaned = std::regex_replace(content, MULTI_LINE_COMMENT, "");
         cleaned = std::regex_replace(cleaned, SINGLE_LINE_COMMENT, "");
         return cleaned;
     }
 
     Module parseCppModule(const std::string& file_path) {
-        logger_->info("Parsing C++ module file: {}", file_path);
+        muuk::logger::info("Parsing C++ module file: {}", file_path);
 
         // TODO: it gives an error if the module is in the same dir as the one the program is run from
         std::ifstream file(file_path);
         if (!file) {
-            logger_->error("Error reading file: {}", file_path);
+            muuk::logger::error("Error reading file: {}", file_path);
             return { "", {}, file_path };
         }
 
@@ -106,7 +105,7 @@ public:
         std::string module_name;
         if (std::regex_search(content, export_match, EXPORT_MODULE_PATTERN)) {
             module_name = export_match[1].str();
-            logger_->info("Detected exported module: {}", module_name);
+            muuk::logger::info("Detected exported module: {}", module_name);
         }
 
         std::vector<std::string> imports;
@@ -115,43 +114,43 @@ public:
 
         for (auto it = begin; it != end; ++it) {
             imports.push_back((*it)[1].str());
-            logger_->info("Detected import: {}", (*it)[1].str());
+            muuk::logger::info("Detected import: {}", (*it)[1].str());
         }
 
         return { module_name, imports, file_path };
     }
 
     void parseAllModules(const std::vector<std::string>& module_paths) {
-        logger_->info("Parsing specified module files...");
+        muuk::logger::info("Parsing specified module files...");
 
         for (const auto& file_path : module_paths) {
             Module mod = parseCppModule(file_path);
             if (!mod.exported_module.empty()) {
                 modules_dict[mod.exported_module] = mod;
-                logger_->info("Registered module: {} -> {}", mod.exported_module, mod.file_path);
+                muuk::logger::info("Registered module: {} -> {}", mod.exported_module, mod.file_path);
             }
         }
 
-        logger_->info("Finished parsing modules.");
+        muuk::logger::info("Finished parsing modules.");
     }
 
     void resolveModuleOrder(const std::string& module_name) {
         if (std::find(resolved_modules.begin(), resolved_modules.end(), module_name) != resolved_modules.end()) {
-            logger_->info("Module '{}' already resolved, skipping...", module_name);
+            muuk::logger::info("Module '{}' already resolved, skipping...", module_name);
             return;
         }
 
         if (visiting.find(module_name) != visiting.end()) {
-            logger_->error("Circular dependency detected: {}", module_name);
+            muuk::logger::error("Circular dependency detected: {}", module_name);
             throw std::runtime_error("Circular dependency detected: " + module_name);
         }
 
         if (modules_dict.find(module_name) == modules_dict.end()) {
-            logger::warning("Warning: {} is imported but not found in modules!", module_name);
+            muuk::logger::warn("Warning: {} is imported but not found in modules!", module_name);
             return;
         }
 
-        logger_->info("Resolving dependencies for: {}", module_name);
+        muuk::logger::info("Resolving dependencies for: {}", module_name);
         visiting.insert(module_name);
 
         for (const auto& dep : modules_dict[module_name].imported_modules) {
@@ -160,11 +159,11 @@ public:
 
         visiting.erase(module_name);
         resolved_modules.push_back(module_name);
-        logger_->info("Resolved module: {}", module_name);
+        muuk::logger::info("Resolved module: {}", module_name);
     }
 
     std::vector<std::string> resolveAllModules() {
-        logger_->info("Resolving dependency order for all modules...");
+        muuk::logger::info("Resolving dependency order for all modules...");
 
         std::vector<std::string> resolved_paths;
 
@@ -172,11 +171,11 @@ public:
             resolveModuleOrder(module_name);
         }
 
-        logger_->info("Compilation order resolved. Correct order:");
+        muuk::logger::info("Compilation order resolved. Correct order:");
         for (const auto& mod_name : resolved_modules) {
             const auto& mod = modules_dict[mod_name];
             resolved_paths.push_back(mod.file_path);
-            logger_->info("    {} -> {}", mod_name, mod.file_path);
+            muuk::logger::info("    {} -> {}", mod_name, mod.file_path);
         }
 
         return resolved_paths;

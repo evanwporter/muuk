@@ -2,15 +2,28 @@
 #include "logger.h"
 #include <iostream>
 #include <format>
+#include <sstream>
+
+MuukFiler::MuukFiler() : MuukFiler(generate_default_muuk_toml("test").str(), true) {}
 
 MuukFiler::MuukFiler(const std::string& config_file) : config_file_(config_file) {
-    logger_ = logger::get_logger("muuk::filer");
-
     parse_file();
-
-    // section_order_ = parse_section_order();
-
     if (!config_file.ends_with("lock.toml")) validate_muuk();
+}
+
+MuukFiler::MuukFiler(const std::string& config_content, bool is_content) {
+    if (is_content) {
+        parse_content(config_content);
+    }
+    else {
+        config_file_ = config_content;
+        parse_file();
+    }
+}
+
+void MuukFiler::parse_content(const std::string& config_content) {
+    std::istringstream content_stream(config_content);
+    parse(content_stream);
 }
 
 void MuukFiler::parse_file() {
@@ -18,11 +31,14 @@ void MuukFiler::parse_file() {
     if (!file.is_open()) {
         throw std::runtime_error("Failed to open file: " + config_file_);
     }
+    parse(file);
+}
 
+void MuukFiler::parse(std::istream& config_content) {
     std::string line, current_section;
     std::stringstream section_data;
 
-    while (std::getline(file, line)) {
+    while (std::getline(config_content, line)) {
         std::string trimmed = util::trim_whitespace(line);
 
         if (trimmed.empty() || trimmed[0] == '#') {
@@ -48,11 +64,9 @@ void MuukFiler::parse_file() {
         sections_[current_section] = toml::parse(section_data);
     }
 
-    file.close();
-
-    logger_->debug("Final parsed section order:");
+    muuk::logger::debug("Final parsed section order:");
     for (const auto& section : section_order_) {
-        logger_->debug("  - {}", section);
+        muuk::logger::debug("  - {}", section);
     }
 }
 
@@ -63,7 +77,6 @@ toml::table& MuukFiler::get_section(const std::string& section) {
     }
     return sections_.at(section);  // Return a reference
 }
-
 
 void MuukFiler::modify_section(const std::string& section, const toml::table& data) {
     if (sections_.find(section) == sections_.end()) {
@@ -102,6 +115,7 @@ void MuukFiler::validate_muuk() {
     // }
 }
 
+// TODO: Make it not dependent on config_file_
 toml::table MuukFiler::get_config() const {
     return toml::parse_file(config_file_);
 }
@@ -113,21 +127,16 @@ bool MuukFiler::has_section(const std::string& section) const {
 std::vector<std::string> MuukFiler::parse_section_order() {
     std::vector<std::string> parsed_order;
 
-    if (!logger_) {
-        std::cout << "HELP" << std::endl;
-        return parsed_order;
-    }
-
-    logger_->debug("MuukFiler initialized with config file: {}", config_file_);
+    muuk::logger::trace("MuukFiler initialized with config file: {}", config_file_);
 
     if (config_file_.empty()) {
-        logger_->error("[MuukFiler] Config file path is empty!");
+        muuk::logger::error("[MuukFiler] Config file path is empty!");
         return parsed_order;
     }
 
     std::ifstream file(config_file_);
     if (!file.is_open()) {
-        logger_->error("[MuukFiler] Failed to open TOML file for reading: {}", config_file_);
+        muuk::logger::error("[MuukFiler] Failed to open TOML file for reading: {}", config_file_);
         return parsed_order;
     }
 
@@ -143,9 +152,9 @@ std::vector<std::string> MuukFiler::parse_section_order() {
 
     file.close();
 
-    logger_->info("[MuukFiler] Parsed section order:");
+    muuk::logger::debug("Parsed section order:");
     for (const auto& section : parsed_order) {
-        logger_->info("  {}", section);
+        muuk::logger::debug("  {}", section);
     }
 
     return parsed_order;
@@ -174,3 +183,20 @@ std::string MuukFiler::format_dependencies(const std::unordered_map<std::string,
     return oss.str();
 }
 
+std::ostringstream MuukFiler::generate_default_muuk_toml(
+    const std::string& repo_name,
+    const std::string& version,
+    const std::string& revision,
+    const std::string& tag
+) {
+    std::ostringstream muuk_toml;
+
+    muuk_toml << "[package]\n";
+    muuk_toml << "name = \"" << repo_name << "\"\n\n";
+
+    muuk_toml << "[library." << repo_name << "]\n";
+    muuk_toml << "include = [\"include/\"]\n";
+    muuk_toml << "sources = [\"src/*.cpp\", \"src/*.cc\"]\n";
+
+    return muuk_toml;
+}

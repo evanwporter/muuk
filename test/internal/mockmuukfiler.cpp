@@ -41,7 +41,6 @@ void MockMuukFiler::update_section(const std::string& section, const toml::table
     config_.insert_or_assign(section, data);
 }
 
-
 void MockMuukFiler::set_value(const std::string& section, const std::string& key, const toml::node& value) {
     if (!has_section(section)) {
         config_.insert(section, toml::table{});
@@ -56,7 +55,6 @@ void MockMuukFiler::remove_key(const std::string& section, const std::string& ke
         section_table.erase(key);
     }
 }
-
 
 void MockMuukFiler::remove_section(const std::string& section) {
     config_.erase(section);

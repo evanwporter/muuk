@@ -58,7 +58,6 @@ void start_repl(std::unordered_map<std::string, std::function<void()>>& command_
 #endif
 
 int main(int argc, char* argv[]) {
-    auto logger_ = logger::get_logger("main_logger");
 
     argparse::ArgumentParser program("muuk");
 
@@ -167,7 +166,7 @@ int main(int argc, char* argv[]) {
 
 
     if (argc < 2) {
-        logger_->error("Usage: " + std::string(argv[0]) + " <command> [--muuk-path <path>] [other options]\n");
+        muuk::logger::error("Usage: " + std::string(argv[0]) + " <command> [--muuk-path <path>] [other options]\n");
         return 1;
     }
 
@@ -182,14 +181,14 @@ int main(int argc, char* argv[]) {
         }
 
         if (program.is_subcommand_used("install")) {
-            logger_->info("Installing dependencies from muuk.toml...");
+            muuk::logger::info("Installing dependencies from muuk.toml...");
             muuk::package_manager::install("muuk.lock.toml");
             return 0;
         }
 
         if (program.is_subcommand_used("remove")) {
             const auto package_name = remove_command.get<std::string>("package_name");
-            logger_->info("Removing dependency: {}", package_name);
+            muuk::logger::info("Removing dependency: {}", package_name);
             muuk::package_manager::remove_package(package_name, "muuk.toml", "muuk.lock.toml");
             return 0;
         }
@@ -213,7 +212,7 @@ int main(int argc, char* argv[]) {
             std::string target_section = add_command.get<std::string>("--target");
             bool is_system = add_command.get<bool>("--sys");
 
-            logger_->info("Adding dependency: {}", dependency_name);
+            muuk::logger::info("Adding dependency: {}", dependency_name);
 
             muuk::package_manager::add_dependency(
                 muuk_path,
@@ -232,7 +231,7 @@ int main(int argc, char* argv[]) {
         }
 
         // Commands that require `muuk.toml`
-        logger_->info("[muuk] Using configuration from: {}", muuk_path);
+        muuk::logger::info("[muuk] Using configuration from: {}", muuk_path);
         MuukFiler muukFiler(muuk_path);
         Muuker muuk(muukFiler);
         MuukBuilder muukBuilder(muukFiler);
@@ -246,7 +245,7 @@ int main(int argc, char* argv[]) {
             const auto script = run_command.present<std::string>("script");
             const auto extra_args = run_command.get<std::vector<std::string>>("extra_args");
             if (!script.has_value()) {
-                logger_->error("Error: No script name provided for 'run'.\n");
+                muuk::logger::error("Error: No script name provided for 'run'.\n");
                 return 1;
             }
             muuk.run_script(script.value(), extra_args);
@@ -270,7 +269,7 @@ int main(int argc, char* argv[]) {
 #endif
     }
     catch (const std::runtime_error& err) {
-        logger_->error(std::string(err.what()) + "\n");
+        muuk::logger::error(std::string(err.what()) + "\n");
         return 1;
     }
 
