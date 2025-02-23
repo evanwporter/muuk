@@ -20,7 +20,7 @@ namespace muuk::compiler {
     Compiler from_string(const std::string& compiler_str) {
         if (compiler_str == "g++" || compiler_str == "gcc") return Compiler::GCC;
         if (compiler_str == "clang++" || compiler_str == "clang") return Compiler::Clang;
-        if (compiler_str == "cl") return Compiler::MSVC;
+        if (compiler_str == "cl" || compiler_str == "msvc") return Compiler::MSVC;
         throw std::invalid_argument("Unsupported compiler: " + compiler_str);
     }
 }
