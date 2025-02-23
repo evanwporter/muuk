@@ -1,152 +1,128 @@
 [library.argparse]
-base_path = 'deps/argparse'
+include = [  "deps/argparse/include",]
 cflags = []
-dependencies = []
-include = [ 'deps\argparse\include' ]
 libs = []
 modules = []
+dependencies = []
 profiles = []
-sources = []
+platform.linux = { cflags = [] }
+platform.windows = { cflags = ["/Isubprojects/"] }
+compiler.clang = { cflags = ["-std=c++20"] }
 
 [library.compile-time-regular-expressions]
-base_path = 'deps/compile-time-regular-expressions'
+include = [  "deps/compile-time-regular-expressions/single-header",]
 cflags = []
-dependencies = []
-include = [ 'deps\compile-time-regular-expressions\single-header' ]
 libs = []
 modules = []
+dependencies = []
 profiles = []
-sources = []
 
 [library.cracklib]
-base_path = 'deps/cracklib'
+include = [  "deps/cracklib/include",]
 cflags = []
-dependencies = []
-include = [ 'deps\cracklib\include' ]
+sources = [
+  { path = "deps/cracklib/src/cracklib.cpp", cflags = [] },
+]
 libs = []
 modules = []
+dependencies = []
 profiles = []
-sources = [ 'deps\cracklib\src\cracklib.cpp' ]
 
 [library.json]
-base_path = 'deps/json'
+include = [  "deps/json/single_include",]
 cflags = []
-dependencies = []
-include = [ 'deps\json\single_include' ]
 libs = []
 modules = []
+dependencies = []
 profiles = []
-sources = []
 
 [library.glob]
-base_path = 'deps/glob'
+include = [  "deps/glob/include/",]
 cflags = []
-dependencies = []
-include = [ 'deps\glob\include\' ]
+sources = [
+  { path = "deps/glob/source/glob.cpp", cflags = [] },
+]
 libs = []
 modules = []
+dependencies = []
 profiles = []
-sources = [ 'deps\glob\source\glob.cpp' ]
 
 [library.zip]
-base_path = 'deps/zip'
+include = [  "deps/zip/src",]
 cflags = []
-dependencies = []
-include = [ 'deps\zip\src' ]
+sources = [
+  { path = "deps/zip/src/zip.c", cflags = [] },
+]
 libs = []
 modules = []
+dependencies = []
 profiles = []
-sources = [ 'deps\zip\src\zip.c' ]
 
 [library.spdlog]
-base_path = 'deps/spdlog'
-cflags = [ '/DSPDLOG_COMPILED_LIB', '/DSPDLOG_USE_STD_FORMAT' ]
-dependencies = []
-include = [ 'deps\spdlog\include' ]
+include = [  "deps/spdlog/include",]
+cflags = ["/DSPDLOG_COMPILED_LIB", "/DSPDLOG_USE_STD_FORMAT"]
+sources = [
+  { path = "deps/spdlog/src/async.cpp", cflags = [] },
+  { path = "deps/spdlog/src/cfg.cpp", cflags = [] },
+  { path = "deps/spdlog/src/spdlog.cpp", cflags = [] },
+  { path = "deps/spdlog/src/color_sinks.cpp", cflags = [] },
+  { path = "deps/spdlog/src/stdout_sinks.cpp", cflags = [] },
+  { path = "deps/spdlog/src/bundled_fmtlib_format.cpp", cflags = [] },
+  { path = "deps/spdlog/src/file_sinks.cpp", cflags = [] },
+]
 libs = []
 modules = []
+dependencies = []
 profiles = []
-sources = [
-    'deps\spdlog\src\async.cpp',
-    'deps\spdlog\src\cfg.cpp',
-    'deps\spdlog\src\spdlog.cpp',
-    'deps\spdlog\src\color_sinks.cpp',
-    'deps\spdlog\src\stdout_sinks.cpp',
-    'deps\spdlog\src\bundled_fmtlib_format.cpp',
-    'deps\spdlog\src\file_sinks.cpp'
-]
 
 [library.tomlplusplus]
-base_path = 'deps/tomlplusplus'
+include = [  "deps/tomlplusplus/include/",]
 cflags = []
-dependencies = []
-include = [ 'deps\tomlplusplus\include\' ]
+sources = [
+  { path = "deps/tomlplusplus/src/toml.cpp", cflags = [] },
+]
 libs = []
 modules = []
+dependencies = []
 profiles = []
-sources = [ 'deps\tomlplusplus\src\toml.cpp' ]
 
 [library.muuk]
-base_path = '.'
-cflags = [ '/DSPDLOG_COMPILED_LIB', '/DSPDLOG_USE_STD_FORMAT' ]
-dependencies = [ 'argparse', 'compile-time-regular-expressions', 'cracklib', 'glob', 'json', 'spdlog', 'tomlplusplus', 'zip' ]
-include = [
-    'deps\argparse\include',
-    'deps\compile-time-regular-expressions\single-header',
-    'deps\cracklib\include',
-    'deps\glob\include\',
-    'deps\json\single_include',
-    'deps\spdlog\include',
-    'deps\tomlplusplus\include\',
-    'deps\zip\src',
-    'include'
+include = [  "deps/argparse/include",  "deps/compile-time-regular-expressions/single-header",  "deps/cracklib/include",  "deps/glob/include/",  "deps/json/single_include",  "deps/spdlog/include",  "deps/tomlplusplus/include/",  "deps/zip/src",  "include",]
+cflags = ["/DSPDLOG_COMPILED_LIB", "/DSPDLOG_USE_STD_FORMAT"]
+sources = [
+  { path = "src/muuker.cpp", cflags = [] },
+  { path = "src/util.cpp", cflags = [] },
+  { path = "src/logger.cpp", cflags = [] },
+  { path = "src/muukfiler.cpp", cflags = [] },
+  { path = "src/muukbuilder.cpp", cflags = [] },
+  { path = "src/ninjagen.cpp", cflags = [] },
+  { path = "src/muuklockgen.cpp", cflags = [] },
+  { path = "src/installer.cpp", cflags = [] },
+  { path = "src/package_manager.cpp", cflags = [] },
+  { path = "src/muukinitializer.cpp", cflags = [] },
+  { path = "src/flags.cpp", cflags = [] },
 ]
 libs = []
 modules = []
+dependencies = ["argparse", "compile-time-regular-expressions", "cracklib", "glob", "json", "spdlog", "tomlplusplus", "zip"]
 profiles = []
-sources = [
-    'src\muuker.cpp',
-    'src\util.cpp',
-    'src\logger.cpp',
-    'src\muukfiler.cpp',
-    'src\muukbuilder.cpp',
-    'src\ninjagen.cpp',
-    'src\muuklockgen.cpp',
-    'src\installer.cpp',
-    'src\package_manager.cpp',
-    'src\muukinitializer.cpp',
-    'src\flags.cpp'
-]
+platform.linux = { cflags = [] }
+platform.windows = { cflags = ["/Isubprojects/"] }
+compiler.clang = { cflags = ["-std=c++20"] }
 
 [build.bin]
-base_path = '.'
-cflags = [ '/DSPDLOG_COMPILED_LIB', '/DSPDLOG_USE_STD_FORMAT' ]
-dependencies = [
-    'argparse',
-    'compile-time-regular-expressions',
-    'cracklib',
-    'glob',
-    'json',
-    'muuk',
-    'spdlog',
-    'tomlplusplus',
-    'zip'
-]
-include = [
-    'deps\argparse\include',
-    'deps\compile-time-regular-expressions\single-header',
-    'deps\cracklib\include',
-    'deps\glob\include\',
-    'deps\json\single_include',
-    'deps\spdlog\include',
-    'deps\tomlplusplus\include\',
-    'deps\zip\src',
-    'include'
+include = [  "deps/argparse/include",  "deps/compile-time-regular-expressions/single-header",  "deps/cracklib/include",  "deps/glob/include/",  "deps/json/single_include",  "deps/spdlog/include",  "deps/tomlplusplus/include/",  "deps/zip/src",  "include",]
+cflags = ["/DSPDLOG_COMPILED_LIB", "/DSPDLOG_USE_STD_FORMAT"]
+sources = [
+  { path = "src/main.cpp", cflags = [] },
 ]
 libs = []
 modules = []
-profiles = [ 'debug', 'release' ]
-sources = [ 'src\main.cpp' ]
+dependencies = ["argparse", "compile-time-regular-expressions", "cracklib", "glob", "json", "muuk", "spdlog", "tomlplusplus", "zip"]
+profiles = ["debug", "release"]
+platform.linux = { cflags = [] }
+platform.windows = { cflags = ["/Isubprojects/"] }
+compiler.clang = { cflags = ["-std=c++20"] }
 
 [dependencies]
 argparse = { git = 'https://github.com/p-ranav/argparse.git', muuk_path = 'deps/argparse/muuk.toml', revision = 'd924b84eba1f0f0adf38b20b7b4829f6f65b6570' }
@@ -159,17 +135,18 @@ zip = { git = 'https://github.com/kuba--/zip.git', muuk_path = 'deps/zip/muuk.to
 tomlplusplus = { git = 'https://github.com/marzer/tomlplusplus.git', muuk_path = 'deps/tomlplusplus/muuk.toml', revision = 'cbc00d6766f14bcd2b3e72de2a3c369a0d48b98a' }
 muuk = { version = 'v1.0.0' }
 
-[platform.linux]
-cflags = []
-
-[platform.windows]
-cflags = []
-
 [profile.debug]
 cflags = [ '/DDEBUG', '/EHsc', '/FS', '/Od', '/RTC1', '/Zi', '/std:c++20', '/utf-8' ]
 lflags = [ '/DEBUG', '/MACHINE:X86' ]
 
+[profile.base]
+cflags = [ '/EHsc', '/FS', '/std:c++20', '/utf-8' ]
+
 [profile.release]
 cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/O2', '/std:c++20', '/utf-8' ]
 lflags = [ '/LTCG', '/OPT:ICF', '/OPT:REF' ]
+
+[profile.release_x86]
+lflags = [ '/LTCG', '/MACHINE:X86', '/OPT:ICF', '/OPT:REF' ]
+cflags = [ '/DNDEBUG', '/EHsc', '/FS', '/GL', '/O2', '/std:c++20', '/utf-8' ]
 
