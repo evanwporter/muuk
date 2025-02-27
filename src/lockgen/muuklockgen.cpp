@@ -169,7 +169,10 @@ MuukLockGenerator::parse_muuk_toml(
                                 if (profiles_.find(inherited_profile) == profiles_.end()) {
                                     muuk::logger::error("Inherited profile '" + inherited_profile + "' not found.");
                                 }
-                                merge_profiles(std::string(profile_name.str()), inherited_profile);
+                                auto res = merge_profiles(std::string(profile_name.str()), inherited_profile);
+                                if (!res) {
+                                    muuk::logger::warn("Failed to merge profiles: {}", res.error());
+                                }
                             }
                         }
                         else if (profile_data.as_table()->at("inherits").is_string()) {
@@ -177,7 +180,10 @@ MuukLockGenerator::parse_muuk_toml(
                             if (profiles_.find(inherited_profile) == profiles_.end()) {
                                 muuk::logger::error("Inherited profile '" + inherited_profile + "' not found.");
                             }
-                            merge_profiles(std::string(profile_name.str()), inherited_profile);
+                            auto res = merge_profiles(std::string(profile_name.str()), inherited_profile);
+                            if (!res) {
+                                muuk::logger::warn("Failed to merge profiles: {}", res.error());
+                            }
                         }
                     }
                 }
@@ -420,7 +426,7 @@ MuukLockGenerator::get_package(
 
     auto parse_result = parse_muuk_toml(search_file.string());
     if (!parse_result) {
-        return tl::unexpected(parse_result.error());
+        return tl::unexpected("Failed to parse dependency '" + package_name + "': " + parse_result.error());
     }
 
     if (resolved_packages_["library"].count(package_name)) {
@@ -442,7 +448,12 @@ void MuukLockGenerator::search_and_parse_dependency(const std::string& package_n
         if (dir_entry.is_directory() && dir_entry.path().filename().string().find(package_name) != std::string::npos) {
             fs::path dep_path = dir_entry.path() / "muuk.toml";
             if (fs::exists(dep_path)) {
-                parse_muuk_toml(dep_path.string());
+                auto parse_result = parse_muuk_toml(dep_path.string());
+                if (!parse_result) {
+                    muuk::logger::error("Error parsing muuk.toml: {}", parse_result.error());
+                    return;  // Stop execution instead of proceeding with invalid state.
+                }
+
                 return;
             }
         }
@@ -476,7 +487,11 @@ void MuukLockGenerator::generate_lockfile(const std::string& output_path) {
 
     muuk::logger::info("Resolving dependencies for build packages...");
     for (const auto& [build_name, _] : resolved_packages_["build"]) {
-        resolve_dependencies(build_name);
+        auto result = resolve_dependencies(build_name);
+        if (!result) {
+            muuk::logger::error("Failed to resolve dependencies for '{}': {}", build_name, result.error());
+            return;
+        }
     }
 
     for (const auto& package_name : resolved_order_) {
@@ -570,10 +585,13 @@ MuukLockGenerator::resolve_system_dependency(const std::string& package_name) {
 }
 
 // Merges the settings of the inherited profile into the base profile.
-void MuukLockGenerator::merge_profiles(const std::string& base_profile, const std::string& inherited_profile) {
+tl::expected<void, std::string>
+MuukLockGenerator::merge_profiles(
+    const std::string& base_profile,
+    const std::string& inherited_profile
+) {
     if (profiles_.find(inherited_profile) == profiles_.end()) {
-        muuk::logger::error("Inherited profile '{}' not found.", inherited_profile);
-        return;
+        return tl::unexpected("Inherited profile '" + inherited_profile + "' not found.");
     }
 
     muuk::logger::trace("Merging profile '{}' into '{}'", inherited_profile, base_profile);
