@@ -40,6 +40,7 @@ spdlog = { git = 'https://github.com/gabime/spdlog.git', muuk_path = 'deps/spdlo
 tomlplusplus = { git = 'https://github.com/marzer/tomlplusplus.git', muuk_path = 'deps/tomlplusplus/muuk.toml', revision = 'cbc00d6766f14bcd2b3e72de2a3c369a0d48b98a' }
 zip = { git = 'https://github.com/kuba--/zip.git', muuk_path = 'deps/zip/muuk.toml', revision = 'd7a2252a537926cbdef8512741a322a183fcfd09' }
 fmt = { git = 'https://github.com/fmtlib/fmt.git', muuk_path = 'deps/fmt/muuk.toml', revision = '577fd3be883accf8629423ed77fcca8a24bccee2' }
+expected = { git = 'https://github.com/TartanLlama/expected.git', muuk_path = 'deps/expected/muuk.toml', revision = '41d3e1f48d682992a2230b2a715bca38b848b269' }
 
 [build.bin]
 dependencies = { muuk = 'v1.0.0' }

@@ -5,6 +5,7 @@
 #include "../include/muukmoduleparser.hpp"
 
 #include <spdlog/spdlog.h>
+#include <tl/expected.hpp>
 #include <filesystem>
 #include <iostream>
 #include <fstream>
@@ -85,12 +86,13 @@ private:
     std::optional<std::shared_ptr<Package>> find_package(const std::string& package_name);
 
     // TODO: Use or Remove
-    void resolve_system_dependency(const std::string& package_name, std::optional<std::shared_ptr<Package>> package);
+    tl::expected<void, std::string> resolve_system_dependency(const std::string& package_name);
 
     void merge_profiles(const std::string& base_profile, const std::string& inherited_profile);
 
-    void parse_muuk_toml(const std::string& path, bool is_base = false);
-    void resolve_dependencies(const std::string& package_name, std::optional<std::string> search_path = std::nullopt);
+    tl::expected<void, std::string> parse_muuk_toml(const std::string& path, bool is_base = false);
+    tl::expected<void, std::string> resolve_dependencies(const std::string& package_name, std::optional<std::string> search_path = std::nullopt);
+    tl::expected<std::shared_ptr<Package>, std::string> get_package(const std::string& package_name, std::optional<std::string> search_path);
 };
 
 #endif // MUUK_PARSER_H
