@@ -1,8 +1,8 @@
 #ifndef MUUK_LOCK_GEN_H
 #define MUUK_LOCK_GEN_H
 
-#include "../include/muukfiler.h"
-#include "../include/muukmoduleparser.hpp"
+#include "muukfiler.h"
+#include "muukmoduleparser.hpp"
 
 #include <spdlog/spdlog.h>
 #include <tl/expected.hpp>
