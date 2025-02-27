@@ -1,6 +1,6 @@
 #include "../../include/buildparser.hpp"
 #include "../../include/buildmanager.h"
-#include "../../include/ninjabackend.hpp"
+#include "../../include/buildbackend.hpp"
 
 #include <fstream>
 #include <memory>

@@ -1,6 +1,8 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include "muuk.h"
+
 #include <string>
 #include <vector>
 #include <set>
@@ -27,7 +29,9 @@ namespace util {
     // Command execution
     int execute_command(const std::string& command);
 
-    nlohmann::json fetch_json(const std::string& url);
+    namespace network {
+        Result<nlohmann::json> fetch_json(const std::string& url);
+    }
 
     std::string to_utf8(const std::wstring& wstr);
     bool is_valid_utf8(const std::string& str);
@@ -59,12 +63,17 @@ namespace util {
 
     std::string execute_command_get_out(const std::string& command);
 
-    int current_year();
-
     std::string trim_whitespace(const std::string& str);
 
     std::string join_strings(const std::vector<std::string>& strings, const std::string& delimiter);
 
+    namespace git {
+        std::string get_latest_revision(const std::string& git_url);
+    }
+
+    namespace time {
+        int current_year();
+    }
 } // namespace Utils
 
 #endif

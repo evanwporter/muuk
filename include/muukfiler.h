@@ -32,19 +32,11 @@ public:
     toml::table& get_section(const std::string& section);
     void modify_section(const std::string& section, const toml::table& data);
     void write_to_file();
-    void validate_muuk();
 
     toml::table get_config() const;
     bool has_section(const std::string& section) const;
 
-    static std::string format_dependencies(const std::unordered_map<std::string, toml::table>& dependencies);
-
-    static std::ostringstream generate_default_muuk_toml(
-        const std::string& repo_name,
-        const std::string& version = "",
-        const std::string& revision = "",
-        const std::string& tag = ""
-    );
+    static std::string format_dependencies(const std::unordered_map<std::string, toml::table>& dependencies, std::string section_name = "dependencies");
 
     std::vector<std::string> get_section_order() const {
         return section_order_;

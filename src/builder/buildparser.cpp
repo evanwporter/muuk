@@ -1,3 +1,4 @@
+#include "../include/muuk.h"
 #include "../include/buildparser.hpp"
 #include "../include/buildmanager.h"
 
@@ -302,8 +303,10 @@ std::vector<std::string> BuildParser::extract_compiler_flags(const toml::table& 
     auto compiler_table = package_table.at("compiler").as_table();
     if (!compiler_table) return flags;
 
-    if (compiler_table->contains(muuk::compiler::to_string(compiler))) {
-        auto compiler_entry = compiler_table->at(muuk::compiler::to_string(compiler)).as_table();
+    auto compiler = muuk::compiler::to_string(this->compiler);
+
+    if (compiler_table->contains(compiler)) {
+        auto compiler_entry = compiler_table->at(compiler).as_table();
         if (!compiler_entry) return flags;
 
         if (compiler_entry->contains("cflags")) {
@@ -316,7 +319,7 @@ std::vector<std::string> BuildParser::extract_compiler_flags(const toml::table& 
         }
     }
     else {
-        muuk::logger::warn("No configuration found for compiler '{}'.", muuk::compiler::to_string(compiler));
+        muuk::logger::warn("No configuration found for compiler '{}'.", compiler);
     }
 
     return flags;

@@ -1,3 +1,4 @@
+#include "muuk.h"
 #include "../include/logger.h"
 #include "../include/util.h"
 
@@ -152,40 +153,28 @@ namespace util {
         return system(command.c_str());
     }
 
-    nlohmann::json fetch_json(const std::string& url) {
-        std::string output_file = "github_api_response.json";
-        std::string command = "wget --quiet --output-document=" + output_file +
-            " --header=\"Accept: application/vnd.github.v3+json\" "
-            "--header=\"User-Agent: Mozilla/5.0\" "
-            "--no-check-certificate " + url;
+    // ==========================
+    //  Network Utilities
+    // ==========================
+    namespace network {
 
-        spdlog::info("Executing wget command: {}", command);
+        Result<nlohmann::json> fetch_json(const std::string& url) {
+            std::string output_file = "github_api_response.json";
+            std::string command = "wget --quiet -O - "
+                "--header=\"Accept: application/vnd.github.v3+json\" "
+                "--header=\"User-Agent: Mozilla/5.0\" "
+                "--no-check-certificate " + url;
 
-        int result = util::execute_command(command.c_str());
-        if (result != 0) {
-            spdlog::error("wget failed with error code: {}", result);
-            throw std::runtime_error("Failed to fetch JSON from GitHub API.");
+            std::string result = util::execute_command_get_out(command);
+
+            try {
+                return nlohmann::json::parse(result);
+            }
+            catch (const std::exception& e) {
+                return tl::unexpected("JSON parsing failed: " + std::string(e.what()));
+            }
         }
-
-        // Read the JSON file
-        std::ifstream json_file(output_file);
-        if (!json_file.is_open()) {
-            spdlog::error("Failed to open the JSON response file: {}", output_file);
-            throw std::runtime_error("Failed to open the fetched JSON file.");
-        }
-
-        std::stringstream buffer;
-        buffer << json_file.rdbuf();
-        json_file.close();
-
-        if (std::filesystem::exists(output_file)) {
-            std::filesystem::remove(output_file);
-            spdlog::info("Deleted temporary JSON response file: {}", output_file);
-        }
-
-        // Parse and return JSON data
-        return nlohmann::json::parse(buffer.str());
-    }
+    } // namespace network
 
 #ifdef _WIN32
 #include <windows.h>
@@ -249,7 +238,7 @@ namespace util {
             muuk::logger::error("Unknown error occurred during normalize path.");
             throw;
         }
-    }
+}
 
     std::vector<std::string> to_linux_path(const std::vector<std::string>& paths, const std::string& prefix) {
         std::vector<std::string> new_paths;
@@ -311,18 +300,6 @@ namespace util {
         return result;
     }
 
-    int current_year() {
-        std::time_t t = std::time(nullptr);
-        std::tm time_info{};
-
-#ifdef _WIN32
-        localtime_s(&time_info, &t);
-#else
-        localtime_r(&t, &time_info);
-#endif
-        return time_info.tm_year + 1900;
-    }
-
     std::string trim_whitespace(const std::string& str) {
         auto start = str.begin();
         while (start != str.end() && std::isspace(*start)) {
@@ -348,6 +325,49 @@ namespace util {
         return result.str();
     }
 
-} // namespace util
+    // ==========================
+    //  Git Utilities
+    // ==========================
+    namespace git {
+
+        std::string git::get_latest_revision(const std::string& git_url) {
+            std::string commit_hash_cmd = "git ls-remote " + git_url + " HEAD";
+            std::string output = util::execute_command_get_out(commit_hash_cmd);
+            std::string revision = output.substr(0, output.find('\t'));
+
+            if (revision.empty()) {
+                muuk::logger::error("Failed to retrieve latest commit hash for '{}'.", git_url);
+                throw std::runtime_error("Failed to retrieve latest commit hash.");
+            }
+
+            revision.erase(std::remove(revision.begin(), revision.end(), '\n'), revision.end());
+            muuk::logger::info("Latest commit hash for {} is {}", git_url, revision);
+
+            return revision;
+        }
+
+    } // namespace git
+
+    // ==========================
+    //  Time Utilities
+    // ==========================
+    namespace time {
+
+        int current_year() {
+            std::time_t t = std::time(nullptr);
+            std::tm time_info{};
+
+#ifdef _WIN32
+            localtime_s(&time_info, &t);
+#else
+            localtime_r(&t, &time_info);
+#endif
+            return time_info.tm_year + 1900;
+        }
+
+    } // namespace time
+
+
+    } // namespace util
 
 

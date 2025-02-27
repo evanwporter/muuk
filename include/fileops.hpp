@@ -1,4 +1,6 @@
 #include "../include/ifileops.hpp"
+#include "logger.h"
+
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -29,6 +31,7 @@ public:
         if (!file.is_open()) {
             throw std::runtime_error("Failed to open file for writing: " + file_path);
         }
+        muuk::logger::info("Writing content {}", content);
         file << content;
     }
 

@@ -2,7 +2,7 @@
 #include "../../include/buildmanager.h"
 #include "../../include/buildconfig.h"
 #include "../../include/muukfiler.h"
-#include "./mocks/MockFileOperations.hpp"
+#include "./mocks/mockfileop.hpp"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>

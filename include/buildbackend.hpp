@@ -5,7 +5,10 @@
 #include <memory>
 #include <vector>
 #include <fstream>
-// #include "buildtarget.h"  // Include the base class for BuildTarget
+#include <filesystem>
+#include "buildtargets.h" 
+#include "buildmanager.h"
+#include "buildparser.hpp"
 #include "buildtargets.h"
 #include "muukfiler.h"
 
@@ -35,7 +38,35 @@ public:
         const std::string& target_build,
         const std::string& profile
     ) = 0;
+};
 
+class NinjaBackend : public BuildBackend {
+private:
+    std::shared_ptr<BuildManager> build_manager;
+    std::shared_ptr<BuildParser> build_parser;
+    std::string ninja_filename;
+    fs::path build_dir_;
+
+public:
+    NinjaBackend(
+        muuk::compiler::Compiler compiler,
+        const std::string& archiver,
+        const std::string& linker,
+        const std::string& lockfile_path = "muuk.lock.toml"
+    );
+
+    void generate_build_file(
+        const std::string& target_build,
+        const std::string& profile
+    ) override;
+
+private:
+    std::string generate_rule(const CompilationTarget& target);
+    std::string generate_rule(const ArchiveTarget& target);
+    std::string generate_rule(const LinkTarget& target);
+
+    void generate_build_rules(std::ostringstream& out, const std::string& target_build);
+    void write_header(std::ostringstream& out, std::string profile);
 };
 
 #endif  // BUILD_BACKEND_H

@@ -2,6 +2,7 @@
 
 #include "../../include/ifileops.hpp"
 #include <string>
+#include <iostream>
 
 class MockFileOperations : public IFileOperations {
 private:

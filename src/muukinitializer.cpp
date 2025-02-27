@@ -35,7 +35,7 @@ namespace muuk {
     AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
     LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-    SOFTWARE.)", util::current_year(), author);
+    SOFTWARE.)", util::time::current_year(), author);
         }
         else if (license == "GPL") {
             license_text = "GNU GENERAL PUBLIC LICENSE\nVersion 3, 29 June 2007...";
@@ -44,7 +44,7 @@ namespace muuk {
             license_text = std::format(R"(Unlicensed
     
     All rights reserved. {0} {1} reserves all rights to the software.
-    )", util::current_year(), author);
+    )", util::time::current_year(), author);
         }
 
         std::ofstream license_file("LICENSE");

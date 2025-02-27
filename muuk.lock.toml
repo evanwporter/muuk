@@ -39,6 +39,14 @@ modules = []
 dependencies = []
 profiles = []
 
+[library.expected]
+include = [  "deps/expected/include",]
+cflags = []
+libs = []
+modules = []
+dependencies = []
+profiles = []
+
 [library.json]
 include = [  "deps/json/single_include",]
 cflags = []
@@ -86,6 +94,13 @@ modules = []
 dependencies = []
 profiles = []
 
+[library.xxhashct]
+cflags = []
+libs = []
+modules = []
+dependencies = []
+profiles = []
+
 [library.zip]
 include = [  "deps/zip/src",]
 cflags = []
@@ -98,7 +113,7 @@ dependencies = []
 profiles = []
 
 [library.muuk]
-include = [  "deps/argparse/include",  "deps/compile-time-regular-expressions/single-header",  "deps/cracklib/include",  "deps/fmt/include",  "deps/glob/include/",  "deps/json/single_include",  "deps/spdlog/include",  "deps/tomlplusplus/include/",  "deps/zip/src",  "include",]
+include = [  "deps/argparse/include",  "deps/compile-time-regular-expressions/single-header",  "deps/cracklib/include",  "deps/expected/include",  "deps/fmt/include",  "deps/glob/include/",  "deps/json/single_include",  "deps/spdlog/include",  "deps/tomlplusplus/include/",  "deps/zip/src",  "include",]
 cflags = ["/DSPDLOG_COMPILED_LIB", "/DSPDLOG_FMT_EXTERNAL"]
 sources = [
   { path = "src/muuker.cpp", cflags = [] },
@@ -107,8 +122,8 @@ sources = [
   { path = "src/muukfiler.cpp", cflags = [] },
   { path = "src/muukbuilder.cpp", cflags = [] },
   { path = "src/muuklockgen.cpp", cflags = [] },
-  { path = "src/installer.cpp", cflags = [] },
-  { path = "src/package_manager.cpp", cflags = [] },
+  { path = "src/packagemanager/installer.cpp", cflags = [] },
+  { path = "src/packagemanager/package_manager.cpp", cflags = [] },
   { path = "src/muukinitializer.cpp", cflags = [] },
   { path = "src/flags.cpp", cflags = [] },
   { path = "src/builder/buildtargets.cpp", cflags = [] },
@@ -116,24 +131,26 @@ sources = [
   { path = "src/builder/buildparser.cpp", cflags = [] },
   { path = "src/builder/buildmanager.cpp", cflags = [] },
   { path = "src/muukvalidator.cpp", cflags = [] },
+  { path = "src/quickinitializer.cpp", cflags = [] },
+  { path = "src/muukterminal.cpp", cflags = [] },
 ]
 libs = []
 modules = []
-dependencies = ["argparse", "compile-time-regular-expressions", "cracklib", "fmt", "glob", "json", "spdlog", "tomlplusplus", "zip"]
+dependencies = ["argparse", "compile-time-regular-expressions", "cracklib", "expected", "fmt", "glob", "json", "spdlog", "tomlplusplus", "xxhashct", "zip"]
 profiles = []
 platform.linux = { cflags = [] }
 platform.windows = { cflags = ["/Isubprojects/"] }
 compiler.clang = { cflags = ["-std=c++20"] }
 
 [build.bin]
-include = [  "deps/argparse/include",  "deps/compile-time-regular-expressions/single-header",  "deps/cracklib/include",  "deps/fmt/include",  "deps/glob/include/",  "deps/json/single_include",  "deps/spdlog/include",  "deps/tomlplusplus/include/",  "deps/zip/src",  "include",]
+include = [  "deps/argparse/include",  "deps/compile-time-regular-expressions/single-header",  "deps/cracklib/include",  "deps/expected/include",  "deps/fmt/include",  "deps/glob/include/",  "deps/json/single_include",  "deps/spdlog/include",  "deps/tomlplusplus/include/",  "deps/zip/src",  "include",]
 cflags = ["/DSPDLOG_COMPILED_LIB", "/DSPDLOG_FMT_EXTERNAL"]
 sources = [
   { path = "src/main.cpp", cflags = [] },
 ]
 libs = []
 modules = []
-dependencies = ["argparse", "compile-time-regular-expressions", "cracklib", "fmt", "glob", "json", "muuk", "spdlog", "tomlplusplus", "zip"]
+dependencies = ["argparse", "compile-time-regular-expressions", "cracklib", "expected", "fmt", "glob", "json", "muuk", "spdlog", "tomlplusplus", "xxhashct", "zip"]
 profiles = ["debug", "release"]
 platform.linux = { cflags = [] }
 platform.windows = { cflags = ["/Isubprojects/"] }
@@ -160,28 +177,28 @@ dependencies = []
 profiles = []
 
 [build.test]
-include = [  "deps/argparse/include",  "deps/compile-time-regular-expressions/single-header",  "deps/cracklib/include",  "deps/fakeit/single_header/gtest/",  "deps/fmt/include",  "deps/glob/include/",  "deps/googletest/googlemock",  "deps/googletest/googlemock/include",  "deps/googletest/googletest",  "deps/googletest/googletest/include",  "deps/json/single_include",  "deps/spdlog/include",  "deps/tomlplusplus/include/",  "deps/zip/src",  "include",]
+include = [  "deps/argparse/include",  "deps/compile-time-regular-expressions/single-header",  "deps/cracklib/include",  "deps/expected/include",  "deps/fakeit/single_header/gtest/",  "deps/fmt/include",  "deps/glob/include/",  "deps/googletest/googlemock",  "deps/googletest/googlemock/include",  "deps/googletest/googletest",  "deps/googletest/googletest/include",  "deps/json/single_include",  "deps/spdlog/include",  "deps/tomlplusplus/include/",  "deps/zip/src",  "include",]
 cflags = ["/DSPDLOG_COMPILED_LIB", "/DSPDLOG_FMT_EXTERNAL"]
 sources = [
   { path = "test/internal/muuk_test.cpp", cflags = [] },
 ]
 libs = []
 modules = []
-dependencies = ["FakeIt", "argparse", "compile-time-regular-expressions", "cracklib", "fmt", "glob", "googletest", "json", "muuk", "spdlog", "tomlplusplus", "zip"]
+dependencies = ["FakeIt", "argparse", "compile-time-regular-expressions", "cracklib", "expected", "fmt", "glob", "googletest", "json", "muuk", "spdlog", "tomlplusplus", "xxhashct", "zip"]
 profiles = ["debug"]
 platform.linux = { cflags = [] }
 platform.windows = { cflags = ["/Isubprojects/"] }
 compiler.clang = { cflags = ["-std=c++20"] }
 
 [build.test_util]
-include = [  "deps/argparse/include",  "deps/compile-time-regular-expressions/single-header",  "deps/cracklib/include",  "deps/fakeit/single_header/gtest/",  "deps/fmt/include",  "deps/glob/include/",  "deps/googletest/googlemock",  "deps/googletest/googlemock/include",  "deps/googletest/googletest",  "deps/googletest/googletest/include",  "deps/json/single_include",  "deps/spdlog/include",  "deps/tomlplusplus/include/",  "deps/zip/src",  "include",]
+include = [  "deps/argparse/include",  "deps/compile-time-regular-expressions/single-header",  "deps/cracklib/include",  "deps/expected/include",  "deps/fakeit/single_header/gtest/",  "deps/fmt/include",  "deps/glob/include/",  "deps/googletest/googlemock",  "deps/googletest/googlemock/include",  "deps/googletest/googletest",  "deps/googletest/googletest/include",  "deps/json/single_include",  "deps/spdlog/include",  "deps/tomlplusplus/include/",  "deps/zip/src",  "include",]
 cflags = ["/DSPDLOG_COMPILED_LIB", "/DSPDLOG_FMT_EXTERNAL"]
 sources = [
   { path = "test/internal/test_util.cpp", cflags = [] },
 ]
 libs = []
 modules = []
-dependencies = ["FakeIt", "argparse", "compile-time-regular-expressions", "cracklib", "fmt", "glob", "googletest", "json", "muuk", "spdlog", "tomlplusplus", "zip"]
+dependencies = ["FakeIt", "argparse", "compile-time-regular-expressions", "cracklib", "expected", "fmt", "glob", "googletest", "json", "muuk", "spdlog", "tomlplusplus", "xxhashct", "zip"]
 profiles = ["debug"]
 platform.linux = { cflags = [] }
 platform.windows = { cflags = ["/Isubprojects/"] }
@@ -192,10 +209,12 @@ argparse = { git = 'https://github.com/p-ranav/argparse.git', muuk_path = 'deps/
 compile-time-regular-expressions = { git = 'https://github.com/hanickadot/compile-time-regular-expressions.git', muuk_path = 'deps/compile-time-regular-expressions/muuk.toml', revision = 'a9418a5d8bd60afa0b71565ab95c16b1eab168e7' }
 cracklib = { git = 'https://github.com/evanwporter/cracklib.git', muuk_path = 'deps/cracklib/muuk.toml', revision = '2014acb865cd04d97102f29d9d07d2a490b32629' }
 fmt = { git = 'https://github.com/fmtlib/fmt.git', muuk_path = 'deps/fmt/muuk.toml', revision = '577fd3be883accf8629423ed77fcca8a24bccee2' }
+expected = { git = 'https://github.com/TartanLlama/expected.git', muuk_path = 'deps/expected/muuk.toml', revision = '41d3e1f48d682992a2230b2a715bca38b848b269' }
 glob = { git = 'https://github.com/p-ranav/glob.git', muuk_path = 'deps/glob/muuk.toml', revision = 'd025092c0e1eb1a8b226d3a799fd32680d2fd13f' }
 json = { git = 'https://github.com/nlohmann/json.git', muuk_path = 'deps/json/muuk.toml', revision = '0b6881a95f8aaf60bd2324ecdf2258a65bf33baf' }
 spdlog = { git = 'https://github.com/gabime/spdlog.git', muuk_path = 'deps/spdlog/muuk.toml', revision = '3335c380a08c5e0f5117a66622df6afdb3d74959' }
 tomlplusplus = { git = 'https://github.com/marzer/tomlplusplus.git', muuk_path = 'deps/tomlplusplus/muuk.toml', revision = 'cbc00d6766f14bcd2b3e72de2a3c369a0d48b98a' }
+xxhashct = { git = 'https://github.com/ekpyron/xxhashct.git', muuk_path = 'deps/xxhashct/muuk.toml' }
 zip = { git = 'https://github.com/kuba--/zip.git', muuk_path = 'deps/zip/muuk.toml', revision = 'd7a2252a537926cbdef8512741a322a183fcfd09' }
 muuk = { version = 'v1.0.0' }
 FakeIt = { git = 'https://github.com/eranpeer/FakeIt.git', muuk_path = 'deps/fakeit/muuk.toml', revision = '1d172eb87929b8bd5a8dd9a981fc0e43b9245475' }

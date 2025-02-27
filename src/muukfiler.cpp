@@ -39,6 +39,7 @@ void MuukFiler::parse() {
 
     std::string line, current_section;
     std::stringstream section_data;
+    bool new_section_started = false;
 
     while (std::getline(file, line)) {
         std::string trimmed = util::trim_whitespace(line);
@@ -47,28 +48,41 @@ void MuukFiler::parse() {
             continue;  // Ignore empty lines and comments
         }
 
+        // Detecting a new section
         if (trimmed[0] == '[' && trimmed.back() == ']') {
+            // Save previous section data
             if (!current_section.empty()) {
-                sections_[current_section] = *config_.at_path(current_section).as_table();
+                sections_[current_section] = toml::parse(section_data.str());
                 section_data.str("");
                 section_data.clear();
             }
 
             current_section = trimmed.substr(1, trimmed.size() - 2);
             section_order_.push_back(current_section);
+            new_section_started = true;
+
+            // Ensure each section starts fresh
+            continue;
         }
-        else {
-            section_data << line << "\n";
+
+        if (new_section_started) {
+            section_data.str("");  // Reset section data
+            section_data.clear();
+            new_section_started = false;
         }
+
+        section_data << line << "\n";  // Append data for the current section
     }
 
+    // Save last section
     if (!current_section.empty()) {
-        sections_[current_section] = toml::parse(section_data);
+        sections_[current_section] = toml::parse(section_data.str());
     }
 
-    muuk::logger::debug("Final parsed section order:");
-    for (const auto& section : section_order_) {
-        muuk::logger::debug("  - {}", section);
+    // Logging to verify correct sections
+    muuk::logger::info("Final parsed sections:");
+    for (const auto& section : sections_) {
+        muuk::logger::info("  - {}", section.first);
     }
 }
 
@@ -83,6 +97,7 @@ toml::table& MuukFiler::get_section(const std::string& section) {
 void MuukFiler::modify_section(const std::string& section, const toml::table& data) {
     if (sections_.find(section) == sections_.end()) {
         section_order_.push_back(section);
+        muuk::logger::info("Added new section: {}", section);
     }
     sections_[section] = data;
 }
@@ -108,9 +123,9 @@ bool MuukFiler::has_section(const std::string& section) const {
     return sections_.find(section) != sections_.end();
 }
 
-std::string MuukFiler::format_dependencies(const std::unordered_map<std::string, toml::table>& dependencies) {
+std::string MuukFiler::format_dependencies(const std::unordered_map<std::string, toml::table>& dependencies, std::string section_name) {
     std::ostringstream oss;
-    oss << "[dependencies]\n";
+    oss << "[" << section_name << "]\n";
 
     for (const auto& [dep_name, dep_info] : dependencies) {
         oss << dep_name << " = { ";
@@ -129,22 +144,4 @@ std::string MuukFiler::format_dependencies(const std::unordered_map<std::string,
 
     oss << "\n";
     return oss.str();
-}
-
-std::ostringstream MuukFiler::generate_default_muuk_toml(
-    const std::string& repo_name,
-    const std::string& version,
-    const std::string& revision,
-    const std::string& tag
-) {
-    std::ostringstream muuk_toml;
-
-    muuk_toml << "[package]\n";
-    muuk_toml << "name = \"" << repo_name << "\"\n\n";
-
-    muuk_toml << "[library." << repo_name << "]\n";
-    muuk_toml << "include = [\"include/\"]\n";
-    muuk_toml << "sources = [\"src/*.cpp\", \"src/*.cc\"]\n";
-
-    return muuk_toml;
 }

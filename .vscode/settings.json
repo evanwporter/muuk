@@ -102,7 +102,8 @@
     "resumable": "cpp",
     "queue": "cpp",
     "stack": "cpp",
-    "__nullptr": "cpp"
+    "__nullptr": "cpp",
+    "typeindex": "cpp"
   },
   "[cpp]": {
     "editor.wordBasedSuggestions": "off",

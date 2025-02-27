@@ -10,6 +10,7 @@
 #include <nlohmann/json.hpp>
 #include <filesystem>
 #include <toml++/toml.hpp>
+#include <tl/expected.hpp>
 
 extern "C" {
 #include "zip.h"
@@ -111,7 +112,7 @@ namespace muuk {
             }
         }
 
-        void install(const std::string& lockfile_path_string = "muuk.lock.toml") {
+        tl::expected<void, std::string> install(const std::string& lockfile_path_string) {
             fs::path lockfile_path = fs::path(lockfile_path_string);
             MuukLockGenerator lockgen("./");
             lockgen.generate_lockfile(lockfile_path.string());
@@ -119,23 +120,21 @@ namespace muuk {
             muuk::logger::info("Reading dependencies from '{}'", lockfile_path.string());
 
             if (!fs::exists(lockfile_path)) {
-                muuk::logger::error("muuk.lock.toml not found.");
-                throw std::runtime_error("muuk.lock.toml file not found.");
+                return tl::unexpected("muuk.lock.toml file not found.");
             }
 
             MuukFiler muukFiler(lockfile_path.string());
             toml::table lockfile_data = muukFiler.get_config();
 
             if (!lockfile_data.contains("dependencies") || !lockfile_data["dependencies"].is_table()) {
-                muuk::logger::error("No 'dependencies' section found in '{}'", lockfile_path.string());
-                return;
+                return tl::unexpected("No 'dependencies' section found in '" + lockfile_path.string() + "'");
             }
 
             toml::table dependencies = *lockfile_data["dependencies"].as_table();
 
             if (dependencies.empty()) {
                 muuk::logger::info("No dependencies found in '{}'", lockfile_path.string());
-                return;
+                return {};
             }
 
             for (const auto& [dep_name_, dep_table] : dependencies) {
@@ -164,7 +163,6 @@ namespace muuk {
                     muuk::logger::warn("No version, revision, or branch specified for '{}'. Defaulting to 'main'.", repo_name);
                     ref = "main";  // Fallback to 'main' if nothing is specified
                 }
-
 
                 muuk::logger::info("Installing '{}': ref={}, git={}", repo_name, ref, git_url);
 
@@ -197,6 +195,7 @@ namespace muuk {
             }
 
             muuk::logger::info("Finished installing all dependencies.");
+            return {};
         }
 
         void remove_package(const std::string& package_name, const std::string& toml_path, const std::string& lockfile_path) {

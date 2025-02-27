@@ -1,16 +1,18 @@
 #pragma once
-#include <string>
-#include <spdlog/spdlog.h>
-#include <memory>
 
 #include "logger.h"
+
+#include <tl/expected.hpp>
+#include <spdlog/spdlog.h>
+#include <string>
+#include <memory>
 
 namespace muuk {
     namespace package_manager {
 
         extern std::shared_ptr<spdlog::logger> logger_;
 
-        void add_dependency(
+        tl::expected<void, std::string> add_dependency(
             const std::string& toml_path,
             const std::string& repo,
             const std::string& version,
@@ -23,7 +25,7 @@ namespace muuk {
             const std::string& target_section
         );
 
-        void install(const std::string& toml_path);
+        tl::expected<void, std::string> install(const std::string& lockfile_path_string = "muuk.lock.toml");
 
         void remove_package(const std::string& package_name, const std::string& toml_path = "muuk.toml", const std::string& lockfile_path = "muuk.lock.toml");
     }
