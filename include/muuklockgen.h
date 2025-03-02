@@ -90,7 +90,7 @@ private:
     void merge_profiles(const std::string& base_profile, const std::string& inherited_profile);
 
     void parse_muuk_toml(const std::string& path, bool is_base = false);
-    void resolve_dependencies(const std::string& package_name, std::optional<std::string> search_path = std::nullopt);
+    tl::expected<void, std::string> resolve_dependencies(const std::string& package_name, std::optional<std::string> search_path = std::nullopt);
 };
 
 #endif // MUUK_PARSER_H

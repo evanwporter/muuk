@@ -15,6 +15,8 @@ extern "C" {
 #include "zip.h"
 }
 
+constexpr const char* MUUK_PATCH_UTL = "https://raw.githubusercontent.com/evanwporter/muuk/main/muuk-patches/";
+
 namespace fs = std::filesystem;
 
 namespace muuk {
@@ -151,7 +153,7 @@ namespace muuk {
 
                     muuk::logger::info("No tag, version, or revision provided. Fetching latest commit hash...");
 
-                    util::git::get_latest_revision(git_url);
+                    revision = util::git::get_latest_revision(git_url);
                 }
 
                 std::string final_git_url = git_url.empty() ? "https://github.com/" + author + "/" + repo_name + ".git" : git_url;
@@ -167,7 +169,7 @@ namespace muuk {
 
                     if (!download_file(muuk_toml_url, muuk_path)) {
                         muuk::logger::warn("Failed to download muuk.toml from repo, attempting patch.");
-                        std::string patch_muuk_toml_url = "https://raw.githubusercontent.com/evanwporter/muuk/main/muuk-patches/" + repo_name + "/muuk.toml";
+                        std::string patch_muuk_toml_url = MUUK_PATCH_UTL + repo_name + "/muuk.toml";
                         if (!download_file(patch_muuk_toml_url, muuk_path)) {
                             muuk::logger::warn("No valid muuk.toml found. Generating a default one.");
                             if (!qinit_library(author, repo_name)) {

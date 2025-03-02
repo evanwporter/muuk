@@ -24,7 +24,7 @@ namespace muuk {
         void clone_shallow_repo(const std::string& repo_url, const std::string& target_dir, const std::string& checkout_ref) {
             fs::path muuk_toml_path = target_dir + "/muuk.toml";
             fs::path parent_repo_dir = fs::path(target_dir).parent_path(); // Get parent directory
-            fs::path temp_muuk_toml_path = parent_repo_dir / (target_dir + "_muuk_backup.toml");
+            fs::path temp_muuk_toml_path = parent_repo_dir / "_muuk_backup.toml";
 
             muuk::logger::info("Cloning repository: {} in target dir {}", repo_url, target_dir);
             // Move `muuk.toml` to the parent directory before deleting the old repository
@@ -82,8 +82,7 @@ namespace muuk {
         }
 
 
-        bool is_installed_version_matching(const fs::path muuk_toml_path,
-            const std::string& version, const std::string& revision, const std::string& tag) {
+        bool is_installed_version_matching(const fs::path muuk_toml_path, const std::string& version, const std::string& revision, const std::string& tag) {
             try {
                 MuukFiler muukFiler(muuk_toml_path.string());
                 toml::table config = muukFiler.get_config();
@@ -98,6 +97,9 @@ namespace muuk {
                 std::string installed_version = package_section.contains("version") ? *package_section["version"].value<std::string>() : "";
                 std::string installed_revision = package_section.contains("revision") ? *package_section["revision"].value<std::string>() : "";
                 std::string installed_tag = package_section.contains("tag") ? *package_section["tag"].value<std::string>() : "";
+
+                muuk::logger::debug("Version: {}, revision: {}, tag: {}", version, revision, tag);
+                muuk::logger::debug("Installed version: {}, revision: {}, tag: {}", installed_version, installed_revision, installed_tag);
 
                 if (installed_version.empty() && installed_revision.empty() && installed_tag.empty()) {
                     muuk::logger::warn("No versioning information found in '{}'. Assuming outdated.", muuk_toml_path.string());
@@ -191,6 +193,9 @@ namespace muuk {
                     if (!tag.empty()) package_section.insert_or_assign("tag", tag);
 
                     muukFiler.write_to_file();
+                }
+                else {
+                    muuk::logger::warn("Failed to install '{}'.", repo_name);
                 }
             }
 

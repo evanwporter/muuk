@@ -2,8 +2,11 @@
 #include "logger.h"
 #include "buildconfig.h"
 #include "util.h"
+#include "muuk.h"
 
 #include <glob/glob.h>
+#include <tl/expected.hpp>
+#include <toml++/toml.h>
 
 // Joins a vector of strings into a single string with a specified delimiter.
 static inline std::string join_strings(const std::vector<std::string>& elements, const std::string& delimiter) {
@@ -17,148 +20,6 @@ static inline std::string join_strings(const std::vector<std::string>& elements,
         }
     }
     return oss.str();
-}
-
-template <typename Container>
-static void print_array(std::ostringstream& stream, std::string_view key, const Container& values, bool new_line_at_end = true) {
-    stream << key << " = [";
-    bool first = true;
-    for (const auto& value : values) {
-        if (!first) {
-            stream << ", ";
-        }
-        stream << "\"" << value << "\"";
-        first = false;
-    }
-    if (new_line_at_end) {
-        stream << "]\n";
-    }
-    else {
-        stream << "]";
-    }
-}
-
-
-Package::Package(const std::string& name,
-    const std::string& version,
-    const std::string& base_path,
-    const std::string& package_type) :
-    name(name),
-    version(version),
-    base_path(base_path),
-    package_type(package_type) {
-}
-
-void Package::add_include_path(const std::string& path) {
-    include.insert((fs::path(base_path) / path).lexically_normal().string());
-}
-
-void Package::merge(const Package& child_pkg) {
-
-    muuk::logger::info("[MuukLockGenerator] Merging {} into {}", child_pkg.name, name);
-
-    for (const auto& path : child_pkg.include) {
-        include.insert(path);
-    }
-    cflags.insert(child_pkg.cflags.begin(), child_pkg.cflags.end());
-
-    system_include.insert(child_pkg.system_include.begin(), child_pkg.system_include.end());
-
-    deps.insert(child_pkg.deps.begin(), child_pkg.deps.end());
-
-    for (const auto& [compiler, flags] : child_pkg.compiler_) {
-        for (const auto& [flag_type, flag_values] : flags) {
-            compiler_[compiler][flag_type].insert(flag_values.begin(), flag_values.end());
-        }
-    }
-
-    for (const auto& [platform, flags] : child_pkg.platform_) {
-        for (const auto& [flag_type, flag_values] : flags) {
-            platform_[platform][flag_type].insert(flag_values.begin(), flag_values.end());
-        }
-    }
-
-    // dependencies.insert(child_pkg.dependencies.begin(), child_pkg.dependencies.end());
-}
-
-std::string Package::serialize() const {
-    std::ostringstream toml_stream; // string steam to allow more control over the final product
-    toml::table data;
-    toml::array include_array, cflags_array, sources_array, modules_array, libs_array, deps_array, profiles_array;
-
-    if (!include.empty()) {
-        toml_stream << "include = [";
-        for (const auto& path : include) {
-            toml_stream << "  \"" << util::to_linux_path(path) << "\",";
-        }
-        toml_stream << "]\n";
-    }
-
-    print_array(toml_stream, "cflags", cflags);
-
-    if (!sources.empty()) {
-        toml_stream << "sources = [\n";
-        for (const auto& [source, source_cflags] : sources) {
-            fs::path source_path = fs::path(base_path) / source;
-
-            if (source.find('*') != std::string::npos) {  // Handle globbing
-                try {
-                    muuk::logger::info("Globbing {}...", source_path.string());
-                    std::vector<std::filesystem::path> globbed_paths = glob::glob(source_path.string());
-
-                    for (const auto& path : globbed_paths) {
-                        toml_stream << "  { path = \"" << util::to_linux_path(path.string()) << "\", cflags = [";
-                        for (size_t i = 0; i < source_cflags.size(); ++i) {
-                            toml_stream << "\"" << source_cflags[i] << "\"";
-                            if (i != source_cflags.size() - 1) toml_stream << ", ";
-                        }
-                        toml_stream << "] },\n";
-                    }
-                }
-                catch (const std::exception& e) {
-                    muuk::logger::warn("Error while globbing '{}': {}", source_path.string(), e.what());
-                }
-            }
-            else {  // Standard case without globbing
-                toml_stream << "  { path = \"" << util::to_linux_path(source_path.lexically_normal().string()) << "\", cflags = [";
-                for (size_t i = 0; i < source_cflags.size(); ++i) {
-                    toml_stream << "\"" << source_cflags[i] << "\"";
-                    if (i != source_cflags.size() - 1) toml_stream << ", ";
-                }
-                toml_stream << "] },\n";
-            }
-        }
-        toml_stream << "]\n";
-    }
-
-    print_array(toml_stream, "libs", libs);
-    print_array(toml_stream, "modules", modules);
-    print_array(toml_stream, "dependencies", deps);
-    print_array(toml_stream, "profiles", inherited_profiles);
-
-    if (!platform_.empty()) {
-        for (const auto& [platform, flags] : platform_) {
-            toml_stream << "platform." << platform << " = { ";
-            auto cflags_it = flags.find("cflags");
-            if (cflags_it != flags.end()) {
-                print_array(toml_stream, "cflags", cflags_it->second, false);
-            }
-            toml_stream << " }\n";
-        }
-    }
-
-    if (!compiler_.empty()) {
-        for (const auto& [compiler, flags] : compiler_) {
-            toml_stream << "compiler." << compiler << " = { ";
-            auto cflags_it = flags.find("cflags");
-            if (cflags_it != flags.end()) {
-                print_array(toml_stream, "cflags", cflags_it->second, false);
-            }
-            toml_stream << " }\n";
-        }
-    }
-
-    return toml_stream.str();
 }
 
 MuukLockGenerator::MuukLockGenerator(const std::string& base_path) : base_path_(base_path) {
@@ -455,102 +316,119 @@ void MuukLockGenerator::parse_section(const toml::table& section, Package& packa
     }
 }
 
-void MuukLockGenerator::resolve_dependencies(const std::string& package_name, std::optional<std::string> search_path) {
+tl::expected<void, std::string> MuukLockGenerator::resolve_dependencies(const std::string& package_name, std::optional<std::string> search_path) {
     if (visited.count(package_name)) {
         muuk::logger::warn("Circular dependency detected for '{}'. Skipping resolution.", package_name);
-        return;
+        return {};
     }
 
     visited.insert(package_name);
     muuk::logger::info("Resolving dependencies for: {} with muuk path: '{}'", package_name, search_path.value_or(""));
 
-    auto package = resolved_packages_["library"].count(package_name)
-        ? resolved_packages_["library"][package_name]
-        : resolved_packages_["build"].count(package_name)
-            ? resolved_packages_["build"][package_name]
-            : nullptr;
 
-            if (!package) {
-                if (search_path) {
-                    fs::path search_file = fs::path(search_path.value());
-                    if (!search_path.value().ends_with("muuk.toml")) {
-                        muuk::logger::info("Search path '{}' does not end with 'muuk.toml', appending it.", search_file.string());
-                        search_file /= "muuk.toml";
-                    }
-                    else {
-                        muuk::logger::info("Search path '{}' already ends with 'muuk.toml', using as is.", search_file.string());
-                    }
+    std::optional<std::shared_ptr<Package>> package_opt;
 
-                    if (fs::exists(search_file)) {
-                        parse_muuk_toml(search_file.string());
-                        package = resolved_packages_["library"][package_name];
+    if (resolved_packages_["library"].count(package_name)) {
+        package_opt = resolved_packages_["library"][package_name];
+    }
+    else if (resolved_packages_["build"].count(package_name)) {
+        package_opt = resolved_packages_["build"][package_name];
+    }
 
-                        if (!package) {
-                            muuk::logger::error("Error: Package '{}' not found after parsing '{}'.", package_name, *search_path);
-                            return;
-                        }
-                    }
-                }
-                else {
-                    // If no search path, search in dependency folders
-                    search_and_parse_dependency(package_name);
-                    package = resolved_packages_["library"][package_name];
-
-                    if (!package) {
-                        muuk::logger::error("Error: Package '{}' not found after search.", package_name);
-                        return;
-                    }
-                }
-                // muuk::logger::info("Package '{}' not found in resolved packages.", package_name);
-
-
+    if (!package_opt.has_value()) {
+        if (search_path) {
+            fs::path search_file = fs::path(search_path.value());
+            if (!search_path.value().ends_with("muuk.toml")) {
+                muuk::logger::info("Search path '{}' does not end with 'muuk.toml', appending it.", search_file.string());
+                search_file /= "muuk.toml";
+            }
+            else {
+                muuk::logger::info("Search path '{}' already ends with 'muuk.toml', using as is.", search_file.string());
             }
 
-            for (const auto& [dep_name, dep_info] : package->dependencies) {
-                if (dep_name == package_name) {
-                    muuk::logger::warn("Circular dependency detected: '{}' depends on itself. Skipping.", package_name);
-                    std::cerr << "Warning: Circular dependency detected: " << package_name << " depends on itself.\n";
-                    continue;
-                }
+            if (fs::exists(search_file)) {
+                parse_muuk_toml(search_file.string());
+                package_opt = resolved_packages_["library"][package_name];
 
-                muuk::logger::info("Resolving dependency '{}' for '{}'", dep_name, package_name);
-
-                std::string dep_search_path;
-                if (dep_info.count("muuk_path")) {
-                    dep_search_path = dep_info.at("muuk_path");
-                    muuk::logger::info("Using defined muuk_path for dependency '{}': {}", dep_name, dep_search_path);
-                }
-
-                if (dep_info.count("system")) {
-                    resolve_system_dependency(dep_name, package);
-                }
-                else {
-                    // Resolve dependency, passing the search path if available
-                    resolve_dependencies(dep_name, dep_search_path.empty() ? std::nullopt : std::optional<std::string>{ dep_search_path });
-                }
-                if (resolved_packages_["library"].count(dep_name)) {
-                    muuk::logger::info("Merging '{}' into '{}'", dep_name, package_name);
-                    if (package) {
-                        package->merge(*resolved_packages_["library"][dep_name]);
-                    }
-                }
-
-                toml::table dependency_entry;
-                for (const auto& [key, value] : dep_info) {
-                    dependency_entry.insert(key, value);
-                }
-
-                dependencies_[dep_name] = dependency_entry;
-
-                // Log full dependency details
-                muuk::logger::info("Resolved dependency '{}':", dep_name);
-                for (const auto& [key, val] : dep_info) {
-                    muuk::logger::info("  - {}: {}", key, val);
+                if (!package_opt) {
+                    muuk::logger::error("Error: Package '{}' not found after parsing '{}'.", package_name, *search_path);
+                    return Err("");
                 }
             }
+            else {
+                muuk::logger::error("Error: Search file '{}' for '{}' does not exist.", search_file.string(), package_name);
+                return Err("");
+            }
+        }
+        else {
+            // If no search path, search in dependency folders
+            search_and_parse_dependency(package_name);
+            package_opt = resolved_packages_["library"][package_name];
 
-            muuk::logger::info("Added '{}' to resolved order list.", package_name);
-            resolved_order_.push_back(package_name);
+            if (!package_opt) {
+                muuk::logger::error("Error: Package '{}' not found after searching the dependency folder ({}).", package_name, DEPENDENCY_FOLDER);
+                return Err("");
+            }
+        }
+        // muuk::logger::info("Package '{}' not found in resolved packages.", package_name);
+    }
+
+    auto package = package_opt.value();  // Safe extraction since we checked before
+
+    for (const auto& [dep_name, dep_info] : package->dependencies) {
+        if (dep_name == package_name) {
+            muuk::logger::warn("Circular dependency detected: '{}' depends on itself. Skipping.", package_name);
+            continue;
+        }
+
+        muuk::logger::info("Resolving dependency '{}' for '{}'", dep_name, package_name);
+
+        std::string dep_search_path;
+        if (dep_info.count("muuk_path")) {
+            dep_search_path = dep_info.at("muuk_path");
+            muuk::logger::info("Using defined muuk_path for dependency '{}': {}", dep_name, dep_search_path);
+        }
+
+        if (dep_info.count("system")) {
+            resolve_system_dependency(dep_name, package);
+        }
+        else {
+            // Resolve dependency, passing the search path if available
+            auto result = resolve_dependencies(
+                dep_name,
+                dep_search_path.empty() ? std::nullopt : std::optional<std::string>{ dep_search_path }
+            );
+
+            if (!result) {
+                std::string error_msg = "Failed to resolve dependency '" + dep_name + "' for package '" + package_name + "'.";
+                muuk::logger::error(error_msg);
+                return Err("");
+            }
+        }
+        if (resolved_packages_["library"].count(dep_name)) {
+            muuk::logger::info("Merging '{}' into '{}'", dep_name, package_name);
+            if (package) {
+                package->merge(*resolved_packages_["library"][dep_name]);
+            }
+        }
+
+        toml::table dependency_entry;
+        for (const auto& [key, value] : dep_info) {
+            dependency_entry.insert(key, value);
+        }
+
+        dependencies_[dep_name] = dependency_entry;
+
+        // Log full dependency details
+        muuk::logger::info("Resolved dependency '{}':", dep_name);
+        for (const auto& [key, val] : dep_info) {
+            muuk::logger::info("  - {}: {}", key, val);
+        }
+    }
+
+    muuk::logger::info("Added '{}' to resolved order list.", package_name);
+    resolved_order_.push_back(package_name);
+    return {};
 }
 
 // Searches for the specified package in the dependency folder and parses its muuk.toml file if found.
@@ -590,8 +468,12 @@ void MuukLockGenerator::generate_lockfile(const std::string& output_path) {
 
     muuk::logger::info("Resolving dependencies for build packages...");
     for (const auto& [build_name, _] : resolved_packages_["build"]) {
-        resolve_dependencies(build_name);
+        auto result = resolve_dependencies(build_name);
+        if (!result) {
+            muuk::logger::error("Failed to resolve dependencies for build package '{}': {}", build_name, result.error());
+        }
     }
+
 
     for (const auto& package_name : resolved_order_) {
         auto package_opt = find_package(package_name);

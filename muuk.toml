@@ -18,7 +18,8 @@ sources = [
     'src/logger.cpp',
     'src/muukfiler.cpp',
     'src/muukbuilder.cpp',
-    'src/muuklockgen.cpp',
+    'src/lockgen/muuklockgen.cpp',
+    'src/lockgen/package.cpp',
     'src/packagemanager/installer.cpp',
     'src/packagemanager/package_manager.cpp',
     'src/muukinitializer.cpp',
@@ -41,13 +42,12 @@ glob = { git = 'https://github.com/p-ranav/glob.git', muuk_path = 'deps/glob/muu
 json = { git = 'https://github.com/nlohmann/json.git', muuk_path = 'deps/json/muuk.toml', revision = '0b6881a95f8aaf60bd2324ecdf2258a65bf33baf' }
 spdlog = { git = 'https://github.com/gabime/spdlog.git', muuk_path = 'deps/spdlog/muuk.toml', revision = '3335c380a08c5e0f5117a66622df6afdb3d74959' }
 tomlplusplus = { git = 'https://github.com/marzer/tomlplusplus.git', muuk_path = 'deps/tomlplusplus/muuk.toml', revision = 'cbc00d6766f14bcd2b3e72de2a3c369a0d48b98a' }
-xxhashct = { git = 'https://github.com/ekpyron/xxhashct.git', muuk_path = 'deps/xxhashct/muuk.toml' }
 zip = { git = 'https://github.com/kuba--/zip.git', muuk_path = 'deps/zip/muuk.toml', revision = 'd7a2252a537926cbdef8512741a322a183fcfd09' }
 
 [build.bin]
+dependencies = { argparse = { git = 'https://github.com/p-ranav/argparse.git', muuk_path = 'deps/argparse/muuk.toml', revision = 'd924b84eba1f0f0adf38b20b7b4829f6f65b6570' }, muuk = 'v1.0.0' }
 profile = ['release', 'debug']
 sources = ['src/main.cpp']
-dependencies = { muuk = 'v1.0.0', argparse = { git = 'https://github.com/p-ranav/argparse.git', muuk_path = 'deps/argparse/muuk.toml', revision = 'd924b84eba1f0f0adf38b20b7b4829f6f65b6570' } }
 
 [build.test]
 dependencies = { FakeIt = { git = 'https://github.com/eranpeer/FakeIt.git', muuk_path = 'deps/fakeit/muuk.toml', revision = '1d172eb87929b8bd5a8dd9a981fc0e43b9245475' }, googletest = { git = 'https://github.com/google/googletest.git', muuk_path = 'deps/googletest/muuk.toml', revision = '3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f' }, muuk = 'v1.0.0' }

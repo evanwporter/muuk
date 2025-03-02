@@ -175,7 +175,6 @@ namespace muuk {
         config_file << "[package]\n"
             << "name = '" << repo << "'\n"
             << "author = '" << author << "'\n"
-            << "version = '0.1.0'\n"
             << "license = '" << license << "'\n\n";
 
         config_file << "[library]\n"

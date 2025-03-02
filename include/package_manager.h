@@ -25,8 +25,14 @@ namespace muuk {
             const std::string& target_section
         );
 
-        tl::expected<void, std::string> install(const std::string& lockfile_path_string = "muuk.lock.toml");
+        tl::expected<void, std::string> install(
+            const std::string& lockfile_path_string = "muuk.lock.toml"
+        );
 
-        void remove_package(const std::string& package_name, const std::string& toml_path = "muuk.toml", const std::string& lockfile_path = "muuk.lock.toml");
+        void remove_package(
+            const std::string& package_name,
+            const std::string& toml_path = "muuk.toml",
+            const std::string& lockfile_path = "muuk.lock.toml"
+        );
     }
 }
