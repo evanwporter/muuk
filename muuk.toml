@@ -7,10 +7,10 @@ hello = 'echo Hello!'
 run = './build/debug/muuk'
 
 [clean]
-patterns = [ '*.obj', '*.lib', '*.pdb' ]
+patterns = ['*.obj', '*.lib', '*.pdb']
 
 [library.muuk]
-include = [ 'include' ]
+include = ['include']
 libs = []
 sources = [
     'src/muuker.cpp',
@@ -29,11 +29,10 @@ sources = [
     'src/builder/buildmanager.cpp',
     'src/muukvalidator.cpp',
     'src/quickinitializer.cpp',
-    'src/muukterminal.cpp'
+    'src/muukterminal.cpp',
 ]
 
 [library.muuk.dependencies]
-argparse = { git = 'https://github.com/p-ranav/argparse.git', muuk_path = 'deps/argparse/muuk.toml', revision = 'd924b84eba1f0f0adf38b20b7b4829f6f65b6570' }
 compile-time-regular-expressions = { git = 'https://github.com/hanickadot/compile-time-regular-expressions.git', muuk_path = 'deps/compile-time-regular-expressions/muuk.toml', revision = 'a9418a5d8bd60afa0b71565ab95c16b1eab168e7' }
 cracklib = { git = 'https://github.com/evanwporter/cracklib.git', muuk_path = 'deps/cracklib/muuk.toml', revision = '2014acb865cd04d97102f29d9d07d2a490b32629' }
 expected = { git = 'https://github.com/TartanLlama/expected.git', muuk_path = 'deps/expected/muuk.toml', revision = '41d3e1f48d682992a2230b2a715bca38b848b269' }
@@ -46,19 +45,19 @@ xxhashct = { git = 'https://github.com/ekpyron/xxhashct.git', muuk_path = 'deps/
 zip = { git = 'https://github.com/kuba--/zip.git', muuk_path = 'deps/zip/muuk.toml', revision = 'd7a2252a537926cbdef8512741a322a183fcfd09' }
 
 [build.bin]
-dependencies = { muuk = 'v1.0.0' }
-profile = [ 'release', 'debug' ]
-sources = [ 'src/main.cpp' ]
+profile = ['release', 'debug']
+sources = ['src/main.cpp']
+dependencies = { muuk = 'v1.0.0', argparse = { git = 'https://github.com/p-ranav/argparse.git', muuk_path = 'deps/argparse/muuk.toml', revision = 'd924b84eba1f0f0adf38b20b7b4829f6f65b6570' } }
 
 [build.test]
 dependencies = { FakeIt = { git = 'https://github.com/eranpeer/FakeIt.git', muuk_path = 'deps/fakeit/muuk.toml', revision = '1d172eb87929b8bd5a8dd9a981fc0e43b9245475' }, googletest = { git = 'https://github.com/google/googletest.git', muuk_path = 'deps/googletest/muuk.toml', revision = '3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f' }, muuk = 'v1.0.0' }
-profile = [ 'debug' ]
-sources = [ 'test/internal/muuk_test.cpp' ]
+profile = ['debug']
+sources = ['test/internal/muuk_test.cpp']
 
 [build.test_util]
 dependencies = { FakeIt = { git = 'https://github.com/eranpeer/FakeIt.git', muuk_path = 'deps/fakeit/muuk.toml', revision = '1d172eb87929b8bd5a8dd9a981fc0e43b9245475' }, googletest = { git = 'https://github.com/google/googletest.git', muuk_path = 'deps/googletest/muuk.toml', revision = '3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f' }, muuk = 'v1.0.0' }
-profile = [ 'debug' ]
-sources = [ 'test/internal/test_util.cpp' ]
+profile = ['debug']
+sources = ['test/internal/test_util.cpp']
 
 [platform.windows]
 cflags = []
@@ -67,22 +66,21 @@ cflags = []
 cflags = []
 
 [profile.base]
-cflags = [ '/std:c++20', '/utf-8', '/EHsc', '/FS' ]
+cflags = ['/std:c++20', '/utf-8', '/EHsc', '/FS']
 
 [profile.release]
-cflags = [ '/O2', '/DNDEBUG', '/GL' ]
-inherits = [ 'base' ]
-lflags = [ '/OPT:REF', '/OPT:ICF', '/LTCG' ]
+cflags = ['/O2', '/DNDEBUG', '/GL']
+inherits = ['base']
+lflags = ['/OPT:REF', '/OPT:ICF', '/LTCG']
 
 [profile.release_x86]
 inherits = 'release'
-lflags = [ '/MACHINE:X86' ]
+lflags = ['/MACHINE:X86']
 
 [profile.debug]
-cflags = [ '/Od', '/DDEBUG', '/Zi', '/RTC1' ]
+cflags = ['/Od', '/DDEBUG', '/Zi', '/RTC1']
 default = true
-include = [ 'include' ]
+include = ['include']
 inherits = 'base'
-lflags = [ '/DEBUG', '/MACHINE:X86' ]
+lflags = ['/DEBUG', '/MACHINE:X86']
 libs = []
-
