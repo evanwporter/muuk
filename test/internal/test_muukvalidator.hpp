@@ -40,7 +40,7 @@ TEST(ValidateMuukTomlTest, MissingRequiredKey) {
 }
 
 TEST(ValidateMuukTomlTest, TypeMismatch) {
-    toml::table invalid_toml = toml::parse(R"(package]
+    toml::table invalid_toml = toml::parse(R"([package]
         version = 1.0
     )");
 

@@ -597,6 +597,7 @@ void MuukLockGenerator::resolve_system_dependency(const std::string& package_nam
         muuk::logger::error("Failed to resolve system dependency '{}'. Consider installing it or specifying paths manually.", package_name);
     }
 }
+
 // Merges the settings of the inherited profile into the base profile.
 void MuukLockGenerator::merge_profiles(const std::string& base_profile, const std::string& inherited_profile) {
     if (profiles_.find(inherited_profile) == profiles_.end()) {

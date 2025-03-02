@@ -255,7 +255,7 @@ std::vector<std::string> BuildParser::extract_flags(
     return flags;
 }
 
-/** Extract platform-specific CFLAGS */
+/** Extract platform-specific FLAGS */
 std::vector<std::string> BuildParser::extract_platform_flags(const toml::table& package_table) {
     std::vector<std::string> flags;
     if (!package_table.contains("platform")) return flags;
@@ -295,7 +295,7 @@ std::vector<std::string> BuildParser::extract_platform_flags(const toml::table& 
     return flags;
 }
 
-/** Extract compiler-specific CFLAGS */
+/** Extract compiler-specific FLAGS */
 std::vector<std::string> BuildParser::extract_compiler_flags(const toml::table& package_table) {
     std::vector<std::string> flags;
     if (!package_table.contains("compiler")) return flags;

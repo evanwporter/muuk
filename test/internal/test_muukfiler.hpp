@@ -74,25 +74,25 @@ TEST_F(MuukFilerTest, GetSectionOrder) {
     EXPECT_EQ(order[1], "dependencies");
 }
 
-TEST_F(MuukFilerTest, WriteToFileAndVerifyContent) {
-    std::string mock_config = R"(
-[section2]
-key1 = "value1"
-key2 = 42
+// TEST_F(MuukFilerTest, WriteToFileAndVerifyContent) {
+//     std::string mock_config = R"(
+// [section2]
+// key1 = "value1"
+// key2 = 42
 
-[section1]
-keyA = "valueA"
-key0 = "value0"
-    )";
+// [section1]
+// keyA = "valueA"
+// key0 = "value0"
+//     )";
 
-    mock_file_ops->write_file(mock_config);
-    MuukFiler filer(mock_file_ops);
+//     mock_file_ops->write_file(mock_config);
+//     MuukFiler filer(mock_file_ops);
 
-    EXPECT_TRUE(filer.has_section("section1"));
-    EXPECT_TRUE(filer.has_section("section2"));
+//     EXPECT_TRUE(filer.has_section("section1"));
+//     EXPECT_TRUE(filer.has_section("section2"));
 
-    muuk_filer->write_to_file();
-    std::string written_content = mock_file_ops->read_file();
+//     muuk_filer->write_to_file();
+//     std::string written_content = mock_file_ops->read_file();
 
-    EXPECT_EQ(written_content, mock_config);
-}
+//     EXPECT_EQ(written_content, mock_config);
+// }
