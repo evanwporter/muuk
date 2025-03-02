@@ -1,5 +1,3 @@
-#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
-
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -184,8 +182,6 @@ int main(int argc, char* argv[]) {
         .default_value(std::string("Unknown"));
     program.add_subparser(qinit_command);
 
-
-
     program.add_subparser(clean_command);
     program.add_subparser(run_command);
     program.add_subparser(build_command);
@@ -315,4 +311,4 @@ int main(int argc, char* argv[]) {
     }
 
     return 0;
-}
+    }
