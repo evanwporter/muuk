@@ -18,7 +18,7 @@ BuildParser::BuildParser(std::shared_ptr<BuildManager> manager, std::shared_ptr<
     compiler(compiler),
     muuk_filer(std::move(muuk_filer)),
     build_dir(build_dir),
-    profile_(profile_)
+    profile_(profile)
 {
 }
 
@@ -306,10 +306,10 @@ std::vector<std::string> BuildParser::extract_compiler_flags(const toml::table& 
     auto compiler_table = package_table.at("compiler").as_table();
     if (!compiler_table) return flags;
 
-    auto compiler = muuk::compiler::to_string(this->compiler);
+    auto compiler_ = muuk::compiler::to_string(compiler);
 
-    if (compiler_table->contains(compiler)) {
-        auto compiler_entry = compiler_table->at(compiler).as_table();
+    if (compiler_table->contains(compiler_)) {
+        auto compiler_entry = compiler_table->at(compiler_).as_table();
         if (!compiler_entry) return flags;
 
         if (compiler_entry->contains("cflags")) {
@@ -322,7 +322,7 @@ std::vector<std::string> BuildParser::extract_compiler_flags(const toml::table& 
         }
     }
     else {
-        muuk::logger::warn("No configuration found for compiler '{}'.", compiler);
+        muuk::logger::warn("No configuration found for compiler '{}'.", compiler_);
     }
 
     return flags;

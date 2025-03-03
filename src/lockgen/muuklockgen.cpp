@@ -38,8 +38,13 @@ void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
         return;
     }
 
-    MuukFiler muuk_filer(path);
-    auto data = muuk_filer.get_config();
+    auto muuk_filer = MuukFiler::create(path);
+    if (!muuk_filer) {
+        muuk::logger::error("Failed to create MuukFiler for '{}'", path);
+        return;
+    }
+
+    auto data = muuk_filer->get_config();
 
     if (!data.contains("package") || !data["package"].is_table()) {
         muuk::logger::error("Missing 'package' section in TOML file.");
@@ -397,6 +402,7 @@ tl::expected<void, std::string> MuukLockGenerator::resolve_dependencies(const st
                 return Err("");
             }
         }
+
         if (resolved_packages_["library"].count(dep_name)) {
             muuk::logger::info("Merging '{}' into '{}'", dep_name, package_name);
             if (package) {

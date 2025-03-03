@@ -10,7 +10,7 @@ run = './build/debug/muuk'
 patterns = ['*.obj', '*.lib', '*.pdb']
 
 [library.muuk]
-include = ['include']
+include = 1 #['include']
 libs = []
 sources = [
     'src/muuker.cpp',
@@ -32,6 +32,7 @@ sources = [
     'src/quickinitializer.cpp',
     'src/muukterminal.cpp',
 ]
+cflags = ['/W4']
 
 [library.muuk.dependencies]
 compile-time-regular-expressions = { git = 'https://github.com/hanickadot/compile-time-regular-expressions.git', muuk_path = 'deps/compile-time-regular-expressions/muuk.toml', revision = 'a9418a5d8bd60afa0b71565ab95c16b1eab168e7' }
@@ -78,7 +79,7 @@ inherits = 'release'
 lflags = ['/MACHINE:X86']
 
 [profile.debug]
-cflags = ['/Od', '/DDEBUG', '/Zi', '/RTC1']
+cflags = ['/Od', '/DDEBUG', '/Zi', '/RTC1', '/FC', '/GS']
 default = true
 include = ['include']
 inherits = 'base'

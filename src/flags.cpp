@@ -1,11 +1,11 @@
+#include "muuk.h"
+
 #include <vector>
 #include <string>
 #include <unordered_map>
 #include <ctre.hpp>
 #include <iostream>
 #include <unordered_map>
-
-#include "muuk.h"
 
 namespace muuk {
     std::string normalize_flag(const std::string& flag, const compiler::Compiler compiler) {
@@ -65,7 +65,8 @@ namespace muuk {
             {"/GS", "-fstack-protector-strong"},
             {"/sdl", "-D_FORTIFY_SOURCE=2"},
             {"/DEBUG", "-g" },
-            {"/MACHINE:X86", "-m64"}
+            {"/MACHINE:X86", "-m64"},
+            {"/std:20", "-std=20"}
         };
 
         static const std::unordered_map<std::string, std::string> gcc_to_msvc = {

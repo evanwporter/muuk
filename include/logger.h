@@ -1,4 +1,6 @@
 #pragma once
+#ifndef MUUK_LOGGER_H
+#define MUUK_LOGGER_H
 
 #include <spdlog/spdlog.h>
 #include <memory>
@@ -56,7 +58,6 @@ namespace muuk {
             std::cerr << ERROR_PREFIX << formatted_message << "\n";
             std::cerr.flush();
             spdlog::error(formatted_message);
-            throw std::runtime_error("");
         }
 
         template<typename... Args>
@@ -80,3 +81,5 @@ namespace muuk {
     }
 
 } // namespace muuk
+
+#endif // MUUK_LOGGER_H

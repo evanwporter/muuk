@@ -11,7 +11,7 @@ namespace muuk {
 
         void display_menu(const std::vector<std::string>& options, int selected) {
             for (size_t i = 0; i < options.size(); i++) {
-                std::cout << (selected == i ? "> " : "  ") << options[i] << "\n";
+                std::cout << (selected == static_cast<int>(i) ? "> " : "  ") << options[i] << "\n";
             }
         }
 
@@ -22,7 +22,7 @@ namespace muuk {
 
             // Initial display
             display_menu(options, selected);
-            char c;
+            int c;
 
             while (selecting) {
                 c = _getch(); // Capture key press

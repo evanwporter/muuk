@@ -6,14 +6,43 @@
 #include <format>
 #include <sstream>
 
-MuukFiler::MuukFiler(std::shared_ptr<IFileOperations> file_ops)
-    : file_ops_(std::move(file_ops)) {
+MuukFiler::MuukFiler(std::shared_ptr<IFileOperations> file_ops, bool is_lock_file_)
+    : file_ops_(std::move(file_ops)), is_lock_file(is_lock_file_) {
     config_file_ = file_ops_->get_file_path();
     parse();
 }
 
-MuukFiler::MuukFiler(const std::string& config_file)
-    : MuukFiler(std::make_shared<FileOperations>(config_file)) {
+MuukFiler::MuukFiler(const std::string& config_file, bool is_lock_file)
+    : MuukFiler(std::make_shared<FileOperations>(config_file), is_lock_file) {
+}
+
+Result<MuukFiler> MuukFiler::create(std::shared_ptr<IFileOperations> file_ops, bool is_lock_file) {
+    if (!file_ops) {
+        return Err("Invalid file operations provided.");
+    }
+
+    std::string config_file = file_ops->get_file_path();
+    if (config_file.empty()) {
+        return Err("Error: Config file not specified.");
+    }
+
+    if (!file_ops->exists()) {
+        return Err("Failed to open file: {}", config_file);
+    }
+
+    MuukFiler filer(std::move(file_ops), is_lock_file);
+
+    auto result = muuk::validate_muuk_toml(filer.get_config());
+    if (!result) {
+        muuk::logger::error(result.error());
+        return Err("");
+    }
+
+    return filer;
+}
+
+Result<MuukFiler> MuukFiler::create(const std::string& config_file, bool is_lock_file) {
+    return create(std::make_shared<FileOperations>(config_file), is_lock_file);
 }
 
 void MuukFiler::parse() {

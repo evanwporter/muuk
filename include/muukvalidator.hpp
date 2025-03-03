@@ -3,6 +3,7 @@
 #define MUUKVALIDATOR_HPP
 
 #include "logger.h"
+#include "rustify.hpp"
 
 #include <toml++/toml.h>
 #include <iostream>
@@ -31,15 +32,15 @@ namespace muuk {
         std::optional<std::unordered_map<std::string, SchemaNode>> children = std::nullopt;
     };
 
-    TomlType get_toml_type(const toml::node& node);
+    Result<TomlType> get_toml_type(const toml::node& node);
 
-    bool validate_toml_(
+    Result<void> validate_toml_(
         const toml::table& toml_data,
         const std::unordered_map<std::string, SchemaNode>& schema,
         std::string parent_path = ""
     );
 
-    bool validate_muuk_toml(const toml::table& toml_data);
+    Result<void> validate_muuk_toml(const toml::table& toml_data);
 } // namespace muuk
 
 #endif // MUUKVALIDATOR_HPP

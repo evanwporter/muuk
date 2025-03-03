@@ -14,11 +14,9 @@
 //       #///####(((########                       ######&@%@##(//###     @##(&   
 // ?.:+*++ = : .        .. : ---- : .      .   ...     .. : = ++ += .. .       .
 
-#include "../include/muuker.hpp"
-#include "../include/muukfiler.h"
-#include "../include/util.h"
-#include "../include/logger.h"
-#include "../include/buildconfig.h"
+#include "muuk.h"
+#include "muukfiler.h"
+#include "util.h"
 
 #include <filesystem>
 #include <cstdlib>

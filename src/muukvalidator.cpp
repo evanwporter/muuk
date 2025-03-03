@@ -1,5 +1,6 @@
 #include "logger.h"
 #include "muukvalidator.hpp"
+#include "rustify.hpp"
 
 #include <toml++/toml.h>
 #include <iostream>
@@ -13,7 +14,7 @@
 
 namespace muuk {
 
-    TomlType get_toml_type(const toml::node& node) {
+    Result<TomlType> get_toml_type(const toml::node& node) {
         if (node.is_table()) return TomlType::Table;
         if (node.is_array()) return TomlType::Array;
         if (node.is_string()) return TomlType::String;
@@ -23,59 +24,106 @@ namespace muuk {
         if (node.is_date()) return TomlType::Date;
         if (node.is_time()) return TomlType::Time;
         if (node.is_date_time()) return TomlType::DateTime;
-        throw invalid_toml("Unknown TOML type");
+
+        return Err("Unknown TOML type");
     }
 
-    bool validate_toml_(
+    Result<void> validate_toml_(
         const toml::table& toml_data,
         const std::unordered_map<std::string, SchemaNode>& schema,
         std::string parent_path
     ) {
+        bool has_wildcard = schema.contains("*");
+        const SchemaNode* wildcard_schema = has_wildcard ? &schema.at("*") : nullptr;
+
         for (const auto& [key, schema_node] : schema) {
-            std::string full_path = parent_path.empty() ? key : parent_path + "." + key;
+            if (key == "*") continue; // Wildcard handled separately
+
+            std::string full_path = parent_path.empty() ? std::string(key) : parent_path + "." + std::string(key);
 
             // Check if key exists
             if (!toml_data.contains(key)) {
                 if (schema_node.required) {
-                    throw invalid_toml("Missing required key: " + full_path);
+                    return Err("Missing required key: {}", full_path);
                 }
                 continue;
             }
 
-            // Get TOML node
-            const toml::node& node = *toml_data.get(key);
-            TomlType node_type = get_toml_type(node);
-
             // Validate type
-            if (node_type != schema_node.type) {
-                std::cerr << "Type mismatch at " << full_path << "\n";
-                throw invalid_toml("Type mismatch at " + full_path);
+            const toml::node& node = *toml_data.get(key);
+            auto node_type = get_toml_type(node);
+            if (!node_type) {
+                return Err(node_type.error());
+            }
+
+            if (*node_type != schema_node.type) {
+                return Err("Type mismatch at {}", full_path);
             }
 
             // Handle array validation
             if (schema_node.type == TomlType::Array && schema_node.allowed_types) {
                 auto arr = node.as_array();
-                if (!schema_node.allowed_types->empty()) {
-                    TomlType first_type = get_toml_type(*arr->get(0));
-                    for (const auto& item : *arr) {
-                        TomlType item_type = get_toml_type(item);
-                        if (std::find(schema_node.allowed_types->begin(), schema_node.allowed_types->end(), item_type) == schema_node.allowed_types->end()) {
-                            std::cerr << "Array at " << full_path << " contains invalid type\n";
-                            throw invalid_toml("Array at " + full_path + " contains invalid type");
-                        }
+                if (!arr || arr->empty()) {
+                    return Err("Array at {} is empty or invalid.", full_path);
+                }
+
+                for (const auto& item : *arr) {
+                    auto item_type = get_toml_type(item);
+                    if (!item_type) {
+                        return Err("Invalid array element type at {}", full_path);
+                    }
+                    if (std::find(schema_node.allowed_types->begin(), schema_node.allowed_types->end(), *item_type) == schema_node.allowed_types->end()) {
+                        return Err("Array at {} contains invalid type", full_path);
                     }
                 }
             }
 
+            // Recursively validate nested tables
             if (schema_node.type == TomlType::Table && schema_node.children) {
                 auto tbl = node.as_table();
-                validate_toml_(*tbl, *schema_node.children, full_path);
+                if (!tbl) {
+                    return Err("Invalid table at {}", full_path);
+                }
+                auto result = validate_toml_(*tbl, *schema_node.children, full_path);
+                if (!result) {
+                    return result;
+                }
             }
         }
-        return true;
+
+        // Handle wildcard schema
+        if (has_wildcard) {
+            for (const auto& [key, node] : toml_data) {
+                std::string full_path = parent_path.empty() ? std::string(key) : parent_path + "." + std::string(key);
+
+                // Validate type
+                auto node_type = get_toml_type(node);
+                if (!node_type) {
+                    return Err(node_type.error());
+                }
+
+                if (*node_type != wildcard_schema->type) {
+                    return Err("Type mismatch at {}", full_path);
+                }
+
+                // Recursively validate wildcard children
+                if (wildcard_schema->type == TomlType::Table && wildcard_schema->children) {
+                    auto tbl = node.as_table();
+                    if (!tbl) {
+                        return Err("Invalid table at {}", full_path);
+                    }
+                    auto result = validate_toml_(*tbl, *wildcard_schema->children, full_path);
+                    if (!result) {
+                        return result;
+                    }
+                }
+            }
+        }
+
+        return {}; // Success
     }
 
-    bool validate_muuk_toml(const toml::table& toml_data) {
+    Result<void> validate_muuk_toml(const toml::table& toml_data) {
         std::unordered_map<std::string, SchemaNode> schema = std::unordered_map<std::string, SchemaNode>{
             {"package", {false, TomlType::Table, std::nullopt, std::unordered_map<std::string, SchemaNode>{
                 {"name", {true, TomlType::String, std::nullopt, std::nullopt}},
@@ -90,16 +138,18 @@ namespace muuk {
                 {"keywords", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}}
             }}},
             {"library", {false, TomlType::Table, std::nullopt, std::unordered_map<std::string, SchemaNode>{
-                {"include", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}},
-                {"cflags", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}},
-                {"system_include", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}},
-                {"dependencies", {false, TomlType::Table, std::nullopt, std::unordered_map<std::string, SchemaNode>{
-                }}},
-                {"compiler", {false, TomlType::Table, std::nullopt, std::unordered_map<std::string, SchemaNode>{
-                    {"cflags", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}}
-                }}},
-                {"platform", {false, TomlType::Table, std::nullopt, std::unordered_map<std::string, SchemaNode>{
-                    {"cflags", {false, TomlType::Array,std::vector<TomlType>{TomlType::String}, std::nullopt}}
+                {"*", {false, TomlType::Table, std::nullopt, std::unordered_map<std::string, SchemaNode>{
+                    {"include", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}},
+                    {"cflags", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}},
+                    {"system_include", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}},
+                    {"dependencies", {false, TomlType::Table, std::nullopt, std::unordered_map<std::string, SchemaNode>{
+                    }}},
+                    {"compiler", {false, TomlType::Table, std::nullopt, std::unordered_map<std::string, SchemaNode>{
+                        {"cflags", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}}
+                    }}},
+                    {"platform", {false, TomlType::Table, std::nullopt, std::unordered_map<std::string, SchemaNode>{
+                        {"cflags", {false, TomlType::Array,std::vector<TomlType>{TomlType::String}, std::nullopt}}
+                    }}}
                 }}}
             }}},
             {"build", {false, TomlType::Table, std::nullopt, std::unordered_map<std::string, SchemaNode>{

@@ -1,29 +1,13 @@
 #pragma once
+#ifndef MUUK_H
+#define MUUK_H
+
+#include "rustify.hpp"
+#include "muukfiler.h"
+
 #include <tl/expected.hpp>
 #include <string>
-#include <fmt/core.h>
-#include <format>
-
-template <typename T>
-using Result = tl::expected<T, std::string>;
-
-template <typename T>
-constexpr Result<T> Ok(T value) {
-    return std::move(value);
-}
-
-template <typename... Args>
-constexpr auto Err(fmt::format_string<Args...> fmt_str, Args&&... args) {
-    return tl::unexpected(fmt::format(fmt_str, std::forward<Args>(args)...));
-}
-
-#define Try(expr) ({ auto&& res = (expr); if (!res) return Err(res.error()); std::move(res.value()); })
-#define Ensure(cond, msg) if (!(cond)) return Err<void>(msg)
-
-// template <typename... Args>
-// constexpr auto Bail(Args&&... args) {
-//     return Err<void>(std::format(std::forward<Args>(args)...));
-// }
+#include <vector>
 
 namespace muuk {
     namespace compiler {
@@ -47,4 +31,13 @@ namespace muuk {
     std::string normalize_flag(const std::string& flag, const compiler::Compiler compiler);
     std::string normalize_flags(const std::vector<std::string>& flags, const compiler::Compiler compiler);
     void normalize_flags_inplace(std::vector<std::string>& flags, const compiler::Compiler compiler);
+
+    // void clean(MuukFiler& config_manager);
+    // void run_script(
+    //     const MuukFiler& config_manager,
+    //     const std::string& script,
+    //     const std::vector<std::string>& args
+    // );
 }
+
+#endif // MUUK_H

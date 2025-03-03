@@ -1,5 +1,12 @@
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 
+#include "muuk.h"
+#include "muuker.hpp"
+#include "muukfiler.h"
+#include "logger.h"
+#include "util.h"
+#include "package_manager.h"
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -11,26 +18,13 @@
 #include <vector>
 #include <argparse/argparse.hpp>
 #include <cracklib.hpp>
-
-#include "muuker.hpp"
-#include "muukfiler.h"
-#include "logger.h"
-#include "util.h"
-#include "muuk.h"
-
-#include "package_manager.h"
-
 #include <tl/expected.hpp>
-#include <iostream>
-
-
 
 // Define a macro to handle tl::expected, if the unexpected happens it will log the error and return 1, otherwise it will return 0
 #define CHECK_CALL(call)                    \
     do {                                             \
         auto result = (call);                        \
         if (!result) {                               \
-            muuk::logger::error(result.error()); \
             return 1;                                \
         }                                            \
     } while (0)

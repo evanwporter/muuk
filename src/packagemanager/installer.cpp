@@ -84,8 +84,13 @@ namespace muuk {
 
         bool is_installed_version_matching(const fs::path muuk_toml_path, const std::string& version, const std::string& revision, const std::string& tag) {
             try {
-                MuukFiler muukFiler(muuk_toml_path.string());
-                toml::table config = muukFiler.get_config();
+                auto muukFiler = MuukFiler::create(muuk_toml_path.string());
+                if (!muukFiler) {
+                    muuk::logger::error("Error reading '{}'", muuk_toml_path.string());
+                    return false;
+                }
+
+                toml::table config = muukFiler->get_config();
 
                 if (!config.contains("package") || !config["package"].is_table()) {
                     muuk::logger::warn("'{}' has no valid [package] section.", muuk_toml_path.string());
@@ -185,8 +190,8 @@ namespace muuk {
 
                 if (fs::exists(muuk_toml_path)) {
                     muuk::logger::info("Updating '{}' with installed version information.", muuk_toml_path.string());
-                    MuukFiler muukFiler(muuk_toml_path.string());
-                    toml::table& package_section = muukFiler.get_section("package");
+                    MuukFiler muukFilerInstalled(muuk_toml_path.string());
+                    toml::table& package_section = muukFilerInstalled.get_section("package");
 
                     if (!version.empty()) package_section.insert_or_assign("version", version);
                     if (!revision.empty()) package_section.insert_or_assign("revision", revision);

@@ -115,9 +115,12 @@ namespace muuk {
                     return tl::unexpected("muuk.toml file not found: " + toml_path);
                 }
 
-                MuukFiler muukFiler(toml_path);
+                auto muukFiler = MuukFiler::create(toml_path);
+                if (!muukFiler) {
+                    return tl::unexpected("Failed to create MuukFiler for: " + toml_path);
+                }
 
-                toml::table package_section = muukFiler.get_section("package");
+                toml::table package_section = muukFiler->get_section("package");
                 if (!package_section.contains("name") || !package_section["name"].is_string()) {
                     return tl::unexpected("Invalid muuk.toml: missing package.name");
                 }
@@ -128,7 +131,7 @@ namespace muuk {
                     ? "library." + package_name + ".dependencies"
                     : target_section + ".dependencies";
 
-                toml::table& dependencies = muukFiler.get_section(dependencies_section);
+                toml::table& dependencies = muukFiler->get_section(dependencies_section);
 
                 auto [author, repo_name] = split_author_repo(repo);
                 if (repo_name.empty()) {
@@ -208,8 +211,8 @@ namespace muuk {
                 std::istringstream new_table_stream(toml_string.str());
                 toml::table new_dependencies = toml::parse(new_table_stream);
 
-                muukFiler.modify_section(dependencies_section, new_dependencies);
-                muukFiler.write_to_file();
+                muukFiler->modify_section(dependencies_section, new_dependencies);
+                muukFiler->write_to_file();
 
                 muuk::logger::info("Added dependency '{}' to '{}'", repo_name, toml_path);
                 return {};

@@ -17,6 +17,11 @@
 
 namespace fs = std::filesystem;
 
+struct Dependency {
+    std::string name;
+    std::string version;
+};
+
 class Package {
 public:
     Package(const std::string& name,
@@ -48,10 +53,9 @@ public:
     std::unordered_map<std::string, std::unordered_map<std::string, std::set<std::string>>> compiler_;
 
     std::set<std::string> deps;
+    std::vector<std::string> deps_;
     std::unordered_map<std::string, std::unordered_map<std::string, std::string>> dependencies;
 
-private:
-    std::shared_ptr<spdlog::logger> logger_;
 };
 
 class MuukLockGenerator {
@@ -66,6 +70,8 @@ private:
     std::unique_ptr<MuukModuleParser> module_parser_;
 
     std::unordered_map<std::string, toml::table> dependencies_;
+
+    std::vector<Dependency> deps_;
 
     std::unordered_set<std::string> visited;
     std::vector<std::string> resolved_order_;
