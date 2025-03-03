@@ -22,7 +22,7 @@ private:
     std::shared_ptr<BuildManager> build_manager;
     std::shared_ptr<MuukFiler> muuk_filer;
     toml::table config_;
-    fs::path build_dir;
+    const fs::path& build_dir;
     muuk::compiler::Compiler compiler;
     std::string profile_;
 
@@ -31,8 +31,8 @@ public:
         std::shared_ptr<BuildManager> manager,
         std::shared_ptr<MuukFiler> muuk_filer,
         muuk::compiler::Compiler compiler,
-        fs::path build_dir,
-        const std::string profile
+        const fs::path& build_dir,
+        std::string profile
     );
 
     void parse();

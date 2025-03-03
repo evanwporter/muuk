@@ -18,6 +18,12 @@
 #include <chrono>
 #include <ctime>
 #include <string>
+#ifdef _WIN32
+#include <windows.h>
+#endif
+#include <set>
+#include <vector>
+#include <algorithm>
 
 extern "C" {
 #include "zip.h"
@@ -140,7 +146,7 @@ namespace util {
 
         spdlog::info("Executing download command: {}", command);
 
-        int result = util::execute_command(command.c_str());
+        int result = util::execute_command(command);
         if (result != 0) {
             spdlog::error("Failed to download file from {}. Command exited with code: {}", url, result);
             throw std::runtime_error("File download failed.");
@@ -176,11 +182,6 @@ namespace util {
         }
     } // namespace network
 
-#ifdef _WIN32
-#include <windows.h>
-#endif
-#include <set>
-#include <vector>
 
     std::string to_utf8(const std::wstring& wstr) {
 #ifdef _WIN32
@@ -200,18 +201,6 @@ namespace util {
 #endif
     }
 
-
-    bool is_valid_utf8(const std::string& str) {
-#ifdef _WIN32
-        int len = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, str.c_str(), -1, nullptr, 0);
-        return len > 0;
-#else
-        std::mbstate_t state{};
-        const char* src = str.c_str();
-        wchar_t tmp;
-        return std::mbsrtowcs(&tmp, &src, 1, &state) != static_cast<size_t>(-1);
-#endif
-    }
 
     bool command_exists(const std::string& command) {
 #ifdef _WIN32
@@ -238,14 +227,15 @@ namespace util {
             muuk::logger::error("Unknown error occurred during normalize path.");
             throw;
         }
-}
+    }
 
     std::vector<std::string> to_linux_path(const std::vector<std::string>& paths, const std::string& prefix) {
         std::vector<std::string> new_paths;
-        new_paths.reserve(paths.size());
-        for (const auto& path : paths) {
-            new_paths.push_back(to_linux_path(path, prefix));
-        }
+        new_paths.reserve(paths.size());  // Reserve space for efficiency
+
+        std::transform(paths.begin(), paths.end(), std::back_inserter(new_paths),
+            [&prefix](const std::string& path) { return to_linux_path(path, prefix); });
+
         return new_paths;
     }
 
@@ -330,7 +320,7 @@ namespace util {
     // ==========================
     namespace git {
 
-        std::string git::get_latest_revision(const std::string& git_url) {
+        std::string get_latest_revision(const std::string& git_url) {
             std::string commit_hash_cmd = "git ls-remote " + git_url + " HEAD";
             std::string output = util::execute_command_get_out(commit_hash_cmd);
             std::string revision = output.substr(0, output.find('\t'));
@@ -368,6 +358,6 @@ namespace util {
     } // namespace time
 
 
-    } // namespace util
+} // namespace util
 
 

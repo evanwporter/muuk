@@ -39,7 +39,7 @@ private:
     std::shared_ptr<spdlog::logger> logger_;
 
 public:
-    MuukModuleParser(const std::string& path) : toml_path(path) {
+    explicit MuukModuleParser(const std::string& path) : toml_path(path) {
         muuk::logger::trace("Initializing MuukModuleParser with path: {}", path);
         loadToml();
     }
@@ -181,7 +181,7 @@ public:
         return resolved_paths;
     }
 
-    std::vector<std::string> getResolvedCompilationOrder() {
+    const std::vector<std::string>& getResolvedCompilationOrder() {
         return resolved_modules;
     }
 };

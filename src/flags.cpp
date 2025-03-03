@@ -9,6 +9,17 @@
 
 namespace muuk {
     std::string normalize_flag(const std::string& flag, const compiler::Compiler compiler) {
+        std::string normalized_flag = flag;
+
+        if (flag[0] != '/' && flag[0] != '-') {
+            if (compiler == compiler::Compiler::MSVC) {
+                normalized_flag = "/" + flag;
+            }
+            else {
+                normalized_flag = "-" + flag;
+            }
+        }
+
         static const std::unordered_map<std::string, std::string> msvc_to_gcc = {
             {"/I", "-I"},
             {"/Fe", "-o"},
@@ -52,7 +63,9 @@ namespace muuk {
             {"/SUBSYSTEM:CONSOLE", "-Wl,-subsystem,console"},
             {"/SUBSYSTEM:WINDOWS", "-Wl,-subsystem,windows"},
             {"/GS", "-fstack-protector-strong"},
-            {"/sdl", "-D_FORTIFY_SOURCE=2"}
+            {"/sdl", "-D_FORTIFY_SOURCE=2"},
+            {"/DEBUG", "-g" },
+            {"/MACHINE:X86", "-m64"}
         };
 
         static const std::unordered_map<std::string, std::string> gcc_to_msvc = {
@@ -76,35 +89,28 @@ namespace muuk {
         };
 
         constexpr auto std_pattern = ctll::fixed_string{ R"((?:/std:c\+\+|-std=c\+\+)(\d+))" };
-        std::string normalized_flag = flag;
 
         if (flag.starts_with("/D") || flag.starts_with("-D")) {
-#ifdef _WIN32
-            return "/D" + flag.substr(2);  // MSVC uses /D
-#else
-            return "-D" + flag.substr(2);  // GCC uses -D
-#endif
+            if (compiler == compiler::Compiler::MSVC) {
+                return "/D" + flag.substr(2);  // MSVC uses /D
+            }
+            else {
+                return "-D" + flag.substr(2);  // GCC uses -D
+            }
         }
 
-        if (flag[0] != '/' && flag[0] != '-') {
-#ifdef _WIN32
-            normalized_flag = "/" + flag;
-#else
-            normalized_flag = "-" + flag;
-#endif
+        if (compiler == compiler::Compiler::MSVC) {
+            auto lookup = gcc_to_msvc.find(normalized_flag);
+            if (lookup != gcc_to_msvc.end()) {
+                return lookup->second;
+            }
         }
-
-#ifdef _WIN32
-        auto lookup = gcc_to_msvc.find(normalized_flag);
-        if (lookup != gcc_to_msvc.end()) {
-            return lookup->second;
+        else {
+            auto lookup = msvc_to_gcc.find(normalized_flag);
+            if (lookup != msvc_to_gcc.end()) {
+                return lookup->second;
+            }
         }
-#else
-        auto lookup = msvc_to_gcc.find(normalized_flag);
-        if (lookup != msvc_to_gcc.end()) {
-            return lookup->second;
-        }
-#endif
 
         // Handle C++ standard flag conversion (-std=c++20 <-> /std:c++20)
         if (auto match = ctre::match<std_pattern>(flag)) {
@@ -124,5 +130,12 @@ namespace muuk {
             normalized += " " + normalize_flag(flag, compiler);
         }
         return normalized;
+    }
+
+    // Normalize a vector of flags in-place
+    void normalize_flags_inplace(std::vector<std::string>& flags, const compiler::Compiler compiler) {
+        for (auto& flag : flags) {
+            flag = normalize_flag(flag, compiler);
+        }
     }
 }

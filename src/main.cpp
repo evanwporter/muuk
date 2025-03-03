@@ -1,3 +1,5 @@
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -104,8 +106,14 @@ int main(int argc, char* argv[]) {
         .default_value(std::string(""))
         .nargs(1);
     build_command.add_argument("-c", "--compiler")
-        .help("Specify a compiler to use (e.g., g++, clang++, cl)")
-        .default_value(std::string(""))
+        .help("Specify a compiler to use (e.g., gcc, clang, cl)")
+#ifdef _WIN32
+        .default_value(std::string("cl")) // MSVC
+#elif defined(__APPLE__)
+        .default_value(std::string("clang")) // Apple Clang
+#elif defined(__linux__)
+        .default_value(std::string("gcc")) // GNU Linux
+#endif
         .nargs(1);
     build_command.add_argument("-p", "--profile")
         .help("Specify a build profile (e.g., debug, release)")
@@ -270,11 +278,10 @@ int main(int argc, char* argv[]) {
         // Commands that require `muuk.toml`
         muuk::logger::info("[muuk] Using configuration from: {}", muuk_path);
         MuukFiler muukFiler(muuk_path);
-        Muuker muuk(muukFiler);
         MuukBuilder muukBuilder(muukFiler);
 
         if (program.is_subcommand_used("clean")) {
-            muuk.clean();
+            muuk::clean(muukFiler);
             return 0;
         }
 
@@ -285,7 +292,7 @@ int main(int argc, char* argv[]) {
                 muuk::logger::error("Error: No script name provided for 'run'.\n");
                 return 1;
             }
-            muuk.run_script(script.value(), extra_args);
+            muuk::run_script(muukFiler, script.value(), extra_args);
             return 0;
         }
 
@@ -311,4 +318,4 @@ int main(int argc, char* argv[]) {
     }
 
     return 0;
-    }
+}

@@ -81,7 +81,6 @@ private:
     // TODO: Use or Remove
     void process_modules(const std::vector<std::string>& module_paths, Package& package);
 
-    // TODO: Use or Remove
     std::optional<std::shared_ptr<Package>> find_package(const std::string& package_name);
 
     // TODO: Use or Remove

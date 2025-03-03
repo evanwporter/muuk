@@ -85,10 +85,10 @@ TEST(UtilCommandTest, ExecuteCommand) {
 }
 
 // **Test Case: UTF-8 Validation**
-TEST(UtilStringTest, IsValidUTF8) {
-    EXPECT_TRUE(util::is_valid_utf8("Hello World"));
-    EXPECT_FALSE(util::is_valid_utf8(std::string("\xFF\xFF\xFF")));  // Invalid UTF-8
-}
+// TEST(UtilStringTest, IsValidUTF8) {
+//     EXPECT_TRUE(util::is_valid_utf8("Hello World"));
+//     EXPECT_FALSE(util::is_valid_utf8(std::string("\xFF\xFF\xFF")));  // Invalid UTF-8
+// }
 
 // **Test Case: Convert to UTF-8**
 TEST(UtilStringTest, ConvertToUTF8) {
@@ -122,13 +122,13 @@ TEST(UtilPathTest, RemoveNonExistentPath) {
 }
 
 // ** Test Case: Ensure UTF-8 Validity Check Handles Edge Cases **
-TEST(UtilStringTest, UTF8EdgeCases) {
-    std::string valid_utf8 = "Hello, 世界";
-    std::string invalid_utf8 = std::string("\xFF\xFF\xFF");
+// TEST(UtilStringTest, UTF8EdgeCases) {
+//     std::string valid_utf8 = "Hello, 世界";
+//     std::string invalid_utf8 = std::string("\xFF\xFF\xFF");
 
-    EXPECT_TRUE(util::is_valid_utf8(valid_utf8));
-    EXPECT_FALSE(util::is_valid_utf8(invalid_utf8));
-}
+//     EXPECT_TRUE(util::is_valid_utf8(valid_utf8));
+//     EXPECT_FALSE(util::is_valid_utf8(invalid_utf8));
+// }
 
 // ** Test Case: Match Wildcards with Edge Cases **
 TEST(UtilPatternTest, WildcardMatchingEdgeCases) {

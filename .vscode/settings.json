@@ -129,5 +129,11 @@
   },
   "launches": {
     "lauchDebugger": "(Windows) Launch"
-  }
+  },
+  "c-cpp-flylint.run": "onSave",
+  "c-cpp-flylint.standard": ["c23", "c++23"],
+  "c-cpp-flylint.lizard.enable": false,
+  "c-cpp-flylint.flexelint.enable": false,
+  "c-cpp-flylint.flawfinder.enable": false,
+  "c-cpp-flylint.cppcheck.extraArgs": ["--suppress=missingIncludeSystem"]
 }

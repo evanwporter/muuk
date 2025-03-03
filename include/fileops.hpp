@@ -10,7 +10,7 @@ private:
     std::string file_path;
 
 public:
-    FileOperations(const std::string& path) : file_path(path) {}
+    explicit FileOperations(const std::string& path) : file_path(path) {}
 
     bool exists() const override {
         return std::filesystem::exists(file_path);

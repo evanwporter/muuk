@@ -325,15 +325,7 @@ tl::expected<void, std::string> MuukLockGenerator::resolve_dependencies(const st
     visited.insert(package_name);
     muuk::logger::info("Resolving dependencies for: {} with muuk path: '{}'", package_name, search_path.value_or(""));
 
-
-    std::optional<std::shared_ptr<Package>> package_opt;
-
-    if (resolved_packages_["library"].count(package_name)) {
-        package_opt = resolved_packages_["library"][package_name];
-    }
-    else if (resolved_packages_["build"].count(package_name)) {
-        package_opt = resolved_packages_["build"][package_name];
-    }
+    std::optional<std::shared_ptr<Package>> package_opt = find_package(package_name);
 
     if (!package_opt.has_value()) {
         if (search_path) {

@@ -26,8 +26,8 @@ private:
 public:
     virtual ~MuukFiler() = default;
 
-    MuukFiler(std::shared_ptr<IFileOperations> file_ops);
-    MuukFiler(const std::string& config_file);
+    explicit MuukFiler(std::shared_ptr<IFileOperations> file_ops);
+    explicit MuukFiler(const std::string& config_file);
 
     toml::table& get_section(const std::string& section);
     void modify_section(const std::string& section, const toml::table& data);
@@ -38,11 +38,11 @@ public:
 
     static std::string format_dependencies(const std::unordered_map<std::string, toml::table>& dependencies, std::string section_name = "dependencies");
 
-    std::vector<std::string> get_section_order() const {
+    const std::vector<std::string>& get_section_order() const {
         return section_order_;
     }
 
-    std::unordered_map<std::string, toml::table> get_sections() const {
+    const std::unordered_map<std::string, toml::table>& get_sections() const {
         return sections_;
     }
 

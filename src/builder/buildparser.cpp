@@ -2,6 +2,8 @@
 #include "../include/buildparser.hpp"
 #include "../include/buildmanager.h"
 
+#include <fmt/core.h>
+#include <fmt/ranges.h>
 #include <filesystem>
 #include <vector>
 #include <unordered_map>
@@ -11,13 +13,7 @@
 
 namespace fs = std::filesystem;
 
-BuildParser::BuildParser(
-    std::shared_ptr<BuildManager> manager,
-    std::shared_ptr<MuukFiler> muuk_filer,
-    muuk::compiler::Compiler compiler,
-    fs::path build_dir,
-    const std::string profile_
-) :
+BuildParser::BuildParser(std::shared_ptr<BuildManager> manager, std::shared_ptr<MuukFiler> muuk_filer, muuk::compiler::Compiler compiler, const fs::path& build_dir, std::string profile) :
     build_manager(std::move(manager)),
     compiler(compiler),
     muuk_filer(std::move(muuk_filer)),
@@ -27,6 +23,7 @@ BuildParser::BuildParser(
 }
 
 void BuildParser::parse() {
+
     parse_compilation_targets();
     parse_libraries();
     parse_executables();
@@ -48,6 +45,11 @@ void BuildParser::parse_compilation_targets() {
         // Extract platform and compiler-specific flags
         std::vector<std::string> platform_cflags = extract_platform_flags(package_table);
         std::vector<std::string> compiler_cflags = extract_compiler_flags(package_table);
+
+        muuk::normalize_flags_inplace(cflags, compiler);
+        muuk::normalize_flags_inplace(iflags, compiler);
+        muuk::normalize_flags_inplace(platform_cflags, compiler);
+        muuk::normalize_flags_inplace(compiler_cflags, compiler);
 
         if (package_table.contains("sources")) {
             auto sources = package_table.at("sources").as_array();
@@ -78,6 +80,8 @@ void BuildParser::parse_compilation_targets() {
                     // Add platform and compiler-specific flags
                     src_cflags.insert(src_cflags.end(), platform_cflags.begin(), platform_cflags.end());
                     src_cflags.insert(src_cflags.end(), compiler_cflags.begin(), compiler_cflags.end());
+
+                    muuk::normalize_flags_inplace(src_cflags, compiler);
 
                     build_manager->add_compilation_target(src_path, obj_path, src_cflags, iflags);
                 }
@@ -117,6 +121,7 @@ void BuildParser::parse_libraries() {
         }
 
         std::vector<std::string> aflags = extract_flags(package_table, "aflags");
+        muuk::normalize_flags_inplace(aflags, compiler);
         build_manager->add_archive_target(lib_path, obj_files, aflags);
     }
 }
@@ -214,27 +219,25 @@ void BuildParser::parse_executables() {
         // Collect linker flags
         std::vector<std::string> lflags = extract_flags(build_table, "lflags");
 
+        muuk::normalize_flags_inplace(lflags, compiler);
+
         // Add to build manager
         build_manager->add_link_target(exe_path, obj_files, libs, lflags);
 
         // Logging for debugging
         muuk::logger::trace(std::format("Added link target: {}", exe_path));
 
-        muuk::logger::trace(std::format("  - Objects: {}",
-            obj_files.empty() ? "None" : std::accumulate(std::next(obj_files.begin()), obj_files.end(), obj_files[0],
-                [](std::string a, std::string b) { return std::move(a) + ", " + b; })));
+        muuk::logger::trace(fmt::format("  - Objects: {}",
+            obj_files.empty() ? std::string("None") : fmt::to_string(fmt::join(obj_files, ", "))));
 
-        muuk::logger::trace(std::format("  - Libraries: {}",
-            libs.empty() ? "None" : std::accumulate(std::next(libs.begin()), libs.end(), libs[0],
-                [](std::string a, std::string b) { return std::move(a) + ", " + b; })));
+        muuk::logger::trace(fmt::format("  - Libraries: {}",
+            libs.empty() ? std::string("None") : fmt::to_string(fmt::join(libs, ", "))));
 
-        muuk::logger::trace(std::format("  - Include Flags: {}",
-            iflags.empty() ? "None" : std::accumulate(std::next(iflags.begin()), iflags.end(), iflags[0],
-                [](std::string a, std::string b) { return std::move(a) + ", " + b; })));
+        muuk::logger::trace(fmt::format("  - Include Flags: {}",
+            iflags.empty() ? std::string("None") : fmt::to_string(fmt::join(iflags, ", "))));
 
-        muuk::logger::trace(std::format("  - Linker Flags: {}",
-            lflags.empty() ? "None" : std::accumulate(std::next(lflags.begin()), lflags.end(), lflags[0],
-                [](std::string a, std::string b) { return std::move(a) + ", " + b; })));
+        muuk::logger::trace(fmt::format("  - Linker Flags: {}",
+            lflags.empty() ? std::string("None") : fmt::to_string(fmt::join(lflags, ", "))));
     }
 }
 

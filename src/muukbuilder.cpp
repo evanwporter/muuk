@@ -160,7 +160,7 @@ tl::expected<std::string, std::string> MuukBuilder::select_profile(const std::st
     return tl::unexpected("No valid profiles found.");
 }
 
-tl::expected<void, std::string> MuukBuilder::add_script(const std::string& profile) {
+tl::expected<void, std::string> MuukBuilder::add_script(const std::string& profile, const std::string& build_name) {
     try {
         MuukFiler muuk_filer("muuk.toml");
 

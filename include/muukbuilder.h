@@ -31,7 +31,7 @@ private:
     std::string detect_archiver(muuk::compiler::Compiler compiler) const;
     std::string detect_linker(muuk::compiler::Compiler compiler) const;
     tl::expected<std::string, std::string> select_profile(const std::string& profile);
-    tl::expected<void, std::string> add_script(const std::string& profile);
+    tl::expected<void, std::string> add_script(const std::string& profile, const std::string& build_name);
 };
 
 #endif // MUUK_BUILDER_H

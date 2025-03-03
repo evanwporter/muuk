@@ -46,4 +46,5 @@ namespace muuk {
     // flag handler
     std::string normalize_flag(const std::string& flag, const compiler::Compiler compiler);
     std::string normalize_flags(const std::vector<std::string>& flags, const compiler::Compiler compiler);
+    void normalize_flags_inplace(std::vector<std::string>& flags, const compiler::Compiler compiler);
 }

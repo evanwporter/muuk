@@ -2,15 +2,21 @@
   "configurations": [
     {
       "name": "Win32",
-      "includePath": ["${workspaceFolder}/**"],
+      "includePath": [
+        "${workspaceFolder}/**",
+        "${workspaceFolder}/include",
+        "${workspaceFolder}/deps/compile-time-regular-expressions/single-header",
+        "${workspaceFolder}/deps/argparse/include",
+        "${workspaceFolder}/deps/cracklib/include"
+      ],
       "defines": ["_DEBUG", "UNICODE", "_UNICODE"],
       "windowsSdkVersion": "10.0.22621.0",
       "cStandard": "c23",
-      "cppStandard": "c++23",
-      "compileCommands": [
-        "${workspaceFolder}/build/release/compile_commands.json",
-        "${workspaceFolder}/build/debug/compile_commands.json"
-      ]
+      "cppStandard": "c++23"
+      // "compileCommands": [
+      //   "${workspaceFolder}/build/release/compile_commands.json",
+      //   "${workspaceFolder}/build/debug/compile_commands.json"
+      // ]
     }
   ],
   "version": 4
