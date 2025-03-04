@@ -34,7 +34,7 @@ Result<MuukFiler> MuukFiler::create(std::shared_ptr<IFileOperations> file_ops, b
 
     auto result = muuk::validate_muuk_toml(filer.get_config());
     if (!result) {
-        muuk::logger::error(result.error());
+        muuk::logger::error("Issue with {}: {}", file_ops->get_file_path(), result.error());
         return Err("");
     }
 
@@ -57,7 +57,6 @@ void MuukFiler::parse() {
     // slows down the process
     try {
         config_ = toml::parse(content);
-        muuk::validate_muuk_toml(config_);
     }
     catch (const toml::parse_error& e) {
         muuk::fmt_rt_err("TOML Parsing Error: {}", e.what());
