@@ -84,13 +84,13 @@ namespace muuk {
 
         bool is_installed_version_matching(const fs::path muuk_toml_path, const std::string& version, const std::string& revision, const std::string& tag) {
             try {
-                auto muukFiler = MuukFiler::create(muuk_toml_path.string());
-                if (!muukFiler) {
+                auto muuk_filer = MuukFiler::create(muuk_toml_path.string());
+                if (!muuk_filer) {
                     muuk::logger::error("Error reading '{}'", muuk_toml_path.string());
                     return false;
                 }
 
-                toml::table config = muukFiler->get_config();
+                toml::table config = muuk_filer->get_config();
 
                 if (!config.contains("package") || !config["package"].is_table()) {
                     muuk::logger::warn("'{}' has no valid [package] section.", muuk_toml_path.string());
@@ -130,8 +130,12 @@ namespace muuk {
                 return tl::unexpected("muuk.lock.toml file not found.");
             }
 
-            MuukFiler muukFiler(lockfile_path.string());
-            toml::table lockfile_data = muukFiler.get_config();
+            auto result = MuukFiler::create(lockfile_path.string(), true);
+            if (!result) {
+                return Err("Failed to read lockfile: {}", result.error());
+            }
+            MuukFiler muuk_filer = result.value();
+            toml::table lockfile_data = muuk_filer.get_config();
 
             if (!lockfile_data.contains("dependencies") || !lockfile_data["dependencies"].is_table()) {
                 return tl::unexpected("No 'dependencies' section found in '" + lockfile_path.string() + "'");
@@ -197,7 +201,7 @@ namespace muuk {
                     if (!revision.empty()) package_section.insert_or_assign("revision", revision);
                     if (!tag.empty()) package_section.insert_or_assign("tag", tag);
 
-                    muukFiler.write_to_file();
+                    muuk_filer.write_to_file();
                 }
                 else {
                     muuk::logger::warn("Failed to install '{}'.", repo_name);
@@ -208,25 +212,33 @@ namespace muuk {
             return {};
         }
 
-        void remove_package(const std::string& package_name, const std::string& toml_path, const std::string& lockfile_path) {
+        // TODO: Pass `muukfiler` directly too function
+        Result<void> remove_package(const std::string& package_name, const std::string& toml_path, const std::string& lockfile_path) {
             muuk::logger::info("Removing package: {}", package_name);
 
             try {
                 if (!fs::exists(toml_path)) {
                     muuk::logger::error("muuk.toml file not found at '{}'", toml_path);
-                    throw std::runtime_error("muuk.toml file not found.");
+                    return Err("");
                 }
 
-                MuukFiler muukFiler(toml_path);
-                toml::table& dependencies = muukFiler.get_section("dependencies");
+                auto result = MuukFiler::create(toml_path);
+                if (!result) {
+                    // TODO: remove if logged in muukfiler
+                    muuk::logger::error("Failed to read '{}': {}", toml_path, result.error());
+                    return Err("");
+                }
+                MuukFiler muuk_filer = result.value();
+
+                toml::table& dependencies = muuk_filer.get_section("dependencies");
 
                 if (!dependencies.contains(package_name)) {
                     muuk::logger::error("Package '{}' is not listed in '{}'", package_name, toml_path);
-                    throw std::runtime_error("Package not found in muuk.toml.");
+                    return Err("");
                 }
 
                 dependencies.erase(package_name);
-                muukFiler.write_to_file();
+                muuk_filer.write_to_file();
 
                 if (fs::exists(lockfile_path)) {
                     MuukFiler lockFiler(lockfile_path);
@@ -251,7 +263,7 @@ namespace muuk {
             }
             catch (const std::exception& e) {
                 muuk::logger::error("Error removing package '{}': {}", package_name, e.what());
-                throw;
+                return Err("");
             }
         }
     }

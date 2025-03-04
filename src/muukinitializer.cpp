@@ -4,6 +4,8 @@
 #include <toml++/toml.hpp>
 #include <filesystem>
 
+#include "muuk.h"
+#include "rustify.hpp"
 #include "logger.h"
 #include "muukfiler.h"
 
@@ -54,7 +56,7 @@ namespace muuk {
         }
     }
 
-    void init_project() {
+    Result<void> init_project() {
         muuk::logger::info("Initializing a new muuk.toml configuration...");
 
         std::string project_name, author, version, license, include_path;
@@ -63,8 +65,8 @@ namespace muuk {
         std::getline(std::cin, project_name);
 
         if (project_name.empty()) {
-            std::cout << "Error: must specify project name";
-            return;
+            muuk::logger::error("must specify project name");
+            return Err("");
         }
 
         std::cout << "Enter author name: ";
@@ -88,7 +90,7 @@ namespace muuk {
         std::ofstream config_file("muuk.toml", std::ios::out | std::ios::trunc);
         if (!config_file.is_open()) {
             muuk::logger::error("Failed to create muuk.toml.");
-            return;
+            return Err("");
         }
 
         config_file << "[package]\n";
@@ -98,7 +100,12 @@ namespace muuk {
         config_file << "license = '" << license << "'\n\n";
         config_file.close();
 
-        MuukFiler filer("muuk.toml");
+        auto result = MuukFiler::create("muuk.toml");
+        if (!result) {
+            muuk::logger::error("Failed to create MuukFiler: {}", result.error());
+            return Err("");
+        }
+        MuukFiler filer = result.value();
 
         toml::table package_section{
             {"name", project_name},
@@ -175,7 +182,7 @@ namespace muuk {
         std::getline(std::cin, confirmation);
         if (confirmation != "yes") {
             std::cout << "Initialization aborted.\n";
-            return;
+            return {};
         }
 
         std::cout << "\nSuccessfully initialized muuk project!\n";
@@ -211,5 +218,6 @@ void hello_muuk() {
         }
 
         muuk::logger::trace("Project structure initialized.");
+        return {};
     }
 }

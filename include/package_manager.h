@@ -1,6 +1,7 @@
 #pragma once
 
 #include "logger.h"
+#include "rustify.hpp"
 
 #include <tl/expected.hpp>
 #include <spdlog/spdlog.h>
@@ -29,7 +30,7 @@ namespace muuk {
             const std::string& lockfile_path_string = "muuk.lock.toml"
         );
 
-        void remove_package(
+        Result<void> remove_package(
             const std::string& package_name,
             const std::string& toml_path = "muuk.toml",
             const std::string& lockfile_path = "muuk.lock.toml"
