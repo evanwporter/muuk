@@ -21,7 +21,7 @@ namespace muuk {
         Compiler from_string(const std::string& compiler_str);
     }
 
-    void init_project();
+    Result<void> init_project();
     tl::expected<void, std::string> qinit_library(
         const std::string& author,
         const std::string& repo

@@ -206,7 +206,7 @@ int main(int argc, char* argv[]) {
 
         // Command execution logic
         if (program.is_subcommand_used("init")) {
-            muuk::init_project();
+            CHECK_CALL(muuk::init_project());
             return 0;
         }
 
@@ -253,7 +253,7 @@ int main(int argc, char* argv[]) {
 
             muuk::logger::info("Adding dependency: {}", dependency_name);
 
-            CHECK_CALL(muuk::package_manager::add_dependency(
+            auto result = muuk::package_manager::add_dependency(
                 muuk_path,
                 dependency_name,
                 version,
@@ -264,18 +264,25 @@ int main(int argc, char* argv[]) {
                 branch,
                 is_system,
                 target_section
-            ));
+            );
 
             return 0;
         }
 
         // Commands that require `muuk.toml`
+        // The reason I define `muukfiler` here is so I can define the manifest location
         muuk::logger::info("[muuk] Using configuration from: {}", muuk_path);
-        MuukFiler muukFiler(muuk_path);
-        MuukBuilder muukBuilder(muukFiler);
+
+        auto result = MuukFiler::create(muuk_path);
+        if (!result) {
+            return 1;
+        }
+
+        MuukFiler muuk_filer = result.value();
+        MuukBuilder muukBuilder(muuk_filer);
 
         if (program.is_subcommand_used("clean")) {
-            muuk::clean(muukFiler);
+            muuk::clean(muuk_filer);
             return 0;
         }
 
@@ -286,7 +293,7 @@ int main(int argc, char* argv[]) {
                 muuk::logger::error("Error: No script name provided for 'run'.\n");
                 return 1;
             }
-            muuk::run_script(muukFiler, script.value(), extra_args);
+            muuk::run_script(muuk_filer, script.value(), extra_args);
             return 0;
         }
 
