@@ -43,6 +43,8 @@ namespace muuk {
     );
 
     Result<void> validate_muuk_toml(const toml::table& toml_data);
+    Result<void> validate_muuk_lock_toml(const toml::table& toml_data);
+
 } // namespace muuk
 
 #endif // MUUKVALIDATOR_HPP

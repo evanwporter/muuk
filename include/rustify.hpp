@@ -21,6 +21,8 @@ struct Error {
 
 template <typename T, typename E = std::string>
 using Result = tl::expected<T, E>;
+template <typename T, typename E = std::string>
+using Result = tl::expected<T, E>;
 
 template <typename T>
 constexpr Result<T> Ok(T value) {

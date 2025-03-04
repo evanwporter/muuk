@@ -30,8 +30,14 @@ Result<MuukFiler> MuukFiler::create(std::shared_ptr<IFileOperations> file_ops, b
         return Err("Failed to open file: {}", config_file);
     }
 
-    MuukFiler filer(std::move(file_ops), is_lock_file);
+    MuukFiler filer(file_ops, is_lock_file);
 
+    if (is_lock_file) {
+        auto result = muuk::validate_muuk_lock_toml(filer.get_config());
+    }
+    else {
+        auto result = muuk::validate_muuk_toml(filer.get_config());
+    }
     auto result = muuk::validate_muuk_toml(filer.get_config());
     if (!result) {
         muuk::logger::error("Issue with {}: {}", file_ops->get_file_path(), result.error());
