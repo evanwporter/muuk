@@ -11,7 +11,6 @@
 #include <stdexcept>
 #include <optional>
 
-
 namespace muuk {
 
     Result<TomlType> get_toml_type(const toml::node& node) {
@@ -30,7 +29,7 @@ namespace muuk {
 
     Result<void> validate_toml_(
         const toml::table& toml_data,
-        const std::unordered_map<std::string, SchemaNode>& schema,
+        const SchemaMap& schema,
         std::string parent_path
     ) {
         bool has_wildcard = schema.contains("*");
@@ -124,8 +123,8 @@ namespace muuk {
     }
 
     Result<void> validate_muuk_toml(const toml::table& toml_data) {
-        std::unordered_map<std::string, SchemaNode> schema = std::unordered_map<std::string, SchemaNode>{
-            {"package", {false, TomlType::Table, std::nullopt, std::unordered_map<std::string, SchemaNode>{
+        SchemaMap schema = SchemaMap{
+            {"package", {false, TomlType::Table, std::nullopt, SchemaMap{
                 {"name", {true, TomlType::String, std::nullopt, std::nullopt}},
                 {"version", {false, TomlType::String, std::nullopt, std::nullopt}},
                 {"description", {false, TomlType::String, std::nullopt, std::nullopt}},
@@ -137,36 +136,74 @@ namespace muuk {
                 {"readme", {false, TomlType::String, std::nullopt, std::nullopt}},
                 {"keywords", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}}
             }}},
-            {"library", {false, TomlType::Table, std::nullopt, std::unordered_map<std::string, SchemaNode>{
-                {"*", {false, TomlType::Table, std::nullopt, std::unordered_map<std::string, SchemaNode>{
+            {"library", {false, TomlType::Table, std::nullopt, SchemaMap{
+                {"*", {false, TomlType::Table, std::nullopt, SchemaMap{
                     {"include", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}},
                     {"cflags", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}},
                     {"system_include", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}},
-                    {"dependencies", {false, TomlType::Table, std::nullopt, std::unordered_map<std::string, SchemaNode>{
+                    {"dependencies", {false, TomlType::Table, std::nullopt, SchemaMap{
                     }}},
-                    {"compiler", {false, TomlType::Table, std::nullopt, std::unordered_map<std::string, SchemaNode>{
-                        {"cflags", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}}
-                    }}},
-                    {"platform", {false, TomlType::Table, std::nullopt, std::unordered_map<std::string, SchemaNode>{
-                        {"cflags", {false, TomlType::Array,std::vector<TomlType>{TomlType::String}, std::nullopt}}
+                }}}
+            }}},
+            {"build", {false, TomlType::Table, std::nullopt, SchemaMap{
+                {"*", {false, TomlType::Table, std::nullopt, SchemaMap{
+                    {"include", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}},
+                    {"cflags", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}},
+                    {"system_include", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}},
+                    {"dependencies", {false, TomlType::Table, std::nullopt, SchemaMap{
                     }}}
                 }}}
             }}},
-            {"build", {false, TomlType::Table, std::nullopt, std::unordered_map<std::string, SchemaNode>{
-            }}},
-            {"profile", {false, TomlType::Table, std::nullopt, std::unordered_map<std::string, SchemaNode>{
+            {"profile", {false, TomlType::Table, std::nullopt, SchemaMap{
                 {"default", {false, TomlType::Boolean, std::nullopt, std::nullopt}},
-                {"inherits", {false, TomlType::String, std::nullopt, std::nullopt}}
-            }}},
-            {"platform", {false, TomlType::Table, std::nullopt, std::unordered_map<std::string, SchemaNode>{
+                {"inherits", {false, TomlType::String, std::nullopt, std::nullopt}},
                 {"cflags", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}},
                 {"lflags", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}}
             }}},
-            {"compiler", {false, TomlType::Table, std::nullopt, std::unordered_map<std::string, SchemaNode>{
-                {"cflags", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}}
+            {"platform", {false, TomlType::Table, std::nullopt, SchemaMap{
+                {"cflags", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}},
+                {"lflags", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}}
+            }}},
+            {"compiler", {false, TomlType::Table, std::nullopt, SchemaMap{
+                {"cflags", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}},
+                {"lflags", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}}
             }}}
         };
 
         return validate_toml_(toml_data, schema);
     };
+
+    Result<void> validate_muuk_lock_toml(const toml::table& toml_data) {
+        SchemaMap schema = SchemaMap{
+            {"library", {false, TomlType::Table, std::nullopt, SchemaMap{
+                {"*", {false, TomlType::Table, std::nullopt, SchemaMap{
+                    {"include", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}},
+                    {"cflags", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}},
+                    {"system_include", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}},
+                    {"dependencies", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}}
+                }}}
+            }}},
+
+            {"build", {false, TomlType::Table, std::nullopt, SchemaMap{
+                {"*", {false, TomlType::Table, std::nullopt, SchemaMap{
+                    {"include", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}},
+                    {"cflags", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}},
+                    {"system_include", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}},
+                    {"dependencies", {false, TomlType::Table, std::nullopt, SchemaMap{
+                    }}}
+                }}}
+            }}},
+
+            {"dependencies", {false, TomlType::Table, std::nullopt, SchemaMap{
+                {"*", {false, TomlType::Table, std::nullopt, SchemaMap{
+                    {"git", {true, TomlType::String, std::nullopt, std::nullopt}},
+                    {"muuk_path", {true, TomlType::String, std::nullopt, std::nullopt}},
+                    {"revision", {true, TomlType::String, std::nullopt, std::nullopt}}
+                }}}
+            }}}
+        };
+
+        return validate_toml_(toml_data, schema);
+    }
+
 } // namespace muuk

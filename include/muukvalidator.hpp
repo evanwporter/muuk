@@ -32,11 +32,13 @@ namespace muuk {
         std::optional<std::unordered_map<std::string, SchemaNode>> children = std::nullopt;
     };
 
+    typedef std::unordered_map<std::string, SchemaNode> SchemaMap;
+
     Result<TomlType> get_toml_type(const toml::node& node);
 
     Result<void> validate_toml_(
         const toml::table& toml_data,
-        const std::unordered_map<std::string, SchemaNode>& schema,
+        const SchemaMap& schema,
         std::string parent_path = ""
     );
 

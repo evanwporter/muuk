@@ -10,7 +10,7 @@ run = './build/debug/muuk'
 patterns = ['*.obj', '*.lib', '*.pdb']
 
 [library.muuk]
-include = 1 #['include']
+include = ['include']
 libs = []
 sources = [
     'src/muuker.cpp',
