@@ -74,6 +74,7 @@ void MuukFiler::parse() {
     std::string line, current_section;
     std::stringstream section_data;
     bool new_section_started = false;
+    bool is_array_of_tables = false;
 
     while (std::getline(file, line)) {
         std::string trimmed = util::trim_whitespace(line);
@@ -82,8 +83,24 @@ void MuukFiler::parse() {
             continue;  // Ignore empty lines and comments
         }
 
-        // Detecting a new section
-        if (trimmed[0] == '[' && trimmed.back() == ']') {
+        // Detect arrays of tables [[section]]
+        if (trimmed.starts_with("[[") && trimmed.ends_with("]]")) {
+            // Save previous section data
+            if (!current_section.empty()) {
+                sections_[current_section] = toml::parse(section_data.str());
+                section_data.str("");
+                section_data.clear();
+            }
+
+            // Extract section name
+            current_section = trimmed.substr(2, trimmed.size() - 4);
+            is_array_of_tables = true;
+            new_section_started = true;
+            continue;
+        }
+
+        // Detecting a section table [section]
+        if (trimmed.starts_with("[") && trimmed.ends_with("]") && !trimmed.starts_with("[[")) {
             // Save previous section data
             if (!current_section.empty()) {
                 sections_[current_section] = toml::parse(section_data.str());
@@ -92,10 +109,9 @@ void MuukFiler::parse() {
             }
 
             current_section = trimmed.substr(1, trimmed.size() - 2);
-            section_order_.push_back(current_section);
+            is_array_of_tables = false;
             new_section_started = true;
-
-            // Ensure each section starts fresh
+            section_order_.push_back(current_section);
             continue;
         }
 
@@ -105,7 +121,21 @@ void MuukFiler::parse() {
             new_section_started = false;
         }
 
-        section_data << line << "\n";  // Append data for the current section
+        section_data << line << "\n";
+
+        if (is_array_of_tables && trimmed.starts_with("name =")) {
+            std::string name_value = trimmed.substr(7);
+            name_value = util::trim_whitespace(name_value);
+            name_value.erase(std::remove(name_value.begin(), name_value.end(), '\"'), name_value.end()); // Remove quotes if present
+
+            if (name_value.empty()) {
+                muuk::logger::error("Error: [[{}]] section must contain a 'name' key.", current_section);
+                throw std::runtime_error("Invalid TOML format: Missing 'name' in array-of-tables.");
+            }
+
+            current_section = current_section + "." + name_value;
+            section_order_.push_back(current_section);
+        }
     }
 
     // Save last section

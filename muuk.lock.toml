@@ -1,4 +1,5 @@
-[library.argparse]
+[[library]]
+name = "argparse"
 include = [  "deps/argparse/include",]
 cflags = []
 libs = []
@@ -9,7 +10,8 @@ platform.linux = { cflags = [] }
 platform.windows = { cflags = ["/Isubprojects/"] }
 compiler.clang = { cflags = ["-std=c++20"] }
 
-[library.compile-time-regular-expressions]
+[[library]]
+name = "compile-time-regular-expressions"
 include = [  "deps/compile-time-regular-expressions/single-header",]
 cflags = []
 libs = []
@@ -17,7 +19,8 @@ modules = []
 dependencies = []
 profiles = []
 
-[library.fmt]
+[[library]]
+name = "fmt"
 include = [  "deps/fmt/include",]
 cflags = []
 sources = [
@@ -28,7 +31,8 @@ modules = []
 dependencies = []
 profiles = []
 
-[library.cracklib]
+[[library]]
+name = "cracklib"
 include = [  "deps/cracklib/include",]
 cflags = []
 sources = [
@@ -39,7 +43,8 @@ modules = []
 dependencies = []
 profiles = []
 
-[library.expected]
+[[library]]
+name = "expected"
 include = [  "deps/expected/include",]
 cflags = []
 libs = []
@@ -47,7 +52,8 @@ modules = []
 dependencies = []
 profiles = []
 
-[library.json]
+[[library]]
+name = "json"
 include = [  "deps/json/single_include",]
 cflags = []
 libs = []
@@ -55,7 +61,8 @@ modules = []
 dependencies = []
 profiles = []
 
-[library.glob]
+[[library]]
+name = "glob"
 include = [  "deps/glob/include/",]
 cflags = []
 sources = [
@@ -66,7 +73,8 @@ modules = []
 dependencies = []
 profiles = []
 
-[library.spdlog]
+[[library]]
+name = "spdlog"
 include = [  "deps/fmt/include",  "deps/spdlog/include",]
 cflags = ["/DSPDLOG_COMPILED_LIB", "/DSPDLOG_FMT_EXTERNAL"]
 sources = [
@@ -83,7 +91,8 @@ modules = []
 dependencies = ["fmt"]
 profiles = []
 
-[library.tomlplusplus]
+[[library]]
+name = "tomlplusplus"
 include = [  "deps/tomlplusplus/include/",]
 cflags = []
 sources = [
@@ -94,7 +103,8 @@ modules = []
 dependencies = []
 profiles = []
 
-[library.zip]
+[[library]]
+name = "zip"
 include = [  "deps/zip/src",]
 cflags = []
 sources = [
@@ -105,7 +115,8 @@ modules = []
 dependencies = []
 profiles = []
 
-[library.muuk]
+[[library]]
+name = "muuk"
 include = [  "deps/compile-time-regular-expressions/single-header",  "deps/cracklib/include",  "deps/expected/include",  "deps/fmt/include",  "deps/glob/include/",  "deps/json/single_include",  "deps/spdlog/include",  "deps/tomlplusplus/include/",  "deps/zip/src",  "include",]
 cflags = ["/DSPDLOG_COMPILED_LIB", "/DSPDLOG_FMT_EXTERNAL", "/W4"]
 sources = [
@@ -135,7 +146,8 @@ profiles = []
 platform.linux = { cflags = [] }
 platform.windows = { cflags = [] }
 
-[build.bin]
+[[build]]
+name = "bin"
 include = [  "deps/argparse/include",  "deps/compile-time-regular-expressions/single-header",  "deps/cracklib/include",  "deps/expected/include",  "deps/fmt/include",  "deps/glob/include/",  "deps/json/single_include",  "deps/spdlog/include",  "deps/tomlplusplus/include/",  "deps/zip/src",  "include",]
 cflags = ["/DSPDLOG_COMPILED_LIB", "/DSPDLOG_FMT_EXTERNAL", "/W4"]
 sources = [
@@ -149,7 +161,8 @@ platform.linux = { cflags = [] }
 platform.windows = { cflags = ["/Isubprojects/"] }
 compiler.clang = { cflags = ["-std=c++20"] }
 
-[library.FakeIt]
+[[library]]
+name = "FakeIt"
 include = [  "deps/fakeit/single_header/gtest/",]
 cflags = []
 libs = []
@@ -157,7 +170,8 @@ modules = []
 dependencies = []
 profiles = []
 
-[library.googletest]
+[[library]]
+name = "googletest"
 include = [  "deps/googletest/googlemock",  "deps/googletest/googlemock/include",  "deps/googletest/googletest",  "deps/googletest/googletest/include",]
 cflags = []
 sources = [
@@ -169,7 +183,8 @@ modules = []
 dependencies = []
 profiles = []
 
-[build.test]
+[[build]]
+name = "test"
 include = [  "deps/compile-time-regular-expressions/single-header",  "deps/cracklib/include",  "deps/expected/include",  "deps/fakeit/single_header/gtest/",  "deps/fmt/include",  "deps/glob/include/",  "deps/googletest/googlemock",  "deps/googletest/googlemock/include",  "deps/googletest/googletest",  "deps/googletest/googletest/include",  "deps/json/single_include",  "deps/spdlog/include",  "deps/tomlplusplus/include/",  "deps/zip/src",  "include",]
 cflags = ["/DSPDLOG_COMPILED_LIB", "/DSPDLOG_FMT_EXTERNAL", "/W4"]
 sources = [
@@ -182,7 +197,8 @@ profiles = ["debug"]
 platform.linux = { cflags = [] }
 platform.windows = { cflags = [] }
 
-[build.test_util]
+[[build]]
+name = "test_util"
 include = [  "deps/compile-time-regular-expressions/single-header",  "deps/cracklib/include",  "deps/expected/include",  "deps/fakeit/single_header/gtest/",  "deps/fmt/include",  "deps/glob/include/",  "deps/googletest/googlemock",  "deps/googletest/googlemock/include",  "deps/googletest/googletest",  "deps/googletest/googletest/include",  "deps/json/single_include",  "deps/spdlog/include",  "deps/tomlplusplus/include/",  "deps/zip/src",  "include",]
 cflags = ["/DSPDLOG_COMPILED_LIB", "/DSPDLOG_FMT_EXTERNAL", "/W4"]
 sources = [

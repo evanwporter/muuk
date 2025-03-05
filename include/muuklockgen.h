@@ -22,16 +22,21 @@ struct Dependency {
     std::string version;
 };
 
-class Package {
+// { Dependency{ Versioning { Dependency Info } } }
+typedef std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<std::string, std::string>>> DependencyMap;
+
+
+
+class Component {
 public:
-    Package(const std::string& name,
+    Component(const std::string& name,
         const std::string& version,
         const std::string& base_path,
         const std::string& package_type);
 
     void add_include_path(const std::string& path);
 
-    void merge(const Package& child_pkg);
+    void merge(const Component& child_pkg);
 
     std::string serialize() const;
 
@@ -58,6 +63,15 @@ public:
 
 };
 
+// struct Component {
+//     std::string name;
+//     std::string version;
+//     std::string base_path;
+
+//     DependencyMap global_dependencies;
+//     std::unordered_map<std::string, Component> components;
+// };
+
 class MuukLockGenerator {
 public:
     explicit MuukLockGenerator(const std::string& base_path);
@@ -65,13 +79,20 @@ public:
 
 private:
     std::string base_path_;
-    std::unordered_map<std::string, std::unordered_map<std::string, std::shared_ptr<Package>>> resolved_packages_;
+    std::unordered_map<std::string, std::unordered_map<std::string, std::shared_ptr<Component>>> resolved_packages_;
+    std::unordered_map<std::string, std::shared_ptr<Component>> resolved_packages;
+    std::unordered_map<std::string, std::shared_ptr<Component>> builds;
+
+
     std::shared_ptr<spdlog::logger> logger_;
     std::unique_ptr<MuukModuleParser> module_parser_;
 
     std::unordered_map<std::string, toml::table> dependencies_;
 
     std::vector<Dependency> deps_;
+
+    DependencyMap global_deps_;
+    std::vector<std::string> components_;
 
     std::unordered_set<std::string> visited;
     std::vector<std::string> resolved_order_;
@@ -81,18 +102,20 @@ private:
 
     std::unordered_map<std::string, std::unordered_map<std::string, std::set<std::string>>> profiles_;
 
-    void parse_section(const toml::table& section, Package& package);
+    void parse_section(const toml::table& section, Component& package);
     void search_and_parse_dependency(const std::string& package_name);
 
     // TODO: Use or Remove
-    void process_modules(const std::vector<std::string>& module_paths, Package& package);
+    void process_modules(const std::vector<std::string>& module_paths, Component& package);
 
-    std::optional<std::shared_ptr<Package>> find_package(const std::string& package_name);
+    std::optional<std::shared_ptr<Component>> find_package(const std::string& package_name);
 
     // TODO: Use or Remove
-    void resolve_system_dependency(const std::string& package_name, std::optional<std::shared_ptr<Package>> package);
+    void resolve_system_dependency(const std::string& package_name, std::optional<std::shared_ptr<Component>> package);
 
     void merge_profiles(const std::string& base_profile, const std::string& inherited_profile);
+
+    static Result<DependencyMap> parse_dependencies(const toml::table& dependencies_table);
 
     void parse_muuk_toml(const std::string& path, bool is_base = false);
     tl::expected<void, std::string> resolve_dependencies(const std::string& package_name, std::optional<std::string> search_path = std::nullopt);

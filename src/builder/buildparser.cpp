@@ -94,7 +94,7 @@ void BuildParser::parse_libraries() {
     const auto& config_sections = muuk_filer->get_sections();
 
     for (const auto& [package_name, package_table] : config_sections) {
-        if (!package_name.starts_with("library.")) continue;
+        if (!package_name.starts_with("library")) continue;
 
         std::string lib_name = package_name.substr(8);
         std::string lib_path = util::to_linux_path(

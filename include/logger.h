@@ -10,7 +10,6 @@
 #include <fmt/core.h>
 #include <iostream>
 #include <string>
-// #include <cstdlib>
 
 namespace muuk {
 
@@ -25,28 +24,28 @@ namespace muuk {
         template<typename... Args>
         static void trace(const std::string& format_str, Args&&... args) {
             initialize();
-            std::string formatted_message = std::vformat(format_str, std::make_format_args(args...));
+            std::string formatted_message = fmt::vformat(format_str, fmt::make_format_args(args...));
             spdlog::trace(formatted_message);
         }
 
         template<typename... Args>
         static void debug(const std::string& format_str, Args&&... args) {
             initialize();
-            std::string formatted_message = std::vformat(format_str, std::make_format_args(args...));
+            std::string formatted_message = fmt::vformat(format_str, fmt::make_format_args(args...));
             spdlog::debug(formatted_message);
         }
 
         template<typename... Args>
         static void info(const std::string& format_str, Args&&... args) {
             initialize();
-            std::string formatted_message = std::vformat(format_str, std::make_format_args(args...));
+            std::string formatted_message = fmt::vformat(format_str, fmt::make_format_args(args...));
             spdlog::info(formatted_message);
         }
 
         template<typename... Args>
         static void warn(const std::string& format_str, Args&&... args) {
             initialize();
-            std::string formatted_message = std::vformat(format_str, std::make_format_args(args...));
+            std::string formatted_message = fmt::vformat(format_str, fmt::make_format_args(args...));
             std::cerr << WARN_PREFIX << formatted_message << "\n";
             spdlog::warn(formatted_message);
         }
@@ -54,7 +53,7 @@ namespace muuk {
         template<typename... Args>
         static void error(const std::string& format_str, Args&&... args) {
             initialize();
-            std::string formatted_message = std::vformat(format_str, std::make_format_args(args...));
+            std::string formatted_message = fmt::vformat(format_str, fmt::make_format_args(args...));
             std::cerr << ERROR_PREFIX << formatted_message << "\n";
             std::cerr.flush();
             spdlog::error(formatted_message);
@@ -63,7 +62,7 @@ namespace muuk {
         template<typename... Args>
         static void critical(const std::string& format_str, Args&&... args) {
             initialize();
-            std::string formatted_message = std::vformat(format_str, std::make_format_args(args...));
+            std::string formatted_message = fmt::vformat(format_str, fmt::make_format_args(args...));
             std::cerr << CRITICAL_PREFIX << formatted_message << "\n";
             spdlog::critical(formatted_message);
             std::exit(EXIT_FAILURE);
