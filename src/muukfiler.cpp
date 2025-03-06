@@ -1,6 +1,7 @@
 #include "muukfiler.h"
 #include "logger.h"
 #include "muukvalidator.hpp"
+#include "types.h"
 
 #include <iostream>
 #include <format>
@@ -65,10 +66,10 @@ void MuukFiler::parse() {
         config_ = toml::parse(content);
     }
     catch (const toml::parse_error& e) {
-        muuk::fmt_rt_err("TOML Parsing Error: {}", e.what());
+        muuk::fmt_rt_err("TOML Parsing Error for {}: {}", config_file_, e.what());
     }
     catch (const muuk::invalid_toml& e) {
-        muuk::fmt_rt_err("TOML Validation Error: {}", e.what());
+        muuk::fmt_rt_err("TOML Validation Error for {}: {}", config_file_, e.what());
     }
 
     std::string line, current_section;
@@ -187,23 +188,25 @@ bool MuukFiler::has_section(const std::string& section) const {
     return sections_.find(section) != sections_.end();
 }
 
-std::string MuukFiler::format_dependencies(const std::unordered_map<std::string, toml::table>& dependencies, std::string section_name) {
+std::string MuukFiler::format_dependencies(const DependencyVersionMap<toml::table>& dependencies, std::string section_name) {
     std::ostringstream oss;
     oss << "[" << section_name << "]\n";
 
-    for (const auto& [dep_name, dep_info] : dependencies) {
-        oss << dep_name << " = { ";
+    for (const auto& [dep_name, versions] : dependencies) {
+        for (const auto& [version, dep_info] : versions) {
+            oss << dep_name << " = { version = '" << version << "', ";
 
-        std::string dep_entries;
-        bool first = true;
+            std::string dep_entries;
+            bool first = true;
 
-        for (const auto& [key, val] : dep_info) {
-            if (!first) dep_entries += ", ";
-            dep_entries += std::format("{} = '{}'", std::string(key.str()), *val.value<std::string>());
-            first = false;
+            for (const auto& [key, val] : dep_info) {
+                if (!first) dep_entries += ", ";
+                dep_entries += fmt::format("{} = '{}'", std::string(key.str()), *val.value<std::string>());
+                first = false;
+            }
+
+            oss << fmt::format("{} }}\n", dep_entries);
         }
-
-        oss << std::format("{} }}\n", dep_entries);
     }
 
     oss << "\n";

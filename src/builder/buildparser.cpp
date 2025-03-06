@@ -9,7 +9,6 @@
 #include <unordered_map>
 #include <memory>
 #include <toml++/toml.hpp>
-#include "buildparser.hpp"
 
 namespace fs = std::filesystem;
 
@@ -84,6 +83,10 @@ void BuildParser::parse_compilation_targets() {
                     muuk::normalize_flags_inplace(src_cflags, compiler);
 
                     build_manager->add_compilation_target(src_path, obj_path, src_cflags, iflags);
+
+                    muuk::logger::info("Added compilation target: {} -> {}", src_path, obj_path);
+                    muuk::logger::trace("  - CFLAGS: {}", fmt::join(src_cflags, ", "));
+                    muuk::logger::trace("  - Include Flags: {}", fmt::join(iflags, ", "));
                 }
             }
         }
@@ -123,6 +126,10 @@ void BuildParser::parse_libraries() {
         std::vector<std::string> aflags = extract_flags(package_table, "aflags");
         muuk::normalize_flags_inplace(aflags, compiler);
         build_manager->add_archive_target(lib_path, obj_files, aflags);
+
+        muuk::logger::info("Added library target: {}", lib_path);
+        muuk::logger::trace("  - Object Files: {}", fmt::join(obj_files, ", "));
+        muuk::logger::trace("  - Archive Flags: {}", fmt::join(aflags, ", "));
     }
 }
 
@@ -156,7 +163,7 @@ void BuildParser::parse_executables() {
         std::vector<std::string> libs;
         std::vector<std::string> iflags; // Include flags for header-only libraries
 
-        muuk::logger::info(std::format("Parsing executable '{}'", executable_name));
+        muuk::logger::info(fmt::format("Parsing executable '{}'", executable_name));
 
         // Collect all source files -> Convert to object files
         if (build_table.contains("sources")) {
@@ -224,20 +231,11 @@ void BuildParser::parse_executables() {
         // Add to build manager
         build_manager->add_link_target(exe_path, obj_files, libs, lflags);
 
-        // Logging for debugging
-        muuk::logger::trace(std::format("Added link target: {}", exe_path));
-
-        muuk::logger::trace(fmt::format("  - Objects: {}",
-            obj_files.empty() ? std::string("None") : fmt::to_string(fmt::join(obj_files, ", "))));
-
-        muuk::logger::trace(fmt::format("  - Libraries: {}",
-            libs.empty() ? std::string("None") : fmt::to_string(fmt::join(libs, ", "))));
-
-        muuk::logger::trace(fmt::format("  - Include Flags: {}",
-            iflags.empty() ? std::string("None") : fmt::to_string(fmt::join(iflags, ", "))));
-
-        muuk::logger::trace(fmt::format("  - Linker Flags: {}",
-            lflags.empty() ? std::string("None") : fmt::to_string(fmt::join(lflags, ", "))));
+        muuk::logger::info("Added link target: {}", exe_path);
+        muuk::logger::trace("  - Object Files: {}", fmt::join(obj_files, ", "));
+        muuk::logger::trace("  - Libraries: {}", fmt::join(libs, ", "));
+        muuk::logger::trace("  - Include Flags: {}", fmt::join(iflags, ", "));
+        muuk::logger::trace("  - Linker Flags: {}", fmt::join(lflags, ", "));
     }
 }
 

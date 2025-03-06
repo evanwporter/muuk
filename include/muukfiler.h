@@ -7,6 +7,7 @@
 #include "fileops.hpp"
 #include "muukvalidator.hpp"
 #include "rustify.hpp"
+#include "types.h"
 
 #include <fstream>
 #include <filesystem>
@@ -40,7 +41,10 @@ public:
     toml::table get_config() const;
     bool has_section(const std::string& section) const;
 
-    static std::string format_dependencies(const std::unordered_map<std::string, toml::table>& dependencies, std::string section_name = "dependencies");
+    static std::string format_dependencies(
+        const DependencyVersionMap<toml::table>& dependencies,
+        std::string section_name = "dependencies"
+    );
 
     const std::vector<std::string>& get_section_order() const {
         return section_order_;

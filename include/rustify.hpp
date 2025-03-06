@@ -46,7 +46,13 @@ inline constexpr auto Err(fmt::format_string<Args...> fmt_str, Args&&... args) {
     return tl::unexpected(fmt::format(fmt_str, std::forward<Args>(args)...));
 }
 
-#define Try(expr) ({ auto&& res = (expr); if (!res) return Err(res.error()); std::move(res.value()); })
+// #define Try(expr) ({ auto&& res = (expr); if (!res) return Err(res.error()); std::move(res.value()); })
+template <typename T>
+constexpr decltype(auto) TRY(Result<T>&& exp) {
+    if (!exp) return tl::unexpected(exp.error());
+    return std::move(*exp);
+}
+
 #define Ensure(cond, msg) if (!(cond)) return Err<void>(msg)
 
 // `PanicIfUnreachable(msg)`: Used for logic errors like unreachable!() in Rust.

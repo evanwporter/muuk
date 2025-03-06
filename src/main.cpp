@@ -71,8 +71,8 @@ int main(int argc, char* argv[]) {
     argparse::ArgumentParser program("muuk");
 
     program.add_argument("--muuk-path")
-        .help("Specify the path to muuk.toml")
-        .default_value(std::string("muuk.toml"));
+        .help("Specify the path to muuk2.toml")
+        .default_value(std::string("muuk2.toml"));
 
     // #ifdef DEBUG
     //     program.add_argument("--repl")
@@ -139,9 +139,9 @@ int main(int argc, char* argv[]) {
         .help("Output status as JSON instead of cracking")
         .flag();
 
-    argparse::ArgumentParser init_command("init", "Initialize a new muuk.toml configuration file");
+    argparse::ArgumentParser init_command("init", "Initialize a new muuk2.toml configuration file");
 
-    argparse::ArgumentParser add_command("add", "Add a dependency to muuk.toml");
+    argparse::ArgumentParser add_command("add", "Add a dependency to muuk2.toml");
     add_command.add_argument("name")
         .help("The name of the dependency.");
     add_command.add_argument("--sys")
@@ -163,7 +163,7 @@ int main(int argc, char* argv[]) {
         .help("The Git repository URL (optional).")
         .default_value(std::string(""));
     add_command.add_argument("--muuk-path")
-        .help("The path to the dependency's muuk.toml file (default: deps/<name>/muuk.toml).")
+        .help("The path to the dependency's muuk2.toml file (default: deps/<name>/muuk2.toml).")
         .default_value(std::string(""));
     add_command.add_argument("-t", "--target")
         .help("Specify a target section to add the dependency (e.g., build.test, library.muuk).")
@@ -221,14 +221,14 @@ int main(int argc, char* argv[]) {
         // }
 
         if (program.is_subcommand_used("install")) {
-            muuk::logger::info("Installing dependencies from muuk.toml...");
+            muuk::logger::info("Installing dependencies from muuk2.toml...");
             CHECK_CALL(muuk::package_manager::install("muuk.lock.toml"));
         }
 
         if (program.is_subcommand_used("remove")) {
             const auto package_name = remove_command.get<std::string>("package_name");
             muuk::logger::info("Removing dependency: {}", package_name);
-            muuk::package_manager::remove_package(package_name, "muuk.toml", "muuk.lock.toml");
+            muuk::package_manager::remove_package(package_name, "muuk2.toml", "muuk.lock.toml");
             return 0;
         }
 
@@ -269,7 +269,7 @@ int main(int argc, char* argv[]) {
             return 0;
         }
 
-        // Commands that require `muuk.toml`
+        // Commands that require `muuk2.toml`
         // The reason I define `muukfiler` here is so I can define the manifest location
         muuk::logger::info("[muuk] Using configuration from: {}", muuk_path);
 

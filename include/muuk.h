@@ -9,6 +9,11 @@
 #include <string>
 #include <vector>
 
+// { Dependency { Versioning { T }}}
+template<typename T>
+using DependencyVersionMap = std::unordered_map<std::string, std::unordered_map<std::string, T>>;
+
+
 namespace muuk {
     namespace compiler {
         enum class Compiler {

@@ -162,7 +162,7 @@ tl::expected<std::string, std::string> MuukBuilder::select_profile(const std::st
 
 tl::expected<void, std::string> MuukBuilder::add_script(const std::string& profile, const std::string& build_name) {
     try {
-        MuukFiler muuk_filer("muuk.toml");
+        MuukFiler muuk_filer("muuk2.toml");
 
         std::string executable_name = "muuk";
 #ifdef _WIN32
@@ -175,7 +175,7 @@ tl::expected<void, std::string> MuukBuilder::add_script(const std::string& profi
         scripts_section.insert_or_assign("run", toml::value(executable_path));
         muuk_filer.write_to_file();
 
-        muuk::logger::info("Successfully added run script to 'muuk.toml': {}", executable_path);
+        muuk::logger::info("Successfully added run script to 'muuk2.toml': {}", executable_path);
         return {};
     }
     catch (const std::exception& e) {

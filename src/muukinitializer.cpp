@@ -8,6 +8,7 @@
 #include "rustify.hpp"
 #include "logger.h"
 #include "muukfiler.h"
+#include "fmt/core.h"
 
 namespace fs = std::filesystem;
 
@@ -17,7 +18,7 @@ namespace muuk {
         std::string license_text;
 
         if (license == "MIT") {
-            license_text = std::format(R"(MIT License
+            license_text = fmt::format(R"(MIT License
     
     Copyright (c) {0} {1}
     
@@ -43,7 +44,7 @@ namespace muuk {
             license_text = "GNU GENERAL PUBLIC LICENSE\nVersion 3, 29 June 2007...";
         }
         else {
-            license_text = std::format(R"(Unlicensed
+            license_text = fmt::format(R"(Unlicensed
     
     All rights reserved. {0} {1} reserves all rights to the software.
     )", util::time::current_year(), author);
