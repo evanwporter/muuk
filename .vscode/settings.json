@@ -112,7 +112,7 @@
     "editor.suggest.insertMode": "replace",
     "editor.defaultFormatter": "ms-vscode.cpptools"
   },
-  "C_Cpp.default.compileCommands": "${workspaceFolder}/build/release/compile_commands.json",
+  "C_Cpp.default.compileCommands": "${workspaceFolder}/build/debug/compile_commands.json",
   "C_Cpp.codeAnalysis.runAutomatically": true,
   "C_Cpp.experimentalFeatures": "enabled",
   "files.encoding": "utf8",
