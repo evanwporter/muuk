@@ -49,7 +49,7 @@ namespace muuk {
             clone_cmd += " " + repo_url + " " + target_dir;
 
             muuk::logger::info("Cloning repository: {}", clone_cmd);
-            int clone_result = util::execute_command(clone_cmd);
+            int clone_result = util::command_line::execute_command(clone_cmd);
             if (clone_result != 0) {
                 muuk::logger logger_instance;
                 logger_instance.error("Failed to clone repository '{}'", repo_url);
@@ -60,7 +60,7 @@ namespace muuk {
             if (!checkout_ref.empty() && checkout_ref != "latest") {
                 std::string checkout_cmd = "cd " + target_dir + " && git checkout " + checkout_ref;
                 muuk::logger::info("Checking out reference: {}", checkout_ref);
-                int checkout_result = util::execute_command(checkout_cmd);
+                int checkout_result = util::command_line::execute_command(checkout_cmd);
                 if (checkout_result != 0) {
                     muuk::logger::error("Failed to checkout reference '{}' in '{}'", checkout_ref, target_dir);
                     return;

@@ -118,7 +118,7 @@ namespace muuk {
         }
 
         muuk::logger::info("Executing command: {}", command);
-        int result = util::execute_command(command);
+        int result = util::command_line::execute_command(command);
         if (result != 0) {
             muuk::logger::error("Command failed with error code: {}", result);
         }

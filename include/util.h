@@ -27,7 +27,11 @@ namespace util {
     void extract_zip(const std::string& archive, const std::string& target_dir);
 
     // Command execution
-    int execute_command(const std::string& command);
+    namespace command_line {
+        int execute_command(const std::string& command);
+        std::string execute_command_get_out(const std::string& command);
+        bool command_exists(const std::string& command);
+    }
 
     namespace network {
         Result<nlohmann::json> fetch_json(const std::string& url);
@@ -40,8 +44,6 @@ namespace util {
     std::set<std::string> to_linux_path(const std::set<std::string>& paths, const std::string& prefix = "");
     std::string normalize_path(const std::string& path);
     std::vector<std::string> to_linux_path(const std::vector<std::string>& paths, const std::string& prefix = "");
-
-    bool command_exists(const std::string& command);
 
     // std::string normalize_flag(const std::string& flag);
     // std::string normalize_flags(const std::vector<std::string>& flags);
@@ -60,8 +62,6 @@ namespace util {
         }
         return oss.str();
     }
-
-    std::string execute_command_get_out(const std::string& command);
 
     std::string trim_whitespace(const std::string& str);
 

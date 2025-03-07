@@ -132,11 +132,11 @@ namespace util {
     void download_file(const std::string& url, const std::string& output_path) {
         std::string command;
 
-        if (util::command_exists("wget")) {
+        if (command_line::command_exists("wget")) {
             command = "wget --quiet --output-document=" + output_path +
                 " --no-check-certificate " + url;
         }
-        else if (util::command_exists("curl")) {
+        else if (command_line::command_exists("curl")) {
             command = "curl -L -o " + output_path + " " + url;
         }
         else {
@@ -146,18 +146,58 @@ namespace util {
 
         spdlog::info("Executing download command: {}", command);
 
-        int result = util::execute_command(command);
+        int result = command_line::execute_command(command);
         if (result != 0) {
             spdlog::error("Failed to download file from {}. Command exited with code: {}", url, result);
             throw std::runtime_error("File download failed.");
         }
     }
 
+    // ==========================
+    //  Command Line Utilities
+    // ==========================
+    namespace command_line {
+        // TODO: Check if command exists
+        int command_line::execute_command(const std::string& command) {
+            muuk::logger::info("Executing command: {}", command);
+            return system(command.c_str());
+        }
 
-    int execute_command(const std::string& command) {
-        muuk::logger::info("Executing command: {}", command);
-        return system(command.c_str());
-    }
+        std::string command_line::execute_command_get_out(const std::string& command) {
+            muuk::logger::info("Executing command: {}", command);
+
+            std::array<char, 128> buffer;
+            std::string result;
+
+#ifdef _WIN32
+            std::unique_ptr<FILE, decltype(&_pclose)> pipe(_popen(command.c_str(), "r"), _pclose);
+#else
+            std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(command.c_str(), "r"), pclose);
+#endif
+
+            if (!pipe) {
+                muuk::logger::error("Failed to execute command: {}", command);
+                throw std::runtime_error("Failed to execute command: " + command);
+            }
+
+            while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+                result += buffer.data();
+            }
+
+            muuk::logger::info("Command output:\n{}", result);
+            return result;
+        }
+
+        bool command_exists(const std::string& command) {
+#ifdef _WIN32
+            std::string check_command = "where " + command + " >nul 2>&1";
+#else
+            std::string check_command = "which " + command + " >/dev/null 2>&1";
+#endif
+            return (std::system(check_command.c_str()) == 0);
+        }
+
+    } // namespace command_line
 
     // ==========================
     //  Network Utilities
@@ -171,7 +211,7 @@ namespace util {
                 "--header=\"User-Agent: Mozilla/5.0\" "
                 "--no-check-certificate " + url;
 
-            std::string result = util::execute_command_get_out(command);
+            std::string result = command_line::execute_command_get_out(command);
 
             try {
                 return nlohmann::json::parse(result);
@@ -199,16 +239,6 @@ namespace util {
         std::wcsrtombs(&dest[0], &src, len, &state);
         return dest;
 #endif
-    }
-
-
-    bool command_exists(const std::string& command) {
-#ifdef _WIN32
-        std::string check_command = "where " + command + " >nul 2>&1";
-#else
-        std::string check_command = "which " + command + " >/dev/null 2>&1";
-#endif
-        return (std::system(check_command.c_str()) == 0);
     }
 
     std::string normalize_path(const std::string& path) {
@@ -265,31 +295,6 @@ namespace util {
 
     template std::string vectorToString<std::string>(const std::vector<std::string>&, const std::string&);
 
-    std::string execute_command_get_out(const std::string& command) {
-        muuk::logger::info("Executing command: {}", command);
-
-        std::array<char, 128> buffer;
-        std::string result;
-
-#ifdef _WIN32
-        std::unique_ptr<FILE, decltype(&_pclose)> pipe(_popen(command.c_str(), "r"), _pclose);
-#else
-        std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(command.c_str(), "r"), pclose);
-#endif
-
-        if (!pipe) {
-            muuk::logger::error("Failed to execute command: {}", command);
-            throw std::runtime_error("Failed to execute command: " + command);
-        }
-
-        while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
-            result += buffer.data();
-        }
-
-        muuk::logger::info("Command output:\n{}", result);
-        return result;
-    }
-
     std::string trim_whitespace(const std::string& str) {
         auto start = str.begin();
         while (start != str.end() && std::isspace(*start)) {
@@ -322,7 +327,7 @@ namespace util {
 
         std::string get_latest_revision(const std::string& git_url) {
             std::string commit_hash_cmd = "git ls-remote " + git_url + " HEAD";
-            std::string output = util::execute_command_get_out(commit_hash_cmd);
+            std::string output = command_line::execute_command_get_out(commit_hash_cmd);
             std::string revision = output.substr(0, output.find('\t'));
 
             if (revision.empty()) {

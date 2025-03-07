@@ -31,7 +31,7 @@ namespace muuk {
         std::string api_url = "https://api.github.com/repos/" + author + "/" + repo + "/git/trees/master?recursive=1";
 
         std::string command = "wget -q -O - " + api_url;
-        nlohmann::json json_data(util::execute_command_get_out(command));
+        nlohmann::json json_data(util::command_line::execute_command_get_out(command));
 
         // Extract paths and find top-level directories
         std::unordered_set<std::string> unique_dirs;

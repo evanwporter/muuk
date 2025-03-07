@@ -80,7 +80,7 @@ TEST(UtilPatternTest, MatchPattern) {
 
 // **Test Case: Execute System Command**
 TEST(UtilCommandTest, ExecuteCommand) {
-    int result = util::execute_command("echo Hello");
+    int result = util::command_line::execute_command("echo Hello");
     EXPECT_EQ(result, 0);  // System commands return 0 on success
 }
 
@@ -111,7 +111,7 @@ TEST(UtilPathTest, NormalizePath) {
 
 // ** Test Case: Execute Non-Existent Command **
 TEST(UtilCommandTest, ExecuteInvalidCommand) {
-    int result = util::execute_command("invalid_command_that_does_not_exist");
+    int result = util::command_line::execute_command("invalid_command_that_does_not_exist");
     EXPECT_NE(result, 0);  // Expect a failure result
 }
 

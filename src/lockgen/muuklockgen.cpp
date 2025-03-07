@@ -344,29 +344,29 @@ void MuukLockGenerator::resolve_system_dependency(const std::string& package_nam
     // Special handling for Python
     if (package_name == "python" || package_name == "python3") {
 #ifdef _WIN32
-        include_path = util::execute_command_get_out("python -c \"import sysconfig; print(sysconfig.get_path('include'))\"");
-        lib_path = util::execute_command_get_out("python -c \"import sysconfig; print(sysconfig.get_config_var('LIBDIR'))\"");
+        include_path = util::command_line::execute_command_get_out("python -c \"import sysconfig; print(sysconfig.get_path('include'))\"");
+        lib_path = util::command_line::execute_command_get_out("python -c \"import sysconfig; print(sysconfig.get_config_var('LIBDIR'))\"");
 #else
-        include_path = util::execute_command("python3 -c \"import sysconfig; print(sysconfig.get_path('include'))\"");
-        lib_path = util::execute_command("python3 -c \"import sysconfig; print(sysconfig.get_config_var('LIBDIR'))\"");
+        include_path = util::command_line::execute_command("python3 -c \"import sysconfig; print(sysconfig.get_path('include'))\"");
+        lib_path = util::command_line::execute_command("python3 -c \"import sysconfig; print(sysconfig.get_config_var('LIBDIR'))\"");
 #endif
     }
     // Special handling for Boost
     else if (package_name == "boost") {
 #ifdef _WIN32
-        include_path = util::execute_command_get_out("where boostdep");
-        lib_path = util::execute_command_get_out("where boost");
+        include_path = util::command_line::execute_command_get_out("where boostdep");
+        lib_path = util::command_line::execute_command_get_out("where boost");
 #else
-        include_path = util::execute_command("boostdep --include-path");
-        lib_path = util::execute_command("boostdep --lib-path");
+        include_path = util::command_line::execute_command("boostdep --include-path");
+        lib_path = util::command_line::execute_command("boostdep --lib-path");
 #endif
     }
     else {
 #ifdef _WIN32
         muuk::logger::warn("System dependency '{}' resolution on Windows is not fully automated. Consider setting paths manually.", package_name);
 #else
-        include_path = util::execute_command("pkg-config --cflags-only-I " + package_name + " | sed 's/-I//' | tr -d '\n'");
-        lib_path = util::execute_command("pkg-config --libs-only-L " + package_name + " | sed 's/-L//' | tr -d '\n'");
+        include_path = util::command_line::execute_command("pkg-config --cflags-only-I " + package_name + " | sed 's/-I//' | tr -d '\n'");
+        lib_path = util::command_line::execute_command("pkg-config --libs-only-L " + package_name + " | sed 's/-L//' | tr -d '\n'");
 #endif
     }
 

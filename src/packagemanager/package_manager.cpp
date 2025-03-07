@@ -65,11 +65,11 @@ namespace muuk {
         tl::expected<void, std::string> download_file(const std::string& url, const std::string& output_path) {
             std::string command;
 
-            if (util::command_exists("wget")) {
+            if (util::command_line::command_exists("wget")) {
                 command = "wget --quiet --output-document=" + output_path +
                     " --no-check-certificate " + url;
             }
-            else if (util::command_exists("curl")) {
+            else if (util::command_line::command_exists("curl")) {
                 command = "curl -L -o " + output_path + " " + url;
             }
             else {
@@ -79,7 +79,7 @@ namespace muuk {
 
             muuk::logger::info("Executing download command: {}", command);
 
-            int result = util::execute_command(command.c_str());
+            int result = util::command_line::execute_command(command.c_str());
             if (result != 0) {
                 return tl::unexpected("File download failed with exit code: " + std::to_string(result));
             }

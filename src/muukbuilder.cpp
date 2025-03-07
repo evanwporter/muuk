@@ -69,7 +69,7 @@ tl::expected<void, std::string> MuukBuilder::execute_build(const std::string& pr
     std::string ninja_command = "ninja -C " + build_dir;
     muuk::logger::info("Running Ninja build: {}", ninja_command);
 
-    int result = util::execute_command(ninja_command.c_str());
+    int result = util::command_line::execute_command(ninja_command.c_str());
     if (result != 0) {
         return tl::unexpected("Build for profile '" + profile + "' failed with error code: " + std::to_string(result));
     }
@@ -79,7 +79,7 @@ tl::expected<void, std::string> MuukBuilder::execute_build(const std::string& pr
     std::string compdb_command = "cd " + build_dir + " && ninja -t compdb > compile_commands.json";
     muuk::logger::info("Generating compile_commands.json...");
 
-    int compdb_result = util::execute_command(compdb_command.c_str());
+    int compdb_result = util::command_line::execute_command(compdb_command.c_str());
     if (compdb_result != 0) {
         return tl::unexpected("Failed to generate compile_commands.json for profile '" + profile + "'");
     }
@@ -92,7 +92,7 @@ tl::expected<bool, std::string> MuukBuilder::is_compiler_available() const {
     const char* compilers[] = { "cl", "gcc", "c++", "g++", "clang++" };
 
     for (const char* compiler : compilers) {
-        if (util::command_exists(compiler)) {
+        if (util::command_line::command_exists(compiler)) {
             muuk::logger::info("Found compiler: {}", compiler);
             return true;
         }
@@ -123,7 +123,7 @@ tl::expected<muuk::compiler::Compiler, std::string> MuukBuilder::detect_default_
     const char* compilers[] = { "g++", "clang++", "cl" };
 
     for (const char* compiler : compilers) {
-        if (util::command_exists(compiler)) {
+        if (util::command_line::command_exists(compiler)) {
             muuk::logger::info("Found default compiler: {}", compiler);
             return muuk::compiler::from_string(compiler);
         }
