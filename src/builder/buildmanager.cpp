@@ -17,10 +17,9 @@ void BuildManager::add_compilation_target(std::string src, std::string obj, std:
 
 void BuildManager::add_archive_target(std::string lib, std::vector<std::string> objs, std::vector<std::string> aflags) {
     if (lib.empty() || objs.empty()) {
-        std::cerr << "Skipping since Archive target must have a library name and at least one object file.\n";
+        muuk::logger::trace("Skipping since Archive target must have a library name and at least one object file.\n");
         return;
     }
-
     if (library_registry.find(lib) == library_registry.end()) {
         archive_targets.emplace_back(lib, objs, aflags);
         library_registry[lib] = lib;

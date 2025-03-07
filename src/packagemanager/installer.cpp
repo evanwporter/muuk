@@ -177,7 +177,7 @@ namespace muuk {
 
                 muuk::logger::info("Installing '{}': ref={}, git={}", repo_name, ref, git_url);
 
-                std::string target_dir = std::string(DEPENDENCY_FOLDER) + "/" + repo_name;
+                std::string target_dir = std::string(DEPENDENCY_FOLDER) + "/" + repo_name + '/' + ref;
                 fs::path muuk_toml_path = target_dir + "/muuk.toml";
 
                 if (fs::exists(muuk_toml_path)) {

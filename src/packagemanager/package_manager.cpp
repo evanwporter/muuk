@@ -107,8 +107,14 @@ namespace muuk {
 
         tl::expected<void, std::string> add_dependency(const std::string& toml_path, const std::string& repo, const std::string& version, std::string& git_url, std::string& muuk_path, std::string revision, const std::string& tag, const std::string& branch, bool is_system, const std::string& target_section) {
 
-            muuk::logger::info("Adding dependency to '{}': {} (version: {}, revision: {}, branch: {})",
-                toml_path, repo, version, revision, branch);
+            muuk::logger::info(
+                "Adding dependency to '{}': {} (version: {}, revision: {}, branch: {})",
+                toml_path,
+                repo,
+                version,
+                revision,
+                branch
+            );
 
             try {
                 if (!fs::exists(toml_path)) {
@@ -128,7 +134,7 @@ namespace muuk {
                 std::string package_name = *package_section["name"].value<std::string>();
 
                 std::string dependencies_section = target_section.empty()
-                    ? "library." + package_name + ".dependencies"
+                    ? "dependencies"
                     : target_section + ".dependencies";
 
                 toml::table& dependencies = muukFiler->get_section(dependencies_section);

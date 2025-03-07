@@ -46,12 +46,20 @@ inline constexpr auto Err(fmt::format_string<Args...> fmt_str, Args&&... args) {
     return tl::unexpected(fmt::format(fmt_str, std::forward<Args>(args)...));
 }
 
-// #define Try(expr) ({ auto&& res = (expr); if (!res) return Err(res.error()); std::move(res.value()); })
 template <typename T>
-constexpr decltype(auto) TRY(Result<T>&& exp) {
+inline auto Try(Result<T>&& exp) -> Result<T> {
     if (!exp) return tl::unexpected(exp.error());
     return std::move(*exp);
 }
+
+// Specialization for void type
+template <>
+inline auto Try<void>(Result<void>&& exp) -> Result<void> {
+    if (!exp) return tl::unexpected(exp.error());
+    return {};  // Return an empty Result<void> (equivalent to Ok())
+}
+
+
 
 #define Ensure(cond, msg) if (!(cond)) return Err<void>(msg)
 
