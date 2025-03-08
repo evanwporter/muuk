@@ -69,6 +69,14 @@ namespace util {
 
     namespace git {
         std::string get_latest_revision(const std::string& git_url);
+
+        Result<std::string> get_default_branch(const std::string& git_url);
+        Result<std::string> get_default_branch(const std::string& author, const std::string& repo);
+
+        Result<nlohmann::json> fetch_repo_tree(const std::string& author, const std::string& repo, const std::string& branch);
+
+        Result<std::vector<std::string>> get_top_level_dirs_of_github(const std::string& author, const std::string& repo);
+
     }
 
     namespace time {

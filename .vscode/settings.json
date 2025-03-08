@@ -103,7 +103,8 @@
     "queue": "cpp",
     "stack": "cpp",
     "__nullptr": "cpp",
-    "typeindex": "cpp"
+    "typeindex": "cpp",
+    "shared_mutex": "cpp"
   },
   "[cpp]": {
     "editor.wordBasedSuggestions": "off",

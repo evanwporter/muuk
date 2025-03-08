@@ -108,14 +108,11 @@ public:
     std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_set<std::string>>> platform_;
     std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_set<std::string>>> compiler_;
 
-    // Remove this stuff
-    std::unordered_set<std::string> deps;
-    std::vector<std::string> deps_;
-    std::unordered_map<std::string, std::unordered_map<std::string, std::string>> dependencies;
-
     // TODO store the package and add serialize as depedency method
     DependencyInfoMap dependencies_;
+    std::unordered_set<std::string> deps;
 
+    LinkType link_type = LinkType::STATIC;
 };
 
 // { Dependency { Versioning { Package } } }
@@ -128,10 +125,8 @@ public:
 
 private:
     std::string base_path_;
-    std::unordered_map<std::string, std::unordered_map<std::string, std::shared_ptr<Component>>> resolved_packages_;
-    DependencyMap resolved_packages;
 
-    // std::unordered_map<std::string, std::shared_ptr<Component>> resolved_packages;
+    DependencyMap resolved_packages;
     std::unordered_map<std::string, std::shared_ptr<Component>> builds;
 
     std::shared_ptr<Component> base_package_;
@@ -140,11 +135,6 @@ private:
     std::unique_ptr<MuukModuleParser> module_parser_;
 
     DependencyVersionMap<toml::table> dependencies_;
-
-    std::vector<Dependency> deps_;
-
-    DependencyMap global_deps_;
-    std::vector<std::string> components_;
 
     std::unordered_set<std::string> visited;
 
@@ -156,10 +146,23 @@ private:
 
     Profiles profiles_;
 
-    static Result<void> parse_library(const toml::table& data, std::shared_ptr<Component> package);
-    static Result<void> parse_platform(const toml::table& data, std::shared_ptr<Component> package);
-    static Result<void> parse_compiler(const toml::table& data, std::shared_ptr<Component> package);
-    static Result<void> parse_dependencies(const toml::table& data, std::shared_ptr<Component> package);
+    static Result<void> parse_library(
+        const toml::table& data,
+        std::shared_ptr<Component> package
+    );
+    static Result<void> parse_platform(
+        const toml::table& data,
+        std::shared_ptr<Component> package
+    );
+    static Result<void> parse_compiler(
+        const toml::table& data,
+        std::shared_ptr<Component> package
+    );
+    static Result<void> parse_dependencies(
+        const toml::table& data,
+        std::shared_ptr<Component> package
+    );
+
     Result<void> parse_profile(const toml::table& data);
     Result<void> parse_builds(
         const toml::table& data,
@@ -167,21 +170,37 @@ private:
         const std::string& path
     );
 
-    void search_and_parse_dependency(const std::string& package_name, const std::string& version);
+    void search_and_parse_dependency(
+        const std::string& package_name,
+        const std::string& version
+    );
 
     // TODO: Use or Remove
-    void process_modules(const std::vector<std::string>& module_paths, Component& package);
+    void process_modules(
+        const std::vector<std::string>& module_paths,
+        Component& package
+    );
 
-    std::optional<std::shared_ptr<Component>> find_package(const std::string& package_name, std::optional<std::string> version = std::nullopt);
+    std::optional<std::shared_ptr<Component>> find_package(
+        const std::string& package_name,
+        std::optional<std::string> version = std::nullopt
+    );
 
     // TODO: Use or Remove
-    void resolve_system_dependency(const std::string& package_name, std::optional<std::shared_ptr<Component>> package);
+    void resolve_system_dependency(
+        const std::string& package_name,
+        std::optional<std::shared_ptr<Component>> package
+    );
 
     void merge_profiles(const std::string& base_profile, const std::string& inherited_profile);
 
     void parse_muuk_toml(const std::string& path, bool is_base = false);
 
-    tl::expected<void, std::string> resolve_dependencies(const std::string& package_name, std::optional<std::string> version = std::nullopt, std::optional<std::string> search_path = std::nullopt);
+    tl::expected<void, std::string> resolve_dependencies(
+        const std::string& package_name,
+        std::optional<std::string> version = std::nullopt,
+        std::optional<std::string> search_path = std::nullopt
+    );
 };
 
 #endif // MUUK_PARSER_H
