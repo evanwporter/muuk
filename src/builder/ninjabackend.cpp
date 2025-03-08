@@ -9,7 +9,7 @@
 namespace fs = std::filesystem;
 
 NinjaBackend::NinjaBackend(
-    muuk::compiler::Compiler compiler,
+    muuk::Compiler compiler,
     const std::string& archiver,
     const std::string& linker,
     const std::string& lockfile_path
@@ -122,7 +122,7 @@ void NinjaBackend::write_header(std::ostringstream& out, std::string profile) {
         << "# ------------------------------------------------------------\n\n";
 
     out << "# Toolchain Configuration\n"
-        << "cxx = " << muuk::compiler::to_string(compiler_) << "\n"
+        << "cxx = " << compiler_.to_string() << "\n"
         << "ar = " << archiver_ << "\n"
         << "linker = " << linker_ << "\n\n";
 
@@ -143,7 +143,7 @@ void NinjaBackend::write_header(std::ostringstream& out, std::string profile) {
         << "# Rules for Compiling C++ Modules\n"
         << "# ------------------------------------------------------------\n";
 
-    if (compiler_ == muuk::compiler::Compiler::MSVC) {
+    if (compiler_ == muuk::Compiler::MSVC) {
         // MSVC Compiler
         out << "rule module_compile\n"
             << "  command = $cxx /std:c++20 /utf-8 /c /interface $in /Fo$out /IFC:"
@@ -152,14 +152,14 @@ void NinjaBackend::write_header(std::ostringstream& out, std::string profile) {
             << module_dir << " $cflags $profile_cflags\n"
             << "  description = Compiling C++ module $in\n\n";
     }
-    else if (compiler_ == muuk::compiler::Compiler::Clang) {
+    else if (compiler_ == muuk::Compiler::Clang) {
         // Clang Compiler
         out << "rule module_compile\n"
             << "  command = $cxx -std=c++20 -fmodules-ts -c $in -o $out -fmodule-output="
             << module_dir << " $cflags $profile_cflags\n"
             << "  description = Compiling C++ module $in\n\n";
     }
-    else if (compiler_ == muuk::compiler::Compiler::GCC) {
+    else if (compiler_ == muuk::Compiler::GCC) {
         // GCC Compiler
         out << "rule module_compile\n"
             << "  command = $cxx -std=c++20 -fmodules-ts -c $in -o $out -fmodule-output="
@@ -167,15 +167,15 @@ void NinjaBackend::write_header(std::ostringstream& out, std::string profile) {
             << "  description = Compiling C++ module $in\n\n";
     }
     else {
-        muuk::logger::error("Unsupported compiler: {}", muuk::compiler::to_string(compiler_));
-        throw std::invalid_argument("Unsupported compiler: " + muuk::compiler::to_string(compiler_));
+        muuk::logger::error("Unsupported compiler: {}", compiler_.to_string());
+        throw std::invalid_argument("Unsupported compiler: " + compiler_.to_string());
     }
 
     out << "# ------------------------------------------------------------\n"
         << "# Compilation, Archiving, and Linking Rules\n"
         << "# ------------------------------------------------------------\n";
 
-    if (compiler_ == muuk::compiler::Compiler::MSVC) {
+    if (compiler_ == muuk::Compiler::MSVC) {
         // MSVC (cl)
         out << "rule compile\n"
             << "  command = $cxx /c $in /ifcSearchDir "

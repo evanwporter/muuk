@@ -46,39 +46,39 @@ struct BaseConfig {
 typedef BaseConfig LinkArgs;
 typedef std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_set<std::string>>> Profiles;
 
-class Package {
-public:
-    std::string name;
-    std::string version;
-    std::string base_path;
-    std::string hash;
+// class Package {
+// public:
+//     std::string name;
+//     std::string version;
+//     std::string base_path;
+//     std::string hash;
 
-    std::unordered_set<std::string> cflags;
-    std::unordered_set<std::string> libflags;
-    std::unordered_set<std::string> lflags;
-    PackageType package_type; // "library" or "build"
+//     std::unordered_set<std::string> cflags;
+//     std::unordered_set<std::string> libflags;
+//     std::unordered_set<std::string> lflags;
+//     PackageType package_type; // "library" or "build"
 
 
-    std::unordered_set<std::string> include;
-    std::unordered_set<std::string> libs;
-    std::unordered_set<std::string> defines;
+//     std::unordered_set<std::string> include;
+//     std::unordered_set<std::string> libs;
+//     std::unordered_set<std::string> defines;
 
-    std::vector<std::pair<std::string, std::unordered_set<std::string>>> sources;
+//     std::vector<std::pair<std::string, std::unordered_set<std::string>>> sources;
 
-    LinkType link_type = LinkType::STATIC;
-    LinkArgs static_link_args;
-    LinkArgs shared_link_args;
+//     LinkType link_type = LinkType::STATIC;
+//     LinkArgs static_link_args;
+//     LinkArgs shared_link_args;
 
-    std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_set<std::string>>> platform_;
-    std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_set<std::string>>> compiler_;
-};
+//     std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_set<std::string>>> platform_;
+//     std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_set<std::string>>> compiler_;
+// };
 
 // { Dependency { Versioning { Dependency Info } } }
 typedef DependencyVersionMap<std::unordered_map<std::string, std::string>> DependencyInfoMap;
 
-class Component {
+class Package {
 public:
-    Component(
+    Package(
         const std::string& name,
         const std::string& version,
         const std::string& base_path,
@@ -87,7 +87,7 @@ public:
 
     void add_include_path(const std::string& path);
 
-    void merge(const Component& child_pkg);
+    void merge(const Package& child_pkg);
 
     std::string serialize() const;
 
@@ -116,7 +116,7 @@ public:
 };
 
 // { Dependency { Versioning { Package } } }
-typedef DependencyVersionMap<std::shared_ptr<Component>> DependencyMap;
+typedef DependencyVersionMap<std::shared_ptr<Package>> DependencyMap;
 
 class MuukLockGenerator {
 public:
@@ -127,9 +127,9 @@ private:
     std::string base_path_;
 
     DependencyMap resolved_packages;
-    std::unordered_map<std::string, std::shared_ptr<Component>> builds;
+    std::unordered_map<std::string, std::shared_ptr<Package>> builds;
 
-    std::shared_ptr<Component> base_package_;
+    std::shared_ptr<Package> base_package_;
 
     std::shared_ptr<spdlog::logger> logger_;
     std::unique_ptr<MuukModuleParser> module_parser_;
@@ -146,21 +146,26 @@ private:
 
     Profiles profiles_;
 
+    void parse_flags(
+        const toml::table& profile_data,
+        const std::string& profile_name,
+        const std::string& flag_type
+    );
     static Result<void> parse_library(
         const toml::table& data,
-        std::shared_ptr<Component> package
+        std::shared_ptr<Package> package
     );
     static Result<void> parse_platform(
         const toml::table& data,
-        std::shared_ptr<Component> package
+        std::shared_ptr<Package> package
     );
     static Result<void> parse_compiler(
         const toml::table& data,
-        std::shared_ptr<Component> package
+        std::shared_ptr<Package> package
     );
     static Result<void> parse_dependencies(
         const toml::table& data,
-        std::shared_ptr<Component> package
+        std::shared_ptr<Package> package
     );
 
     Result<void> parse_profile(const toml::table& data);
@@ -178,10 +183,10 @@ private:
     // TODO: Use or Remove
     void process_modules(
         const std::vector<std::string>& module_paths,
-        Component& package
+        Package& package
     );
 
-    std::optional<std::shared_ptr<Component>> find_package(
+    std::optional<std::shared_ptr<Package>> find_package(
         const std::string& package_name,
         std::optional<std::string> version = std::nullopt
     );
@@ -189,7 +194,7 @@ private:
     // TODO: Use or Remove
     void resolve_system_dependency(
         const std::string& package_name,
-        std::optional<std::shared_ptr<Component>> package
+        std::optional<std::shared_ptr<Package>> package
     );
 
     void merge_profiles(const std::string& base_profile, const std::string& inherited_profile);

@@ -26,7 +26,7 @@ static void print_array(std::ostringstream& stream, std::string_view key, const 
     }
 }
 
-Component::Component(const std::string& name,
+Package::Package(const std::string& name,
     const std::string& version,
     const std::string& base_path,
     const std::string& package_type) :
@@ -36,11 +36,11 @@ Component::Component(const std::string& name,
     package_type(package_type) {
 }
 
-void Component::add_include_path(const std::string& path) {
+void Package::add_include_path(const std::string& path) {
     include.insert((fs::path(base_path) / path).lexically_normal().string());
 }
 
-void Component::merge(const Component& child_pkg) {
+void Package::merge(const Package& child_pkg) {
 
     muuk::logger::info("[MuukLockGenerator] Merging {} into {}", child_pkg.name, name);
 
@@ -68,7 +68,7 @@ void Component::merge(const Component& child_pkg) {
     // dependencies.insert(child_pkg.dependencies.begin(), child_pkg.dependencies.end());
 }
 
-std::string Component::serialize() const {
+std::string Package::serialize() const {
     std::ostringstream toml_stream; // string steam to allow more control over the final product
     toml::table data;
     toml::array include_array, cflags_array, sources_array, modules_array, libs_array, deps_array, profiles_array;
@@ -118,6 +118,7 @@ std::string Component::serialize() const {
         toml_stream << "]\n";
     }
 
+    toml_stream << "version = \"" << version << "\"\n";
     print_array(toml_stream, "libs", libs);
     print_array(toml_stream, "modules", modules);
     print_array(toml_stream, "dependencies", deps);

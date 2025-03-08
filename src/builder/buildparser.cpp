@@ -12,7 +12,7 @@
 
 namespace fs = std::filesystem;
 
-BuildParser::BuildParser(std::shared_ptr<BuildManager> manager, std::shared_ptr<MuukFiler> muuk_filer, muuk::compiler::Compiler compiler, const fs::path& build_dir, std::string profile) :
+BuildParser::BuildParser(std::shared_ptr<BuildManager> manager, std::shared_ptr<MuukFiler> muuk_filer, muuk::Compiler compiler, const fs::path& build_dir, std::string profile) :
     build_manager(std::move(manager)),
     compiler(compiler),
     muuk_filer(std::move(muuk_filer)),
@@ -304,7 +304,7 @@ std::vector<std::string> BuildParser::extract_compiler_flags(const toml::table& 
     auto compiler_table = package_table.at("compiler").as_table();
     if (!compiler_table) return flags;
 
-    auto compiler_ = muuk::compiler::to_string(compiler);
+    auto compiler_ = compiler.to_string();
 
     if (compiler_table->contains(compiler_)) {
         auto compiler_entry = compiler_table->at(compiler_).as_table();

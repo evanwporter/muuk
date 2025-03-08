@@ -51,7 +51,7 @@ void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
         path
     );
 
-    auto package = std::make_shared<Component>(std::string(package_name), std::string(package_version),
+    auto package = std::make_shared<Package>(std::string(package_name), std::string(package_version),
         fs::path(path).parent_path().string(), "library");
 
     Try(parse_dependencies(data, package));
@@ -82,7 +82,7 @@ tl::expected<void, std::string> MuukLockGenerator::resolve_dependencies(const st
     visited.insert(package_name);
     muuk::logger::info("Resolving dependencies for: {} with muuk path: '{}'", package_name, search_path.value_or(""));
 
-    std::optional<std::shared_ptr<Component>> package_opt = find_package(package_name, version);
+    std::optional<std::shared_ptr<Package>> package_opt = find_package(package_name, version);
 
     if (!package_opt.has_value()) {
         if (search_path) {
@@ -108,7 +108,7 @@ tl::expected<void, std::string> MuukLockGenerator::resolve_dependencies(const st
                 }
 
                 if (!package_opt) {
-                    muuk::logger::error("Error: Component '{}' not found after parsing '{}'.", package_name, *search_path);
+                    muuk::logger::error("Error: Package '{}' not found after parsing '{}'.", package_name, *search_path);
                     return Err("");
                 }
             }
@@ -123,14 +123,14 @@ tl::expected<void, std::string> MuukLockGenerator::resolve_dependencies(const st
             package_opt = resolved_packages[package_name][version.value()];
 
             if (!package_opt.has_value()) {
-                muuk::logger::error("Error: Component '{}' not found after searching the dependency folder ({}).", package_name, DEPENDENCY_FOLDER);
+                muuk::logger::error("Package '{}' not found after searching the dependency folder ({}).", package_name, DEPENDENCY_FOLDER);
                 return Err("");
             }
         }
-        // muuk::logger::info("Component '{}' not found in resolved packages.", package_name);
+        // muuk::logger::info("Package '{}' not found in resolved packages.", package_name);
     }
 
-    auto package = package_opt.value();  // Safe extraction since we checked before
+    auto package = package_opt.value();
 
     for (const auto& [dep_name, version_map] : package->dependencies_) {
         for (const auto& [dep_version, dep_info] : version_map) {
@@ -202,6 +202,7 @@ void MuukLockGenerator::search_and_parse_dependency(const std::string& package_n
     muuk::logger::info("Searching for target package '{}', version '{}'.", package_name, version);
     fs::path search_dir = fs::path(DEPENDENCY_FOLDER) / package_name / version;
 
+    // TODO: Make this return matter
     if (!fs::exists(search_dir)) {
         muuk::logger::warn("Dependency '{}' version '{}' not found in '{}'", package_name, version, search_dir.string());
         return;
@@ -310,7 +311,7 @@ void MuukLockGenerator::generate_lockfile(const std::string& output_path) {
 }
 
 // Finds and returns a package by its name from the resolved packages.
-std::optional<std::shared_ptr<Component>> MuukLockGenerator::find_package(const std::string& package_name, std::optional<std::string> version) {
+std::optional<std::shared_ptr<Package>> MuukLockGenerator::find_package(const std::string& package_name, std::optional<std::string> version) {
     if (resolved_packages.count(package_name) && version.has_value()) {
         return resolved_packages[package_name][version.value()];
     }
@@ -322,7 +323,7 @@ std::optional<std::shared_ptr<Component>> MuukLockGenerator::find_package(const 
 }
 
 // Processes the given module paths and adds the resolved modules to the package.
-void MuukLockGenerator::process_modules(const std::vector<std::string>& module_paths, Component& package) {
+void MuukLockGenerator::process_modules(const std::vector<std::string>& module_paths, Package& package) {
     muuk::logger::info("Processing modules for package: {}", package.name);
 
     module_parser_->parseAllModules(module_paths);
@@ -336,7 +337,7 @@ void MuukLockGenerator::process_modules(const std::vector<std::string>& module_p
 }
 
 // Resolves system dependencies by checking for include and library paths for the given package name.
-void MuukLockGenerator::resolve_system_dependency(const std::string& package_name, std::optional<std::shared_ptr<Component>> package) {
+void MuukLockGenerator::resolve_system_dependency(const std::string& package_name, std::optional<std::shared_ptr<Package>> package) {
     muuk::logger::info("Checking system dependency: '{}'", package_name);
 
     std::string include_path, lib_path;

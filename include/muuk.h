@@ -4,6 +4,7 @@
 
 #include "rustify.hpp"
 #include "muukfiler.h"
+#include "compiler.hpp"
 
 #include <tl/expected.hpp>
 #include <string>
@@ -15,27 +16,17 @@ using DependencyVersionMap = std::unordered_map<std::string, std::unordered_map<
 
 
 namespace muuk {
-    namespace compiler {
-        enum class Compiler {
-            GCC,
-            Clang,
-            MSVC
-        };
-
-        std::string to_string(Compiler compiler);
-        Compiler from_string(const std::string& compiler_str);
-    }
-
     Result<void> init_project();
     tl::expected<void, std::string> qinit_library(
         const std::string& author,
-        const std::string& repo
+        const std::string& repo,
+        const std::string& version
     );
 
     // flag handler
-    std::string normalize_flag(const std::string& flag, const compiler::Compiler compiler);
-    std::string normalize_flags(const std::vector<std::string>& flags, const compiler::Compiler compiler);
-    void normalize_flags_inplace(std::vector<std::string>& flags, const compiler::Compiler compiler);
+    std::string normalize_flag(const std::string& flag, const Compiler compiler);
+    std::string normalize_flags(const std::vector<std::string>& flags, const Compiler compiler);
+    void normalize_flags_inplace(std::vector<std::string>& flags, const Compiler compiler);
 
     // void clean(MuukFiler& config_manager);
     // void run_script(

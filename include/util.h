@@ -77,6 +77,8 @@ namespace util {
 
         Result<std::vector<std::string>> get_top_level_dirs_of_github(const std::string& author, const std::string& repo);
 
+        Result<std::string> get_license_of_github_repo(const std::string& author, const std::string& repo);
+
     }
 
     namespace time {

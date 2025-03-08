@@ -27,9 +27,9 @@ private:
     std::shared_ptr<spdlog::logger> logger_;
 
     tl::expected<void, std::string> execute_build(const std::string& profile) const;
-    tl::expected<muuk::compiler::Compiler, std::string> detect_default_compiler() const;
-    std::string detect_archiver(muuk::compiler::Compiler compiler) const;
-    std::string detect_linker(muuk::compiler::Compiler compiler) const;
+    tl::expected<muuk::Compiler, std::string> detect_default_compiler() const;
+    std::string detect_archiver(muuk::Compiler compiler) const;
+    std::string detect_linker(muuk::Compiler compiler) const;
     tl::expected<std::string, std::string> select_profile(const std::string& profile);
     tl::expected<void, std::string> add_script(const std::string& profile, const std::string& build_name);
 };

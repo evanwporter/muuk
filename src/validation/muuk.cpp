@@ -126,7 +126,7 @@ namespace muuk {
         SchemaMap schema = SchemaMap{
             {"package", {false, TomlType::Table, std::nullopt, SchemaMap{
                 {"name", {true, TomlType::String, std::nullopt, std::nullopt}},
-                {"version", {false, TomlType::String, std::nullopt, std::nullopt}},
+                {"version", {true, TomlType::String, std::nullopt, std::nullopt}},
                 {"description", {false, TomlType::String, std::nullopt, std::nullopt}},
                 {"license", {false, TomlType::String, std::nullopt, std::nullopt}},
                 {"authors", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}},
@@ -145,9 +145,11 @@ namespace muuk {
             }}},
             {"library", {false, TomlType::Table, std::nullopt, SchemaMap{
                 {"include", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}},
+                {"source", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}},
                 {"cflags", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}},
-                {"system_include", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}},
-
+                {"libflags", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}},
+                {"lflags", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}},
+                {"system_include", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}}
             }}},
             {"build", {false, TomlType::Table, std::nullopt, SchemaMap{
                 {"*", {false, TomlType::Table, std::nullopt, SchemaMap{
@@ -182,6 +184,7 @@ namespace muuk {
             {"library", {false, TomlType::Table, std::nullopt, SchemaMap{
                 {"*", {false, TomlType::Table, std::nullopt, SchemaMap{
                     {"include", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}},
+                    {"source", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}},
                     {"cflags", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}},
                     {"system_include", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}},
                     {"dependencies", {false, TomlType::Array, std::vector<TomlType>{TomlType::String}, std::nullopt}}

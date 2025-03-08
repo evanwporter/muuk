@@ -8,24 +8,6 @@
 #include <stdexcept>
 #include <tl/expected.hpp>
 
-namespace muuk::compiler {
-    std::string to_string(Compiler compiler) {
-        switch (compiler) {
-        case Compiler::GCC: return "g++";
-        case Compiler::Clang: return "clang++";
-        case Compiler::MSVC: return "cl";
-        }
-        throw std::invalid_argument("Invalid compiler type");
-    }
-
-    Compiler from_string(const std::string& compiler_str) {
-        if (compiler_str == "g++" || compiler_str == "gcc") return Compiler::GCC;
-        if (compiler_str == "clang++" || compiler_str == "clang") return Compiler::Clang;
-        if (compiler_str == "cl" || compiler_str == "msvc") return Compiler::MSVC;
-        throw std::invalid_argument("Unsupported compiler: " + compiler_str);
-    }
-}
-
 MuukBuilder::MuukBuilder(MuukFiler& config_manager)
     : config_manager_(config_manager)
 {
@@ -36,11 +18,12 @@ tl::expected<void, std::string> MuukBuilder::build(std::string& target_build, co
     lock_generator_->generate_lockfile("muuk.lock.toml");
     spdlog::default_logger()->flush();
 
-    auto compiler_result = compiler.empty() ? detect_default_compiler() : muuk::compiler::from_string(compiler);
-    // if (!compiler_result) return tl::unexpected("Error selecting compiler: " + compiler_result.error());
+    auto compiler_result = compiler.empty() ? detect_default_compiler() : muuk::Compiler::from_string(compiler);
+    if (!compiler_result) return tl::unexpected("Error selecting compiler: " + compiler_result.error());
+    auto selected_compiler = compiler_result.value();
 
-    std::string selected_archiver = detect_archiver(*compiler_result);
-    std::string selected_linker = detect_linker(*compiler_result);
+    std::string selected_archiver = selected_compiler.detect_archiver();
+    std::string selected_linker = selected_compiler.detect_linker();
 
     auto profile_result = select_profile(profile);
     if (!profile_result) return tl::unexpected(profile_result.error());
@@ -101,31 +84,13 @@ tl::expected<bool, std::string> MuukBuilder::is_compiler_available() const {
     return tl::unexpected("No compatible C++ compiler found on PATH. Install MSVC, GCC, or Clang.");
 }
 
-std::string MuukBuilder::detect_archiver(muuk::compiler::Compiler compiler) const {
-    switch (compiler) {
-    case muuk::compiler::Compiler::MSVC: return "lib";
-    case muuk::compiler::Compiler::Clang: return "llvm-ar";
-    case muuk::compiler::Compiler::GCC: return "ar";
-    default: return "ar";
-    }
-}
-
-std::string MuukBuilder::detect_linker(muuk::compiler::Compiler compiler) const {
-    switch (compiler) {
-    case muuk::compiler::Compiler::MSVC: return "link";
-    case muuk::compiler::Compiler::Clang:
-    case muuk::compiler::Compiler::GCC: return to_string(compiler); // Compiler acts as linker
-    }
-    return to_string(compiler); // Default case
-}
-
-tl::expected<muuk::compiler::Compiler, std::string> MuukBuilder::detect_default_compiler() const {
+tl::expected<muuk::Compiler, std::string> MuukBuilder::detect_default_compiler() const {
     const char* compilers[] = { "g++", "clang++", "cl" };
 
     for (const char* compiler : compilers) {
         if (util::command_line::command_exists(compiler)) {
             muuk::logger::info("Found default compiler: {}", compiler);
-            return muuk::compiler::from_string(compiler);
+            return muuk::Compiler::from_string(compiler);
         }
     }
 
@@ -180,6 +145,6 @@ tl::expected<void, std::string> MuukBuilder::add_script(const std::string& profi
     }
     catch (const std::exception& e) {
         return tl::unexpected("Failed to add run script: " + std::string(e.what()));
-    }
 }
+    }
 

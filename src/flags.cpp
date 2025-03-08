@@ -8,11 +8,11 @@
 #include <unordered_map>
 
 namespace muuk {
-    std::string normalize_flag(const std::string& flag, const compiler::Compiler compiler) {
+    std::string normalize_flag(const std::string& flag, const Compiler compiler) {
         std::string normalized_flag = flag;
 
         if (flag[0] != '/' && flag[0] != '-') {
-            if (compiler == compiler::Compiler::MSVC) {
+            if (compiler == Compiler::MSVC) {
                 normalized_flag = "/" + flag;
             }
             else {
@@ -92,7 +92,7 @@ namespace muuk {
         constexpr auto std_pattern = ctll::fixed_string{ R"((?:/std:c\+\+|-std=c\+\+)(\d+))" };
 
         if (flag.starts_with("/D") || flag.starts_with("-D")) {
-            if (compiler == compiler::Compiler::MSVC) {
+            if (compiler == Compiler::MSVC) {
                 return "/D" + flag.substr(2);  // MSVC uses /D
             }
             else {
@@ -100,7 +100,7 @@ namespace muuk {
             }
         }
 
-        if (compiler == compiler::Compiler::MSVC) {
+        if (compiler == Compiler::MSVC) {
             auto lookup = gcc_to_msvc.find(normalized_flag);
             if (lookup != gcc_to_msvc.end()) {
                 return lookup->second;
@@ -125,7 +125,7 @@ namespace muuk {
     }
 
     // Normalize a vector of flags
-    std::string normalize_flags(const std::vector<std::string>& flags, const compiler::Compiler compiler) {
+    std::string normalize_flags(const std::vector<std::string>& flags, const Compiler compiler) {
         std::string normalized;
         for (const auto& flag : flags) {
             normalized += " " + normalize_flag(flag, compiler);
@@ -134,7 +134,7 @@ namespace muuk {
     }
 
     // Normalize a vector of flags in-place
-    void normalize_flags_inplace(std::vector<std::string>& flags, const compiler::Compiler compiler) {
+    void normalize_flags_inplace(std::vector<std::string>& flags, const Compiler compiler) {
         for (auto& flag : flags) {
             flag = normalize_flag(flag, compiler);
         }

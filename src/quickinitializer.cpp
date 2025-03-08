@@ -26,66 +26,6 @@ namespace muuk {
        "src", "source", "sources"
     };
 
-    Result<std::vector<std::string>> get_top_level_dirs_of_github(const std::string& author, const std::string& repo) {
-        std::vector<std::string> top_dirs;
-        std::string api_url = "https://api.github.com/repos/" + author + "/" + repo + "/git/trees/master?recursive=1";
-
-        std::string command = "wget -q -O - " + api_url;
-        nlohmann::json json_data(util::command_line::execute_command_get_out(command));
-
-        // Extract paths and find top-level directories
-        std::unordered_set<std::string> unique_dirs;
-        if (json_data.contains("tree")) {
-            for (const auto& item : json_data["tree"]) {
-                if (item.contains("path") && item.contains("type")) {
-                    std::string path = item["path"];
-                    std::string type = item["type"];
-
-                    // Only consider directories
-                    if (type == "tree") {
-                        size_t pos = path.find('/');
-                        if (pos != std::string::npos) {
-                            unique_dirs.insert(path.substr(0, pos));
-                        }
-                        else {
-                            unique_dirs.insert(path);
-                        }
-                    }
-                }
-            }
-        }
-
-        if (unique_dirs.empty()) {
-            return tl::unexpected("Failed to fetch remote repository structure.");
-        }
-
-        // Convert unordered_set to vector
-        top_dirs.assign(unique_dirs.begin(), unique_dirs.end());
-        return top_dirs;
-    }
-
-    Result<std::string> get_license_of_github_repo(const std::string& author, const std::string& repo) {
-        std::string api_url = "https://api.github.com/repos/" + author + "/" + repo + "/license";
-
-        auto response = util::network::fetch_json(api_url);
-        if (!response) {
-            return tl::unexpected("Failed to fetch license JSON for " + author + "/" + repo + ": " + response.error());
-        }
-
-        // Ensure `response` is a valid JSON object
-        if (!response->is_object()) {
-            return tl::unexpected("Invalid JSON response for " + author + "/" + repo);
-        }
-
-        // Check if the JSON contains the expected license info
-        if (response->contains("license") && (*response)["license"].contains("spdx_id")) {
-            return (*response)["license"]["spdx_id"].get<std::string>();
-        }
-
-        return tl::unexpected("License information not found for " + author + "/" + repo);
-    }
-
-
     tl::expected<fs::path, std::string> select_directory(const std::vector<fs::path>& directories, const std::string& type) {
         if (directories.empty()) {
             return tl::unexpected("No directories found for " + type);
@@ -115,7 +55,7 @@ namespace muuk {
         return found;
     }
 
-    tl::expected<void, std::string> qinit_library(const std::string& author, const std::string& repo) {
+    tl::expected<void, std::string> qinit_library(const std::string& author, const std::string& repo, const std::string& version) {
         fs::path root = fs::absolute(DEPENDENCY_FOLDER) / repo;
 
         muuk::logger::info("Initializing library '{}/{}' at '{}'", author, repo, root.string());
@@ -126,13 +66,12 @@ namespace muuk {
         fs::path include_dir;
         fs::path source_dir;
 
-        std::string license = get_license_of_github_repo(author, repo).value_or("");
-        std::string revision = util::git::get_latest_revision(fmt::format("https://github.com/{}/{}.git", author, repo));
+        std::string license = util::git::get_license_of_github_repo(author, repo).value_or("");
 
         muuk::logger::info("Fetching top-level directories from GitHub repo '{}/{}'", author, repo);
 
         // Get remote directories
-        auto remote_dirs = get_top_level_dirs_of_github(author, repo);
+        auto remote_dirs = util::git::get_top_level_dirs_of_github(author, repo);
         if (!remote_dirs) {
             logger::warn(remote_dirs.error());
 
@@ -164,10 +103,12 @@ namespace muuk {
             auto source_dir_result = select_directory(source_dirs, "source");
 
             include_dir = include_dir_result.value_or("include");
-            source_dir = include_dir_result.value_or("src");
+            source_dir = source_dir_result.value_or("src");
         }
 
-        std::ofstream config_file(root / "muuk.toml", std::ios::out | std::ios::trunc);
+        util::ensure_directory_exists((root / version).string());
+
+        std::ofstream config_file(root / version / "muuk.toml", std::ios::out | std::ios::trunc);
         if (!config_file.is_open()) {
             return tl::unexpected(fmt::format("Failed to create muuk.toml in {}", root.string()));
         }
@@ -175,7 +116,9 @@ namespace muuk {
         config_file << "[package]\n"
             << "name = '" << repo << "'\n"
             << "author = '" << author << "'\n"
-            << "license = '" << license << "'\n\n";
+            << "license = '" << license << "'\n"
+            << "version = '" << version << "'\n"
+            << "git = '" << "https://github.com/" << author << "/" << repo << ".git" << "'\n\n";
 
         config_file << "[library]\n"
             << "include = ['" << include_dir.string() << "']\n"

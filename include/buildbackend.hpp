@@ -14,7 +14,7 @@
 
 class BuildBackend {
 protected:
-    muuk::compiler::Compiler compiler_;
+    muuk::Compiler compiler_;
     const std::string archiver_;
     const std::string linker_;
     std::shared_ptr<MuukFiler> muuk_filer;
@@ -23,7 +23,7 @@ public:
     virtual ~BuildBackend() = default;
 
     BuildBackend(
-        muuk::compiler::Compiler compiler,
+        muuk::Compiler compiler,
         std::string archiver, std::string linker,
         const std::string& lockfile_path
     ) :
@@ -49,7 +49,7 @@ private:
 
 public:
     NinjaBackend(
-        muuk::compiler::Compiler compiler,
+        muuk::Compiler compiler,
         const std::string& archiver,
         const std::string& linker,
         const std::string& lockfile_path = "muuk.lock.toml"

@@ -16,12 +16,9 @@ namespace muuk {
         tl::expected<void, std::string> add_dependency(
             const std::string& toml_path,
             const std::string& repo,
-            const std::string& version,
+            std::string version,
             std::string& git_url,
             std::string& muuk_path,
-            std::string revision,
-            const std::string& tag,
-            const std::string& branch,
             bool is_system,
             const std::string& target_section
         );

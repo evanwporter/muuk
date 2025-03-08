@@ -17,7 +17,6 @@
 #include <functional>
 #include <vector>
 #include <argparse/argparse.hpp>
-#include <cracklib.hpp>
 #include <tl/expected.hpp>
 
 // Define a macro to handle tl::expected, if the unexpected happens it will log the error and return 1, otherwise it will return 0
@@ -128,17 +127,6 @@ int main(int argc, char* argv[]) {
     remove_command.add_argument("package_name")
         .help("The name of the package to remove");
 
-    argparse::ArgumentParser crack_command("crack", "Brute-force crack a RAR archive");
-    crack_command.add_argument("rar_file")
-        .help("The path to the .rar file to crack.");
-    crack_command.add_argument("--threads")
-        .help("Number of threads to use (default: 2)")
-        .scan<'i', int>()
-        .default_value(2);
-    crack_command.add_argument("--json")
-        .help("Output status as JSON instead of cracking")
-        .flag();
-
     argparse::ArgumentParser init_command("init", "Initialize a new muuk.toml configuration file");
 
     argparse::ArgumentParser add_command("add", "Add a dependency to muuk.toml");
@@ -149,15 +137,6 @@ int main(int argc, char* argv[]) {
         .flag();
     add_command.add_argument("--version")
         .help("Specify dependency version (Required for --sys).")
-        .default_value(std::string(""));
-    add_command.add_argument("--rev")
-        .help("Specify revision for Git dependencies.")
-        .default_value(std::string(""));
-    add_command.add_argument("--tag")
-        .help("Specify tag for Git dependencies.")
-        .default_value(std::string(""));
-    add_command.add_argument("--branch")
-        .help("Specify branch for Git dependencies.")
         .default_value(std::string(""));
     add_command.add_argument("--git")
         .help("The Git repository URL (optional).")
@@ -189,7 +168,6 @@ int main(int argc, char* argv[]) {
     program.add_subparser(build_command);
     program.add_subparser(download_command);
     program.add_subparser(remove_command);
-    program.add_subparser(crack_command);
     program.add_subparser(init_command);
     program.add_subparser(qinit_command);
     program.add_subparser(add_command);
@@ -232,22 +210,14 @@ int main(int argc, char* argv[]) {
             return 0;
         }
 
-        if (program.is_subcommand_used("crack")) {
-            const auto rar_file = crack_command.get<std::string>("rar_file");
-            int threads = crack_command.get<int>("--threads");
-            bool json_output = crack_command.get<bool>("--json");
-            crack(rar_file.c_str(), threads);
-            return 0;
-        }
-
         if (program.is_subcommand_used("add")) {
             std::string dependency_name = add_command.get<std::string>("name");
             std::string version = add_command.get<std::string>("--version");
-            std::string revision = add_command.get<std::string>("--rev");
-            std::string tag = add_command.get<std::string>("--tag");
-            std::string branch = add_command.get<std::string>("--branch");
+            // std::string revision = add_command.get<std::string>("--rev");
+            // std::string tag = add_command.get<std::string>("--tag");
+            // std::string branch = add_command.get<std::string>("--branch");
             std::string git_url = add_command.get<std::string>("--git");
-            std::string muuk_path_dependency = add_command.get<std::string>("--muuk-path");
+            std::string muuk_path_dependency = add_command.get<std::string>("--path");
             std::string target_section = add_command.get<std::string>("--target");
             bool is_system = add_command.get<bool>("--sys");
 
@@ -259,9 +229,9 @@ int main(int argc, char* argv[]) {
                 version,
                 git_url,
                 muuk_path_dependency,
-                revision,
-                tag,
-                branch,
+                // revision,
+                // tag,
+                // branch,
                 is_system,
                 target_section
             );

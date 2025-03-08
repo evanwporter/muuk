@@ -24,6 +24,7 @@
 #include <set>
 #include <vector>
 #include <algorithm>
+#include <unordered_set>
 
 extern "C" {
 #include "zip.h"
@@ -321,29 +322,6 @@ namespace util {
     }
 
     // ==========================
-    //  Git Utilities
-    // ==========================
-    namespace git {
-
-        std::string get_latest_revision(const std::string& git_url) {
-            std::string commit_hash_cmd = "git ls-remote " + git_url + " HEAD";
-            std::string output = command_line::execute_command_get_out(commit_hash_cmd);
-            std::string revision = output.substr(0, output.find('\t'));
-
-            if (revision.empty()) {
-                muuk::logger::error("Failed to retrieve latest commit hash for '{}'.", git_url);
-                throw std::runtime_error("Failed to retrieve latest commit hash.");
-            }
-
-            revision.erase(std::remove(revision.begin(), revision.end(), '\n'), revision.end());
-            muuk::logger::info("Latest commit hash for {} is {}", git_url, revision);
-
-            return revision;
-        }
-
-    } // namespace git
-
-    // ==========================
     //  Time Utilities
     // ==========================
     namespace time {
@@ -364,5 +342,4 @@ namespace util {
 
 
 } // namespace util
-
 

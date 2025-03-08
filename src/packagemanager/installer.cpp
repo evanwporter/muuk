@@ -82,7 +82,7 @@ namespace muuk {
         }
 
 
-        bool is_installed_version_matching(const fs::path muuk_toml_path, const std::string& version, const std::string& revision, const std::string& tag) {
+        bool is_installed_version_matching(const fs::path muuk_toml_path, const std::string& version) {
             try {
                 auto muuk_filer = MuukFiler::create(muuk_toml_path.string());
                 if (!muuk_filer) {
@@ -100,18 +100,16 @@ namespace muuk {
                 toml::table package_section = *config["package"].as_table();
 
                 std::string installed_version = package_section.contains("version") ? *package_section["version"].value<std::string>() : "";
-                std::string installed_revision = package_section.contains("revision") ? *package_section["revision"].value<std::string>() : "";
-                std::string installed_tag = package_section.contains("tag") ? *package_section["tag"].value<std::string>() : "";
 
-                muuk::logger::debug("Version: {}, revision: {}, tag: {}", version, revision, tag);
-                muuk::logger::debug("Installed version: {}, revision: {}, tag: {}", installed_version, installed_revision, installed_tag);
+                muuk::logger::debug("Version: {}", version);
+                muuk::logger::debug("Installed version: {}", installed_version);
 
-                if (installed_version.empty() && installed_revision.empty() && installed_tag.empty()) {
+                if (installed_version.empty()) {
                     muuk::logger::warn("No versioning information found in '{}'. Assuming outdated.", muuk_toml_path.string());
                     return false;
                 }
 
-                return (installed_version == version || installed_revision == revision || installed_tag == tag);
+                return (installed_version == version);
             }
             catch (const std::exception& e) {
                 muuk::logger::error("Error checking installed version: {}", e.what());
@@ -181,7 +179,7 @@ namespace muuk {
                 fs::path muuk_toml_path = target_dir + "/muuk.toml";
 
                 if (fs::exists(muuk_toml_path)) {
-                    if (is_installed_version_matching(muuk_toml_path, version, revision, tag)) {
+                    if (is_installed_version_matching(muuk_toml_path, version)) {
                         muuk::logger::info("'{}' is already up to date. Skipping installation.", repo_name);
                         continue;
                     }

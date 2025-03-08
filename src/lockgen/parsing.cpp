@@ -4,8 +4,19 @@
 #include <toml++/toml.h>
 #include <fmt/ranges.h>
 
+void MuukLockGenerator::parse_flags(const toml::table& profile_data, const std::string& profile_name, const std::string& flag_type) {
+    if (profile_data.contains(flag_type) && profile_data.at(flag_type).is_array()) {
+        const auto& flag_array = *profile_data.at(flag_type).as_array();
+        std::unordered_set<std::string> flags;
+        for (const auto& flag : flag_array) {
+            flags.insert(*flag.value<std::string>());
+        }
+        profiles_[profile_name][flag_type] = flags;
+        muuk::logger::info("Profile '{}' loaded with {} {}.", profile_name, flags.size(), flag_type);
+    }
+};
 
-Result<void> MuukLockGenerator::parse_dependencies(const toml::table& data, std::shared_ptr<Component> package) {
+Result<void> MuukLockGenerator::parse_dependencies(const toml::table& data, std::shared_ptr<Package> package) {
 
     if (data.contains("dependencies") && data["dependencies"].is_table()) {
         for (const auto& [dep_name, dep_value] : *data["dependencies"].as_table()) {
@@ -49,7 +60,7 @@ Result<void> MuukLockGenerator::parse_dependencies(const toml::table& data, std:
 }
 
 
-Result<void> MuukLockGenerator::parse_library(const toml::table& section, std::shared_ptr<Component> package) {
+Result<void> MuukLockGenerator::parse_library(const toml::table& section, std::shared_ptr<Package> package) {
     muuk::logger::trace("Parsing section for package: {}", package->name);
 
     if (section.contains("include")) {
@@ -121,25 +132,8 @@ Result<void> MuukLockGenerator::parse_profile(const toml::table& data) {
     if (data.contains("profile") && data["profile"].is_table()) {
         for (const auto& [profile_name, profile_data] : *data["profile"].as_table()) {
             if (profile_data.is_table()) {
-                if (profile_data.as_table()->contains("cflags")) {
-                    const auto& cflag_array = *profile_data.as_table()->at("cflags").as_array();
-                    std::unordered_set<std::string> cflags;
-                    for (const auto& cflag : cflag_array) {
-                        cflags.insert(*cflag.value<std::string>());
-                    }
-                    profiles_[std::string(profile_name.str())]["cflags"] = cflags;
-                    muuk::logger::info("Profile '{}' loaded with {} cflags.", profile_name.str(), cflags.size());
-                }
-
-                if (profile_data.as_table()->contains("lflags")) {
-                    const auto& lflag_array = *profile_data.as_table()->at("lflags").as_array();
-                    std::unordered_set<std::string> lflags;
-                    for (const auto& lflag : lflag_array) {
-                        lflags.insert(*lflag.value<std::string>());
-                    }
-                    profiles_[std::string(profile_name.str())]["lflags"] = lflags;
-                    muuk::logger::info("Profile '{}' loaded with {} lflags.", profile_name.str(), lflags.size());
-                }
+                parse_flags(*profile_data.as_table(), std::string(profile_name.str()), "cflags");
+                parse_flags(*profile_data.as_table(), std::string(profile_name.str()), "lflags");
             }
         }
     }
@@ -182,7 +176,7 @@ Result<void> MuukLockGenerator::parse_builds(const toml::table& data, const std:
         for (const auto& [build_name, build_info] : *data["build"].as_table()) {
             muuk::logger::info("Found build target: {}", build_name.str());
 
-            auto build_package = std::make_shared<Component>(
+            auto build_package = std::make_shared<Package>(
                 std::string(build_name.str()),
                 std::string(package_version),
                 fs::path(path).parent_path().string(),
@@ -190,6 +184,7 @@ Result<void> MuukLockGenerator::parse_builds(const toml::table& data, const std:
             );
 
             parse_library(*build_info.as_table(), build_package);
+            parse_dependencies(*build_info.as_table(), build_package);
 
             if (build_info.is_table() && build_info.as_table()->contains("profile")) {
                 const auto& profile_array = *build_info.as_table()->at("profile").as_array();
@@ -206,7 +201,7 @@ Result<void> MuukLockGenerator::parse_builds(const toml::table& data, const std:
     return {};
 }
 
-Result<void> MuukLockGenerator::parse_platform(const toml::table& data, std::shared_ptr<Component> package) {
+Result<void> MuukLockGenerator::parse_platform(const toml::table& data, std::shared_ptr<Package> package) {
     if (data.contains("platform") && data["platform"].is_table()) {
         for (const auto& [platform_name, platform_data] : *data["platform"].as_table()) {
             if (platform_data.is_table() && platform_data.as_table()->contains("cflags")) {
@@ -225,7 +220,7 @@ Result<void> MuukLockGenerator::parse_platform(const toml::table& data, std::sha
     return {};
 }
 
-Result<void> MuukLockGenerator::parse_compiler(const toml::table& data, std::shared_ptr<Component> package) {
+Result<void> MuukLockGenerator::parse_compiler(const toml::table& data, std::shared_ptr<Package> package) {
     if (data.contains("compiler") && data["compiler"].is_table()) {
         for (const auto& [compiler_name, compiler_data] : *data["compiler"].as_table()) {
             if (compiler_data.is_table() && compiler_data.as_table()->contains("cflags")) {

@@ -23,7 +23,7 @@ private:
 
 public:
     MakeBackend(
-        muuk::compiler::Compiler compiler,
+        muuk::Compiler compiler,
         const std::string& archiver,
         const std::string& linker,
         const std::string& lockfile_path = "muuk.lock.toml"

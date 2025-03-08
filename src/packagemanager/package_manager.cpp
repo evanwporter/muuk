@@ -105,15 +105,12 @@ namespace muuk {
             return { author, repo_name };
         }
 
-        tl::expected<void, std::string> add_dependency(const std::string& toml_path, const std::string& repo, const std::string& version, std::string& git_url, std::string& muuk_path, std::string revision, const std::string& tag, const std::string& branch, bool is_system, const std::string& target_section) {
-
+        tl::expected<void, std::string> add_dependency(const std::string& toml_path, const std::string& repo, std::string version, std::string& git_url, std::string& muuk_path, bool is_system, const std::string& target_section) {
             muuk::logger::info(
-                "Adding dependency to '{}': {} (version: {}, revision: {}, branch: {})",
+                "Adding dependency to '{}': {} (version: {})",
                 toml_path,
                 repo,
-                version,
-                revision,
-                branch
+                version
             );
 
             try {
@@ -148,21 +145,16 @@ namespace muuk {
                     return tl::unexpected("Dependency '" + repo_name + "' already exists in '" + toml_path + "'.");
                 }
 
-                if (!tag.empty()) {
-                    revision = tag;
-                    muuk::logger::info("Using tag: {}", tag);
-                }
-                else if (!revision.empty()) {
-                    muuk::logger::info("Using specific commit hash: {}", revision);
-                }
-                else if (!is_system) {
+                if (!is_system) {
                     if (git_url.empty()) {
                         git_url = "https://github.com/" + repo + ".git";
                     }
 
                     muuk::logger::info("No tag, version, or revision provided. Fetching latest commit hash...");
 
-                    revision = util::git::get_latest_revision(git_url);
+                    if (version.empty()) {
+                        version = util::git::get_latest_revision(git_url);
+                    }
                 }
 
                 std::string final_git_url = git_url.empty() ? "https://github.com/" + author + "/" + repo_name + ".git" : git_url;
@@ -174,14 +166,14 @@ namespace muuk {
 
                 if (muuk_path.empty()) {
                     muuk_path = target_dir + "/muuk.toml";
-                    std::string muuk_toml_url = "https://raw.githubusercontent.com/" + author + "/" + repo_name + "/" + revision + "/muuk.toml";
+                    std::string muuk_toml_url = "https://raw.githubusercontent.com/" + author + "/" + repo_name + "/" + version + "/muuk.toml";
 
                     if (!download_file(muuk_toml_url, muuk_path)) {
                         muuk::logger::warn("Failed to download muuk.toml from repo, attempting patch.");
                         std::string patch_muuk_toml_url = MUUK_PATCH_UTL + repo_name + "/muuk.toml";
                         if (!download_file(patch_muuk_toml_url, muuk_path)) {
                             muuk::logger::warn("No valid muuk.toml found. Generating a default one.");
-                            if (!qinit_library(author, repo_name)) {
+                            if (!qinit_library(author, repo_name, version)) {
                                 return tl::unexpected("Failed to generate default muuk.toml.");
                             }
                         }
@@ -201,11 +193,12 @@ namespace muuk {
                     }
                     };
 
+                // add_field("version", version);
                 add_field("version", version);
-                add_field("revision", revision);
-                add_field("branch", branch);
-                add_field("muuk_path", muuk_path);
                 add_field("git", final_git_url);
+
+                // add_field("branch", branch);
+                // add_field("muuk_path", muuk_path);
 
                 new_entry << " }";
 
