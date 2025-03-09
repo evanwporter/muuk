@@ -16,11 +16,6 @@
 
 namespace fs = std::filesystem;
 
-struct Dependency {
-    std::string name;
-    std::string version;
-};
-
 enum class LinkType {
     STATIC,
     SHARED
@@ -46,35 +41,83 @@ struct BaseConfig {
 typedef BaseConfig LinkArgs;
 typedef std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_set<std::string>>> Profiles;
 
-// class Package {
+// class Profile {
 // public:
+//     Profile(
+//         const std::string& name,
+//         const std::string& version,
+//         const std::string& base_path,
+//         const std::string& package_type
+//     );
+
+//     void add_include_path(const std::string& path);
+
+//     void merge(const Package& child_pkg);
+
+//     std::string serialize() const;
+
 //     std::string name;
-//     std::string version;
-//     std::string base_path;
-//     std::string hash;
 
 //     std::unordered_set<std::string> cflags;
 //     std::unordered_set<std::string> libflags;
 //     std::unordered_set<std::string> lflags;
-//     PackageType package_type; // "library" or "build"
-
-
-//     std::unordered_set<std::string> include;
-//     std::unordered_set<std::string> libs;
-//     std::unordered_set<std::string> defines;
-
-//     std::vector<std::pair<std::string, std::unordered_set<std::string>>> sources;
-
-//     LinkType link_type = LinkType::STATIC;
-//     LinkArgs static_link_args;
-//     LinkArgs shared_link_args;
-
-//     std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_set<std::string>>> platform_;
-//     std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_set<std::string>>> compiler_;
 // };
 
+struct Feature {
+    std::unordered_set<std::string> defines;
+    std::unordered_set<std::string> dependencies;
+};
+
+struct Dependency {
+    std::string git_url;
+    std::string path;
+    std::string version;
+    std::unordered_set<std::string> features;
+    bool system = false;
+
+    static Dependency from_toml(const toml::table& data) {
+        Dependency dep;
+
+        if (data.contains("git") && data["git"].is_string()) {
+            dep.git_url = *data["git"].value<std::string>();
+        }
+        if (data.contains("path") && data["path"].is_string()) {
+            dep.path = *data["path"].value<std::string>();
+        }
+        if (data.contains("version") && data["version"].is_string()) {
+            dep.version = *data["version"].value<std::string>();
+        }
+        if (data.contains("features") && data["features"].is_array()) {
+            for (const auto& feature : *data["features"].as_array()) {
+                if (feature.is_string()) {
+                    dep.features.insert(*feature.value<std::string>());
+                }
+            }
+        }
+
+        return dep;
+    }
+
+    toml::table to_toml() const {
+        toml::table dep_table;
+        if (!git_url.empty()) dep_table.insert("git", git_url);
+        if (!path.empty()) dep_table.insert("path", path);
+        if (!version.empty()) dep_table.insert("version", version);
+        if (!features.empty()) {
+            toml::array feature_array;
+            for (const auto& feat : features) {
+                feature_array.push_back(feat);
+            }
+            dep_table.insert("features", feature_array);
+        }
+        return dep_table;
+    }
+
+};
+
 // { Dependency { Versioning { Dependency Info } } }
-typedef DependencyVersionMap<std::unordered_map<std::string, std::string>> DependencyInfoMap;
+typedef DependencyVersionMap<Dependency> DependencyInfoMap;
+
 
 class Package {
 public:
@@ -99,7 +142,6 @@ public:
     std::unordered_set<std::string> include;
     std::unordered_set<std::string> system_include;
     std::unordered_set<std::string> cflags;
-    std::unordered_set<std::string> gflags;
     std::vector<std::pair<std::string, std::vector<std::string>>> sources;
     std::vector<std::string> modules;
     std::vector<std::string> libs;
@@ -111,6 +153,8 @@ public:
     // TODO store the package and add serialize as depedency method
     DependencyInfoMap dependencies_;
     std::unordered_set<std::string> deps;
+
+    std::unordered_map<std::string, Feature> features;
 
     LinkType link_type = LinkType::STATIC;
 };
@@ -167,6 +211,10 @@ private:
         const toml::table& data,
         std::shared_ptr<Package> package
     );
+    static Result<void> parse_features(
+        const toml::table& data,
+        std::shared_ptr<Package> package
+    );
 
     Result<void> parse_profile(const toml::table& data);
     Result<void> parse_builds(
@@ -174,6 +222,8 @@ private:
         const std::string& package_version,
         const std::string& path
     );
+
+
 
     void search_and_parse_dependency(
         const std::string& package_name,
@@ -197,7 +247,10 @@ private:
         std::optional<std::shared_ptr<Package>> package
     );
 
+    void resolve_enabled_features();
+
     void merge_profiles(const std::string& base_profile, const std::string& inherited_profile);
+
 
     void parse_muuk_toml(const std::string& path, bool is_base = false);
 

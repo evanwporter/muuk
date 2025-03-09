@@ -138,6 +138,7 @@ namespace muuk {
             {"dependencies", toml::table{
                 {project_name, "v" + version}
             }},
+            // TODO: Remove
             {"gflags", toml::array{ "/std:c++20", "/utf-8", "/EHsc", "/FS" }},
             {"sources", toml::array{ "src/main.cpp" }}
         };

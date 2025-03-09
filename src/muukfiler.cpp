@@ -194,7 +194,7 @@ std::string MuukFiler::format_dependencies(const DependencyVersionMap<toml::tabl
 
     for (const auto& [dep_name, versions] : dependencies) {
         for (const auto& [version, dep_info] : versions) {
-            oss << dep_name << " = { version = '" << version << "', ";
+            oss << dep_name << " = { ";
 
             std::string dep_entries;
             bool first = true;

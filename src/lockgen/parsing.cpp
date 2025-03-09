@@ -20,44 +20,32 @@ Result<void> MuukLockGenerator::parse_dependencies(const toml::table& data, std:
 
     if (data.contains("dependencies") && data["dependencies"].is_table()) {
         for (const auto& [dep_name, dep_value] : *data["dependencies"].as_table()) {
-            std::unordered_map<std::string, std::string> dependency_info;
+            Dependency dependency_info;
             std::string version = "unknown";
 
             package->deps.insert(std::string(dep_name.str()));
 
             if (dep_value.is_table()) {
-                for (const auto& [key, val] : *dep_value.as_table()) {
-                    if (val.is_string()) {
-                        std::string key_ = std::string(key.str());
-                        std::string value = *val.value<std::string>();
-                        if (key_ == "version") {
-                            version = value;
-                        }
-                        else {
-                            dependency_info[key_] = value;
-                        }
-                    }
-                }
+                dependency_info = Dependency::from_toml(*dep_value.as_table());
             }
-            else if (dep_value.is_string()) { // Ensure it's a versioning string
-                version = *dep_value.value<std::string>();
+            else if (dep_value.is_string()) {
+                dependency_info.version = *dep_value.value<std::string>();  // If just a version string
             }
             else {
-                muuk::logger::error("Invalid format for dependency '{}'. Expected a string or table.", std::string(dep_name.str()));
+                muuk::logger::error("Invalid dependency format for '{}'", dep_name.str());
                 return Err("");
             }
 
-            package->dependencies_[std::string(dep_name.str())][version] = dependency_info;
+            package->dependencies_[std::string(dep_name.str())][dependency_info.version] = dependency_info;
 
-            muuk::logger::info("  → Dependency '{}' (v{}) added with details:", std::string(dep_name.str()), version);
-            for (const auto& [key, val] : dependency_info) {
-                muuk::logger::info("      - {}: {}", key, val);
-            }
+            muuk::logger::info("  → Dependency '{}' (v{}) added with details:", std::string(dep_name.str()), dependency_info.version);
+            // for (const auto& [key, val] : dependency_info) {
+            //     muuk::logger::info("      - {}: {}", key, val);
         }
     }
 
     return {};
-}
+};
 
 
 Result<void> MuukLockGenerator::parse_library(const toml::table& section, std::shared_ptr<Package> package) {
@@ -235,6 +223,62 @@ Result<void> MuukLockGenerator::parse_compiler(const toml::table& data, std::sha
                 muuk::logger::info("Compiler '{}' loaded with {} cflags.", compiler_name.str(), cflags.size());
             }
         }
+    }
+    return {};
+}
+
+Result<void> MuukLockGenerator::parse_features(const toml::table& data, std::shared_ptr<Package> package) {
+    if (!data.contains("features") || !data["features"].is_table()) {
+        muuk::logger::info("No 'features' section found in TOML.");
+        return {};
+    }
+
+    for (const auto& [feature_name, feature_value] : *data["features"].as_table()) {
+        Feature feature_data;
+
+        if (feature_value.is_array()) {  // List Syntax
+            for (const auto& item : *feature_value.as_array()) {
+                if (item.is_string()) {
+                    std::string value = *item.value<std::string>();
+
+                    if (value.rfind("D:", 0) == 0) {
+                        feature_data.defines.insert(value.substr(2));  // Remove "D:"
+                    }
+                    else if (value.rfind("dep:", 0) == 0) {
+                        feature_data.dependencies.insert(value.substr(4));  // Remove "dep:"
+                    }
+                    else {
+                        std::cerr << "Warning: Unrecognized feature syntax: " << value << "\n";
+                    }
+                }
+            }
+        }
+        else if (feature_value.is_table()) {  // Table Syntax
+            const auto& feature_table = *feature_value.as_table();
+
+            if (feature_table.contains("define") && feature_table["define"].is_array()) {
+                for (const auto& def : *feature_table["define"].as_array()) {
+                    if (def.is_string()) {
+                        feature_data.defines.insert(*def.value<std::string>());
+                    }
+                }
+            }
+
+            if (feature_table.contains("dependencies") && feature_table["dependencies"].is_array()) {
+                for (const auto& dep : *feature_table["dependencies"].as_array()) {
+                    if (dep.is_string()) {
+                        feature_data.dependencies.insert(*dep.value<std::string>());
+                    }
+                }
+            }
+        }
+        else {
+            // TODO: This eventually will be unnecessary
+            muuk::logger::warn("Invalid format for feature '{}'. Must be either a table or a array", std::string(feature_name.str()));
+            continue;
+        }
+
+        package->features[std::string(feature_name.str())] = feature_data;
     }
     return {};
 }

@@ -243,12 +243,12 @@ int main(int argc, char* argv[]) {
         // The reason I define `muukfiler` here is so I can define the manifest location
         muuk::logger::info("[muuk] Using configuration from: {}", muuk_path);
 
-        auto result = MuukFiler::create(muuk_path);
-        if (!result) {
+        auto result_muuk = MuukFiler::create(muuk_path);
+        if (!result_muuk) {
             return 1;
         }
 
-        MuukFiler muuk_filer = result.value();
+        MuukFiler muuk_filer = result_muuk.value();
         MuukBuilder muukBuilder(muuk_filer);
 
         if (program.is_subcommand_used("clean")) {

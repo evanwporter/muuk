@@ -9,6 +9,7 @@
 #include <tl/expected.hpp>
 #include <toml++/toml.h>
 #include <fmt/core.h>
+#include <fmt/ranges.h>
 
 MuukLockGenerator::MuukLockGenerator(const std::string& base_path) : base_path_(base_path) {
     muuk::logger::trace("MuukLockGenerator initialized with base path: {}", base_path_);
@@ -59,6 +60,7 @@ void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
         Try(parse_library(*data["library"].as_table(), package));
     parse_platform(data, package);
     parse_compiler(data, package);
+    parse_features(data, package);
 
     resolved_packages[package_name][package_version] = package;
 
@@ -143,12 +145,12 @@ tl::expected<void, std::string> MuukLockGenerator::resolve_dependencies(const st
             muuk::logger::info("Resolving dependency '{}' for '{}'", dep_name, package_name);
 
             std::string dep_search_path;
-            if (dep_info.count("muuk_path")) {
-                dep_search_path = dep_info.at("muuk_path");
+            if (!dep_info.path.empty()) {
+                dep_search_path = dep_info.path;
                 muuk::logger::info("Using defined muuk_path for dependency '{}': {}", dep_name, dep_search_path);
             }
 
-            if (dep_info.count("system")) {
+            if (dep_info.system) {
                 resolve_system_dependency(dep_name, package);
             }
             else {
@@ -176,19 +178,9 @@ tl::expected<void, std::string> MuukLockGenerator::resolve_dependencies(const st
                 }
             }
 
-            toml::table dependency_entry;
-            for (const auto& [key, value] : dep_info) {
-                dependency_entry.insert(key, value);
-            }
+            toml::table dependency_entry = dep_info.to_toml();
 
             dependencies_[dep_name][dep_version] = dependency_entry;
-            // dependencies_[dep_name][version] = dependency_entry;
-
-            // Log full dependency details
-            muuk::logger::info("Resolved dependency '{}':", dep_name);
-            for (const auto& [key, val] : dep_info) {
-                muuk::logger::info("  - {}: {}", key, val);
-            }
         }
     }
 
@@ -405,5 +397,56 @@ void MuukLockGenerator::merge_profiles(const std::string& base_profile, const st
 
     for (const auto& [key, values] : profiles_[inherited_profile]) {
         profiles_[base_profile][key].insert(values.begin(), values.end());
+    }
+}
+
+void MuukLockGenerator::resolve_enabled_features() {
+    muuk::logger::info("Resolving enabled features for all packages...");
+
+    for (auto& [package_name, version_map] : resolved_packages) {
+        for (auto& [version, package] : version_map) {
+            muuk::logger::info("Processing features for package: {} ({})", package_name, version);
+
+            std::unordered_set<std::string> enabled_features;
+
+            // Step 1: Collect enabled features from dependencies
+            for (const auto& [dep_name, dep_versions] : package->dependencies_) {
+                for (const auto& [dep_version, dep_info] : dep_versions) {
+                    for (const auto& feature : dep_info.features) {
+                        enabled_features.insert(feature);
+                    }
+                }
+            }
+
+            // Step 2: Process each enabled feature
+            for (const std::string& feature : enabled_features) {
+                if (package->features.find(feature) != package->features.end()) {
+                    const auto& feature_data = package->features.at(feature);
+
+                    // Apply feature: Add defines
+                    package->cflags.insert(feature_data.defines.begin(), feature_data.defines.end());
+
+                    // Apply feature: Add dependencies
+                    for (const auto& dep : feature_data.dependencies) {
+                        if (resolved_packages.find(dep) != resolved_packages.end()) {
+                            muuk::logger::info("Feature '{}' enabled in '{}', adding dependency '{}'", feature, package_name, dep);
+                            package->deps.insert(dep);
+                        }
+                        else {
+                            muuk::logger::warn("Feature '{}' requires missing dependency '{}'", feature, dep);
+                        }
+                    }
+
+                    muuk::logger::info("  → Applied feature '{}' to package '{}'", feature, package_name);
+                }
+                else {
+                    muuk::logger::warn("Package '{}' does not define feature '{}'", package_name, feature);
+                }
+            }
+
+            if (!enabled_features.empty()) {
+                muuk::logger::info("  Enabled features for '{}': {}", package_name, fmt::join(enabled_features, ", "));
+            }
+        }
     }
 }

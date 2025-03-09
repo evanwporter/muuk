@@ -263,6 +263,7 @@ namespace muuk {
                 muuk::logger::error("Error removing package '{}': {}", package_name, e.what());
                 return Err("");
             }
+            return {};
         }
     }
 }
