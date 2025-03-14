@@ -58,6 +58,7 @@ Result<void> MuukLockGenerator::parse_dependencies(const toml::table& data, std:
                     dependency_info.enabled_features.end()
                 );
             }
+
             dependencies_[dep_name_str][dep_entry->version] = dep_entry;
             package->dependencies_[dep_name_str][dep_entry->version] = dep_entry;
             muuk::logger::info("  → Dependency '{}' (v{}) added with details:", dep_name_str, dep_entry->version);

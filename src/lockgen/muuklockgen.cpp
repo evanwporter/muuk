@@ -134,7 +134,9 @@ tl::expected<void, std::string> MuukLockGenerator::resolve_dependencies(const st
     }
 
     auto package = package_opt.value();
+    std::vector<std::tuple<std::string, std::string, std::shared_ptr<Dependency>>> resolved_deps;
 
+    // First Pass: Resolve Dependencies
     for (const auto& [dep_name, version_map] : package->dependencies_) {
         for (const auto& [dep_version, dep_info] : version_map) {
 
@@ -172,13 +174,19 @@ tl::expected<void, std::string> MuukLockGenerator::resolve_dependencies(const st
             if (
                 resolved_packages.count(dep_name) &&
                 resolved_packages[dep_name].count(dep_version)
-                ) {
+            ) {
                 muuk::logger::info("Merging '{}' into '{}'", dep_name, package_name);
-                if (package) {
-                    package->enable_features(dep_info->enabled_features);
-                    package->merge(*resolved_packages[dep_name][dep_version]);
-                }
+                resolved_deps.emplace_back(dep_name, dep_version, dep_info);
             }
+        }
+    }
+
+    // Second Pass: Merge Dependencies into the Package
+    for (const auto& [dep_name, dep_version, dep_info] : resolved_deps) {
+        muuk::logger::info("Merging '{}' into '{}'", dep_name, package_name);
+        if (package) {
+            package->enable_features(dep_info->enabled_features);
+            package->merge(*resolved_packages[dep_name][dep_version]);
         }
     }
 
