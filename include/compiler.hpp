@@ -2,12 +2,10 @@
 #ifndef COMPILER_HPP
 #define COMPILER_HPP
 
-#include "rustify.hpp"
-
-#include <string>
-#include <string_view>
-#include <unordered_map>
 #include <optional>
+#include <string>
+
+#include "rustify.hpp"
 
 namespace muuk {
 
@@ -23,7 +21,8 @@ namespace muuk {
         static const Compiler Clang;
         static const Compiler MSVC;
 
-        explicit Compiler(Type type) : type_(type) {}
+        explicit Compiler(Type type) :
+            type_(type) { }
 
         static Result<Compiler> from_string(const std::string& compilerStr);
         static std::string to_string(Type type);
@@ -66,7 +65,8 @@ namespace muuk {
             Unknown = 0
         };
 
-        explicit Edition(Year year) : year_(year) {}
+        explicit Edition(Year year) :
+            year_(year) { }
 
         static std::optional<Year> from_string(const std::string& str);
         std::string to_string() const;
@@ -84,7 +84,6 @@ namespace muuk {
 
     private:
         Year year_;
-
     };
 } // namespace muuk
 

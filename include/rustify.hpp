@@ -3,10 +3,11 @@
 #ifndef MUUK_RUSTIFY_HPP
 #define MUUK_RUSTIFY_HPP
 
-#include <tl/expected.hpp>
-#include <fmt/core.h>
 #include <optional>
 #include <string>
+
+#include <fmt/core.h>
+#include <tl/expected.hpp>
 
 enum class ErrorType {
     RuntimeError,
@@ -46,20 +47,22 @@ inline constexpr auto Err(fmt::format_string<Args...> fmt_str, Args&&... args) {
 
 template <typename T>
 inline auto Try(Result<T>&& exp) -> Result<T> {
-    if (!exp) return tl::unexpected(exp.error());
+    if (!exp)
+        return tl::unexpected(exp.error());
     return std::move(*exp);
 }
 
 // Specialization for void type
 template <>
 inline auto Try<void>(Result<void>&& exp) -> Result<void> {
-    if (!exp) return tl::unexpected(exp.error());
-    return {};  // Return an empty Result<void> (equivalent to Ok())
+    if (!exp)
+        return tl::unexpected(exp.error());
+    return {}; // Return an empty Result<void> (equivalent to Ok())
 }
 
-
-
-#define Ensure(cond, msg) if (!(cond)) return Err<void>(msg)
+#define Ensure(cond, msg) \
+    if (!(cond))          \
+    return Err<void>(msg)
 
 // `PanicIfUnreachable(msg)`: Used for logic errors like unreachable!() in Rust.
 [[noreturn]] inline void PanicIfUnreachable(const std::string& msg) {
@@ -74,8 +77,10 @@ private:
 
 public:
     Option() = default; // Default: None
-    explicit Option(const T& value) : value_(value) {}
-    explicit Option(T&& value) : value_(std::move(value)) {}
+    explicit Option(const T& value) :
+        value_(value) { }
+    explicit Option(T&& value) :
+        value_(std::move(value)) { }
 
     // Equivalent to Rust's `Some(value)`
     static Option Some(T value) { return Option(std::move(value)); }

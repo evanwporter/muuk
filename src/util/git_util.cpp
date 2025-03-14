@@ -1,11 +1,12 @@
-#include "util.h"
-#include "logger.h"
-#include "rustify.hpp"
-
 #include <string>
 #include <unordered_set>
 #include <vector>
+
 #include <nlohmann/json.hpp>
+
+#include "logger.h"
+#include "rustify.hpp"
+#include "util.h"
 
 namespace util {
     // ==========================
@@ -62,8 +63,7 @@ namespace util {
                     return tl::unexpected("Unexpected JSON format.");
                 }
                 return json_data;
-            }
-            catch (const std::exception& e) {
+            } catch (const std::exception& e) {
                 muuk::logger::error("Error fetching repository tree: {}", e.what());
                 return tl::unexpected("Failed to fetch repository structure.");
             }
@@ -80,8 +80,7 @@ namespace util {
 
                     if (pos != std::string::npos) {
                         unique_dirs.insert(path.substr(0, pos));
-                    }
-                    else {
+                    } else {
                         unique_dirs.insert(path);
                     }
                 }

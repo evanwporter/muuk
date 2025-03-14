@@ -1,11 +1,11 @@
 #ifndef BUILD_MANAGER_H
 #define BUILD_MANAGER_H
 
-#include "./buildtargets.h"
-
-#include <vector>
 #include <string>
 #include <unordered_map>
+#include <vector>
+
+#include "buildtargets.h"
 
 class BuildManager {
     std::vector<CompilationTarget> compilation_targets;

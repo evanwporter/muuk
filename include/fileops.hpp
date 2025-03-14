@@ -1,16 +1,18 @@
-#include "../include/ifileops.hpp"
-#include "logger.h"
+#pragma once
 
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+
+#include "ifileops.hpp"
 
 class FileOperations : public IFileOperations {
 private:
     std::string file_path;
 
 public:
-    explicit FileOperations(const std::string& path) : file_path(path) {}
+    explicit FileOperations(const std::string& path) :
+        file_path(path) { }
 
     bool exists() const override {
         return std::filesystem::exists(file_path);
@@ -37,5 +39,4 @@ public:
     std::string get_file_path() const override {
         return file_path;
     }
-
 };

@@ -1,6 +1,16 @@
 BasedOnStyle: WebKit
 IndentWidth: 4
-UseTab: Always
 BreakBeforeBraces: Attach
-BreakBeforeClosingBrace: Never
 ColumnLimit: 0
+BinPackArguments: false
+BreakConstructorInitializers: AfterColon
+NamespaceIndentation: All
+
+AlignAfterOpenBracket: AlwaysBreak
+BinPackParameters: false
+# BreakBeforeParameters: Always
+# BreakBeforeFunctionCallArguments: All
+# PenaltyBreakBeforeClosingBracket: 0
+
+# BreakBeforeParameters: true
+# AlwaysBreakAfterReturnType: None

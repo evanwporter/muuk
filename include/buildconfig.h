@@ -1,7 +1,7 @@
-#pragma once 
+#pragma once
 
 #ifdef _WIN32
-#ifdef _M_X64  // Ensure we are building for 64-bit
+#ifdef _M_X64 // Ensure we are building for 64-bit
 constexpr const char* COMPILER = "cl /nologo /EHsc /std:c++20 /MT /arch:AVX2";
 constexpr const char* ARCHIVER = "lib";
 constexpr const char* LINKER = "link /MACHINE:X64";

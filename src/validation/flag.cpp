@@ -1,9 +1,9 @@
-#include "muuk.h"
-#include "muukvalidator.hpp"
-
-#include <iostream>
 #include <string_view>
-#include <stdexcept>
+
+#include "compiler.hpp"
+#include "muukvalidator.hpp"
+#include "rustify.hpp"
+
 
 namespace muuk {
     // From cabin @ github.com/cabinpkg/cabin w/ modifications
@@ -23,16 +23,14 @@ namespace muuk {
                     return Err("{} compiler flag (`{}`) contains invalid characters", compiler_.to_string(), flag);
                 }
             }
-        }
-        else {
+        } else {
             // GCC/Clang: Flags start with `-`
             if (flag[0] != '-') {
                 return Err("{} compiler flag (`{}`) must start with `-`", compiler_.to_string(), flag);
             }
             // Allowed characters: alphanumeric, `-`, `_`, `=`, `+`, `:`, `.`
             for (char c : flag) {
-                if (!std::isalnum(c) && c != '-' && c != '_' && c != '=' &&
-                    c != '+' && c != ':' && c != '.') {
+                if (!std::isalnum(c) && c != '-' && c != '_' && c != '=' && c != '+' && c != ':' && c != '.') {
                     return Err("{} compiler flag (`{}`) contains invalid characters", compiler_.to_string(), flag);
                 }
             }

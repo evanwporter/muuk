@@ -3,12 +3,13 @@
 
 #include <unordered_map>
 #include <vector>
-#include <toml++/toml.hpp>
+
 #include <spdlog/spdlog.h>
 #include <tl/expected.hpp>
+#include <toml++/toml.hpp>
 
-#include "ifileops.hpp"
 #include "fileops.hpp"
+#include "ifileops.hpp"
 #include "rustify.hpp"
 #include "types.h"
 
@@ -49,7 +50,6 @@ public:
     static Result<MuukFiler> create(const std::string& config_file, bool is_lock_file = false);
 
 private:
-
     void parse();
 };
 

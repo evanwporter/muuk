@@ -1,29 +1,29 @@
-#include "muukterminal.hpp"
-#include "muuk.h"
-#include "logger.h"
-#include "util.h"
-#include "buildconfig.h"
-
-#include <fmt/core.h>
-#include <tl/expected.hpp>
-#include <nlohmann/json.hpp>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <vector>
 #include <string>
-#include <unordered_set>
+#include <vector>
+
+#include <fmt/core.h>
+#include <nlohmann/json.hpp>
+#include <tl/expected.hpp>
+
+#include "buildconfig.h"
+#include "logger.h"
+#include "muuk.h"
+#include "muukterminal.hpp"
+#include "util.h"
 
 namespace fs = std::filesystem;
 
 namespace muuk {
 
     const std::vector<std::string> common_include_paths = {
-       "include", "single_include", "single-include"
+        "include", "single_include", "single-include"
     };
 
     const std::vector<std::string> common_source_paths = {
-       "src", "source", "sources"
+        "src", "source", "sources"
     };
 
     tl::expected<fs::path, std::string> select_directory(const std::vector<fs::path>& directories, const std::string& type) {
@@ -77,8 +77,7 @@ namespace muuk {
 
             source_dir = "";
             include_dir = "";
-        }
-        else {
+        } else {
             for (const auto& dir : remote_dirs.value()) {
                 logger::info("Found remote directory: {}", dir);
             }
@@ -114,19 +113,19 @@ namespace muuk {
         }
 
         config_file << "[package]\n"
-            << "name = '" << repo << "'\n"
-            << "author = '" << author << "'\n"
-            << "license = '" << license << "'\n"
-            << "version = '" << version << "'\n"
-            << "git = '" << "https://github.com/" << author << "/" << repo << ".git" << "'\n\n";
+                    << "name = '" << repo << "'\n"
+                    << "author = '" << author << "'\n"
+                    << "license = '" << license << "'\n"
+                    << "version = '" << version << "'\n"
+                    << "git = '" << "https://github.com/" << author << "/" << repo << ".git" << "'\n\n";
 
         config_file << "[library]\n"
-            << "include = ['" << include_dir.string() << "']\n"
-            << "sources = '" << source_dir.string() << "'\n";
+                    << "include = ['" << include_dir.string() << "']\n"
+                    << "sources = '" << source_dir.string() << "'\n";
         config_file.close();
 
         muuk::logger::info("Successfully initialized '{}' with muuk.toml", repo);
         return {};
     }
 
-} // namespace muuk 
+} // namespace muuk

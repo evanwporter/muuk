@@ -1,23 +1,23 @@
-#include "../include/muukfiler.h"
-#include "../include/logger.h"
-#include "../include/util.h"
-#include "../include/buildconfig.h"
-
+#pragma once
+#include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <filesystem>
 #include <vector>
-#include <unordered_map>
+
 #include <nlohmann/json.hpp>
-#include <spdlog/spdlog.h>
+
+#include "buildconfig.h"
+#include "logger.h"
+#include "muukfiler.h"
+#include "util.h"
 
 namespace fs = std::filesystem;
 using json = nlohmann::json;
 
 class CompileCommandsGenerator {
 public:
-    explicit CompileCommandsGenerator(const std::string& lockfile_path)
-        : lockfile_path_(lockfile_path) {
+    explicit CompileCommandsGenerator(const std::string& lockfile_path) :
+        lockfile_path_(lockfile_path) {
         muuk::logger::info("[CompileCommandsGenerator] Initializing with lockfile: '{}'", lockfile_path_);
     }
 
@@ -34,10 +34,12 @@ public:
         json compile_commands = json::array();
 
         for (const auto& [pkg_type, packages] : config_) {
-            if (pkg_type != "library" && pkg_type != "build") continue;
+            if (pkg_type != "library" && pkg_type != "build")
+                continue;
 
             auto packages_table = packages.as_table();
-            if (!packages_table) continue;
+            if (!packages_table)
+                continue;
 
             for (const auto& [pkg_name, pkg_info] : *packages_table) {
                 process_package(std::string(pkg_name.str()), *pkg_info.as_table(), compile_commands);
@@ -81,7 +83,7 @@ private:
             }
         }
 
-        std::string compiler = COMPILER;  // Defined in buildconfig.h
+        std::string compiler = COMPILER; // Defined in buildconfig.h
         std::string include_flags = generate_include_flags(includes);
         std::string cflags_str = util::normalize_flags(cflags);
 

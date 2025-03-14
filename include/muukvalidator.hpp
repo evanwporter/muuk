@@ -4,29 +4,34 @@
 #ifndef MUUKVALIDATOR_HPP
 #define MUUKVALIDATOR_HPP
 
-#include "compiler.hpp"
-#include "logger.h"
-#include "rustify.hpp"
+#include <optional>
+#include <stdexcept>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 #include <toml++/toml.h>
-#include <iostream>
-#include <unordered_map>
-#include <variant>
-#include <vector>
-#include <string>
-#include <stdexcept>
-#include <optional>
 
+#include "compiler.hpp"
+#include "rustify.hpp"
 
 namespace muuk {
 
     class invalid_toml : public std::runtime_error {
     public:
-        explicit invalid_toml(const std::string& message)
-            : std::runtime_error(message) {}
+        explicit invalid_toml(const std::string& message) :
+            std::runtime_error(message) { }
     };
 
-    enum class TomlType { Table, Array, String, Integer, Float, Boolean, Date, Time, DateTime };
+    enum class TomlType { Table,
+                          Array,
+                          String,
+                          Integer,
+                          Float,
+                          Boolean,
+                          Date,
+                          Time,
+                          DateTime };
 
     struct SchemaNode {
         bool required;
@@ -42,8 +47,7 @@ namespace muuk {
     Result<void> validate_toml_(
         const toml::table& toml_data,
         const SchemaMap& schema,
-        std::string parent_path = ""
-    );
+        std::string parent_path = "");
 
     Result<void> validate_muuk_toml(const toml::table& toml_data);
     Result<void> validate_muuk_lock_toml(const toml::table& toml_data);

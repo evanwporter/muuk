@@ -2,27 +2,23 @@
 #ifndef BUILD_PARSER_H
 #define BUILD_PARSER_H
 
-#include "./buildmanager.h"
-#include "./muukfiler.h"
-#include "logger.h"
-#include "util.h"
-#include "muuk.h"
-#include "./buildconfig.h"
-
 #include <filesystem>
-#include <vector>
-#include <unordered_map>
 #include <memory>
+#include <string>
+#include <vector>
+
 #include <toml++/toml.hpp>
 
-namespace fs = std::filesystem;
+#include "buildmanager.h"
+#include "compiler.hpp"
+#include "muukfiler.h"
 
 class BuildParser {
 private:
     std::shared_ptr<BuildManager> build_manager;
     std::shared_ptr<MuukFiler> muuk_filer;
     toml::table config_;
-    const fs::path& build_dir;
+    const std::filesystem::path& build_dir;
     muuk::Compiler compiler;
     std::string profile_;
 
@@ -31,9 +27,8 @@ public:
         std::shared_ptr<BuildManager> manager,
         std::shared_ptr<MuukFiler> muuk_filer,
         muuk::Compiler compiler,
-        const fs::path& build_dir,
-        std::string profile
-    );
+        const std::filesystem::path& build_dir,
+        std::string profile);
 
     void parse();
 
@@ -47,15 +42,13 @@ private:
     std::vector<std::string> extract_flags(
         const toml::table& table,
         const std::string& key,
-        const std::string& prefix = ""
-    );
+        const std::string& prefix = "");
 
     /** Extract platform-specific CFLAGS */
     std::vector<std::string> extract_platform_flags(const toml::table& package_table);
 
     /** Extract compiler-specific CFLAGS */
     std::vector<std::string> extract_compiler_flags(const toml::table& package_table);
-
 };
 
 #endif

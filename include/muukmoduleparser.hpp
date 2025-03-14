@@ -1,19 +1,20 @@
 #ifndef MUUK_MODULE_PARSER_HPP
 #define MUUK_MODULE_PARSER_HPP
 
-#include <iostream>
+#include <filesystem>
 #include <fstream>
-#include <sstream>
+#include <iostream>
+#include <memory>
 #include <regex>
+#include <sstream>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <filesystem>
-#include <memory>
+
 #include <spdlog/spdlog.h>
 #include <toml++/toml.hpp>
 
-#include "../include/logger.h"
+#include "logger.h"
 
 namespace fs = std::filesystem;
 
@@ -39,7 +40,8 @@ private:
     std::shared_ptr<spdlog::logger> logger_;
 
 public:
-    explicit MuukModuleParser(const std::string& path) : toml_path(path) {
+    explicit MuukModuleParser(const std::string& path) :
+        toml_path(path) {
         muuk::logger::trace("Initializing MuukModuleParser with path: {}", path);
         loadToml();
     }
@@ -49,8 +51,7 @@ public:
             muuk::logger::trace("Loading TOML configuration from: {}muuk.toml", toml_path);
             config = toml::parse_file(toml_path + "/muuk.toml");
             muuk::logger::trace("TOML configuration loaded successfully.");
-        }
-        catch (const std::exception& e) {
+        } catch (const std::exception& e) {
             muuk::logger::error("Error loading TOML file: {}", e.what());
         }
     }

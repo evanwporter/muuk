@@ -1,24 +1,28 @@
-#include "../include/muuk.h"
-#include "../include/buildparser.hpp"
-#include "../include/buildmanager.h"
+#include <filesystem>
+#include <memory>
+#include <unordered_map>
+#include <vector>
 
 #include <fmt/core.h>
 #include <fmt/ranges.h>
-#include <filesystem>
-#include <vector>
-#include <unordered_map>
-#include <memory>
 #include <toml++/toml.hpp>
+
+#include "buildconfig.h"
+#include "buildmanager.h"
+#include "buildparser.hpp"
+#include "logger.h"
+#include "muuk.h"
+#include "muukfiler.h"
+#include "util.h"
 
 namespace fs = std::filesystem;
 
 BuildParser::BuildParser(std::shared_ptr<BuildManager> manager, std::shared_ptr<MuukFiler> muuk_filer, muuk::Compiler compiler, const fs::path& build_dir, std::string profile) :
     build_manager(std::move(manager)),
-    compiler(compiler),
     muuk_filer(std::move(muuk_filer)),
     build_dir(build_dir),
-    profile_(profile)
-{
+    compiler(compiler),
+    profile_(profile) {
 }
 
 void BuildParser::parse() {
@@ -32,7 +36,8 @@ void BuildParser::parse_compilation_targets() {
     const auto& config_sections = muuk_filer->get_sections();
 
     for (const auto& [pkg_name, package_table] : config_sections) {
-        if (!pkg_name.starts_with("build") && !pkg_name.starts_with("library")) continue;
+        if (!pkg_name.starts_with("build") && !pkg_name.starts_with("library"))
+            continue;
 
         std::string package_name = pkg_name.substr(pkg_name.find('.') + 1);
         fs::path module_dir = build_dir / package_name;
@@ -54,24 +59,23 @@ void BuildParser::parse_compilation_targets() {
             auto sources = package_table.at("sources").as_array();
             if (sources) {
                 for (const auto& src_entry : *sources) {
-                    if (!src_entry.is_table()) continue;
+                    if (!src_entry.is_table())
+                        continue;
                     auto source_table = src_entry.as_table();
-                    if (!source_table->contains("path")) continue;
+                    if (!source_table->contains("path"))
+                        continue;
 
                     std::string src_path = util::to_linux_path(
                         std::filesystem::absolute(
                             std::filesystem::path(
-                                *source_table->at("path").value<std::string>()
-                            )
-                        ).string(),
-                        "../../"
-                    );
+                                *source_table->at("path").value<std::string>()))
+                            .string(),
+                        "../../");
 
                     std::string obj_path = util::to_linux_path(
                         (module_dir / std::filesystem::path(src_path).stem()).string()
-                        + OBJ_EXT,
-                        "../../"
-                    );
+                            + OBJ_EXT,
+                        "../../");
 
                     std::vector<std::string> src_cflags = extract_flags(*source_table, "cflags");
                     src_cflags.insert(src_cflags.end(), cflags.begin(), cflags.end());
@@ -97,27 +101,28 @@ void BuildParser::parse_libraries() {
     const auto& config_sections = muuk_filer->get_sections();
 
     for (const auto& [package_name, package_table] : config_sections) {
-        if (!package_name.starts_with("library")) continue;
+        if (!package_name.starts_with("library"))
+            continue;
 
         std::string lib_name = package_name.substr(8);
         std::string lib_path = util::to_linux_path(
             (build_dir / lib_name / (lib_name + LIB_EXT)).string(),
-            "../../"
-        );
+            "../../");
 
         std::vector<std::string> obj_files;
         if (package_table.contains("sources")) {
             auto sources = package_table.at("sources").as_array();
             if (sources) {
                 for (const auto& src_entry : *sources) {
-                    if (!src_entry.is_table()) continue;
+                    if (!src_entry.is_table())
+                        continue;
                     auto source_table = src_entry.as_table();
-                    if (!source_table->contains("path")) continue;
+                    if (!source_table->contains("path"))
+                        continue;
 
                     std::string obj_file = util::to_linux_path(
                         (build_dir / lib_name / std::filesystem::path(*source_table->at("path").value<std::string>()).stem()).string() + OBJ_EXT,
-                        "../../"
-                    );
+                        "../../");
                     obj_files.push_back(obj_file);
                 }
             }
@@ -137,7 +142,8 @@ void BuildParser::parse_executables() {
     const auto& config_sections = muuk_filer->get_sections();
 
     for (const auto& [build_name, build_table] : config_sections) {
-        if (!build_name.starts_with("build.")) continue;
+        if (!build_name.starts_with("build."))
+            continue;
 
         std::string executable_name = build_name.substr(6); // Remove "build." prefix
 
@@ -151,14 +157,14 @@ void BuildParser::parse_executables() {
                         break;
                     }
                 }
-                if (!profile_found) continue;
+                if (!profile_found)
+                    continue;
             }
         }
 
         std::string exe_path = util::to_linux_path(
             (build_dir / executable_name / (executable_name + EXE_EXT)).string(),
-            "../../"
-        );
+            "../../");
         std::vector<std::string> obj_files;
         std::vector<std::string> libs;
         std::vector<std::string> iflags; // Include flags for header-only libraries
@@ -170,23 +176,23 @@ void BuildParser::parse_executables() {
             auto sources = build_table.at("sources").as_array();
             if (sources) {
                 for (const auto& src_entry : *sources) {
-                    if (!src_entry.is_table()) continue;
+                    if (!src_entry.is_table())
+                        continue;
 
                     auto source_table = src_entry.as_table();
-                    if (!source_table->contains("path")) continue;
+                    if (!source_table->contains("path"))
+                        continue;
 
                     std::string src_path = util::to_linux_path(
                         std::filesystem::absolute(
-                            std::filesystem::path(*source_table->at("path").value<std::string>())
-                        ).string(),
-                        "../../"
-                    );
+                            std::filesystem::path(*source_table->at("path").value<std::string>()))
+                            .string(),
+                        "../../");
 
                     std::string obj_path = util::to_linux_path(
                         (build_dir / executable_name / std::filesystem::path(src_path).stem()).string()
-                        + OBJ_EXT,
-                        "../../"
-                    );
+                            + OBJ_EXT,
+                        "../../");
 
                     obj_files.push_back(obj_path);
                 }
@@ -208,8 +214,7 @@ void BuildParser::parse_executables() {
                             // Library has sources, so we expect a .lib file
                             std::string lib_path = util::to_linux_path(
                                 (build_dir / lib_name / (lib_name + LIB_EXT)).string(),
-                                "../../"
-                            );
+                                "../../");
                             libs.push_back(lib_path);
                         }
 
@@ -242,8 +247,7 @@ void BuildParser::parse_executables() {
 std::vector<std::string> BuildParser::extract_flags(
     const toml::table& table,
     const std::string& key,
-    const std::string& prefix
-) {
+    const std::string& prefix) {
     std::vector<std::string> flags;
     if (table.contains(key)) {
         auto flag_array = table.at(key).as_array();
@@ -259,10 +263,12 @@ std::vector<std::string> BuildParser::extract_flags(
 /** Extract platform-specific FLAGS */
 std::vector<std::string> BuildParser::extract_platform_flags(const toml::table& package_table) {
     std::vector<std::string> flags;
-    if (!package_table.contains("platform")) return flags;
+    if (!package_table.contains("platform"))
+        return flags;
 
     auto platform_table = package_table.at("platform").as_table();
-    if (!platform_table) return flags;
+    if (!platform_table)
+        return flags;
 
     std::string detected_platform;
 
@@ -278,7 +284,8 @@ std::vector<std::string> BuildParser::extract_platform_flags(const toml::table& 
 
     if (platform_table->contains(detected_platform)) {
         auto platform_entry = platform_table->at(detected_platform).as_table();
-        if (!platform_entry) return flags;
+        if (!platform_entry)
+            return flags;
 
         if (platform_entry->contains("cflags")) {
             auto cflags_array = platform_entry->at("cflags").as_array();
@@ -288,8 +295,7 @@ std::vector<std::string> BuildParser::extract_platform_flags(const toml::table& 
                 }
             }
         }
-    }
-    else {
+    } else {
         muuk::logger::warn("No configuration found for platform '{}'.", detected_platform);
     }
 
@@ -299,16 +305,19 @@ std::vector<std::string> BuildParser::extract_platform_flags(const toml::table& 
 /** Extract compiler-specific FLAGS */
 std::vector<std::string> BuildParser::extract_compiler_flags(const toml::table& package_table) {
     std::vector<std::string> flags;
-    if (!package_table.contains("compiler")) return flags;
+    if (!package_table.contains("compiler"))
+        return flags;
 
     auto compiler_table = package_table.at("compiler").as_table();
-    if (!compiler_table) return flags;
+    if (!compiler_table)
+        return flags;
 
     auto compiler_ = compiler.to_string();
 
     if (compiler_table->contains(compiler_)) {
         auto compiler_entry = compiler_table->at(compiler_).as_table();
-        if (!compiler_entry) return flags;
+        if (!compiler_entry)
+            return flags;
 
         if (compiler_entry->contains("cflags")) {
             auto cflags_array = compiler_entry->at("cflags").as_array();
@@ -318,8 +327,7 @@ std::vector<std::string> BuildParser::extract_compiler_flags(const toml::table& 
                 }
             }
         }
-    }
-    else {
+    } else {
         muuk::logger::warn("No configuration found for compiler '{}'.", compiler_);
     }
 
@@ -366,12 +374,10 @@ std::pair<std::string, std::string> BuildParser::extract_profile_flags(const std
                 }
             }
             muuk::logger::info("Profile '{}' CFLAGS: {}", profile, profile_cflags_str);
-        }
-        else {
+        } else {
             muuk::logger::warn("Profile '{}' contains an invalid 'cflags' array.", profile);
         }
-    }
-    else {
+    } else {
         muuk::logger::warn("No 'cflags' found for profile '{}'.", profile);
     }
 
@@ -385,12 +391,10 @@ std::pair<std::string, std::string> BuildParser::extract_profile_flags(const std
                 }
             }
             muuk::logger::info("Profile '{}' LFLAGS: {}", profile, profile_lflags_str);
-        }
-        else {
+        } else {
             muuk::logger::warn("Profile '{}' contains an invalid 'lflags' array.", profile);
         }
-    }
-    else {
+    } else {
         muuk::logger::warn("No 'lflags' found for profile '{}'.", profile);
     }
 

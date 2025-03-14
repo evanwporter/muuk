@@ -1,10 +1,11 @@
-#include "muuklockgen.h"
-#include "logger.h"
-#include "util.h" 
-
 #include <string>
-#include <toml++/toml.hpp>
+
 #include <glob/glob.h>
+#include <toml++/toml.hpp>
+
+#include "logger.h"
+#include "muuklockgen.h"
+#include "util.h"
 
 template <typename Container>
 static void print_array(std::ostringstream& stream, std::string_view key, const Container& values, bool new_line_at_end = true) {
@@ -19,16 +20,12 @@ static void print_array(std::ostringstream& stream, std::string_view key, const 
     }
     if (new_line_at_end) {
         stream << "]\n";
-    }
-    else {
+    } else {
         stream << "]";
     }
 }
 
-Package::Package(const std::string& name,
-    const std::string& version,
-    const std::string& base_path,
-    const std::string& package_type) :
+Package::Package(const std::string& name, const std::string& version, const std::string& base_path, const std::string& package_type) :
     name(name),
     version(version),
     base_path(base_path),
@@ -97,7 +94,7 @@ std::string Package::serialize() const {
         for (const auto& [source, source_cflags] : sources) {
             fs::path source_path = fs::path(base_path) / source;
 
-            if (source.find('*') != std::string::npos) {  // Handle globbing
+            if (source.find('*') != std::string::npos) { // Handle globbing
                 try {
                     muuk::logger::info("Globbing {}...", source_path.string());
                     std::vector<std::filesystem::path> globbed_paths = glob::glob(source_path.string());
@@ -106,20 +103,20 @@ std::string Package::serialize() const {
                         toml_stream << "  { path = \"" << util::to_linux_path(path.string()) << "\", cflags = [";
                         for (size_t i = 0; i < source_cflags.size(); ++i) {
                             toml_stream << "\"" << source_cflags[i] << "\"";
-                            if (i != source_cflags.size() - 1) toml_stream << ", ";
+                            if (i != source_cflags.size() - 1)
+                                toml_stream << ", ";
                         }
                         toml_stream << "] },\n";
                     }
-                }
-                catch (const std::exception& e) {
+                } catch (const std::exception& e) {
                     muuk::logger::warn("Error while globbing '{}': {}", source_path.string(), e.what());
                 }
-            }
-            else {  // Standard case without globbing
+            } else { // Standard case without globbing
                 toml_stream << "  { path = \"" << util::to_linux_path(source_path.lexically_normal().string()) << "\", cflags = [";
                 for (size_t i = 0; i < source_cflags.size(); ++i) {
                     toml_stream << "\"" << source_cflags[i] << "\"";
-                    if (i != source_cflags.size() - 1) toml_stream << ", ";
+                    if (i != source_cflags.size() - 1)
+                        toml_stream << ", ";
                 }
                 toml_stream << "] },\n";
             }
@@ -172,8 +169,7 @@ void Package::enable_features(const std::unordered_set<std::string>& feature_set
             }
 
             muuk::logger::info("Enabled feature '{}' for package '{}'", feature, name);
-        }
-        else {
+        } else {
             muuk::logger::warn("Feature '{}' not found in package '{}'", feature, name);
         }
     }

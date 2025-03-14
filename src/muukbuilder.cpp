@@ -1,32 +1,33 @@
-#include "muukbuilder.h"
-#include "util.h"
-#include "logger.h"
-#include "muukfiler.h"
-#include "muuk.h"
-
 #include <string>
-#include <stdexcept>
+
 #include <tl/expected.hpp>
 
-MuukBuilder::MuukBuilder(MuukFiler& config_manager)
-    : config_manager_(config_manager)
-{
+#include "logger.h"
+#include "muukbuilder.h"
+#include "muukfiler.h"
+#include "rustify.hpp"
+#include "util.h"
+
+MuukBuilder::MuukBuilder(MuukFiler& config_manager) :
+    config_manager_(config_manager) {
 }
 
-tl::expected<void, std::string> MuukBuilder::build(std::string& target_build, const std::string& compiler, const std::string& profile) {
+Result<void> MuukBuilder::build(std::string& target_build, const std::string& compiler, const std::string& profile) {
     lock_generator_ = std::make_unique<MuukLockGenerator>("./");
     lock_generator_->generate_lockfile("muuk.lock.toml");
     spdlog::default_logger()->flush();
 
     auto compiler_result = compiler.empty() ? detect_default_compiler() : muuk::Compiler::from_string(compiler);
-    if (!compiler_result) return tl::unexpected("Error selecting compiler: " + compiler_result.error());
+    if (!compiler_result)
+        return tl::unexpected("Error selecting compiler: " + compiler_result.error());
     auto selected_compiler = compiler_result.value();
 
     std::string selected_archiver = selected_compiler.detect_archiver();
     std::string selected_linker = selected_compiler.detect_linker();
 
     auto profile_result = select_profile(profile);
-    if (!profile_result) return tl::unexpected(profile_result.error());
+    if (!profile_result)
+        return tl::unexpected(profile_result.error());
 
     std::string selected_profile = *profile_result;
 
@@ -34,8 +35,7 @@ tl::expected<void, std::string> MuukBuilder::build(std::string& target_build, co
         *compiler_result,
         selected_archiver,
         selected_linker,
-        "muuk.lock.toml"
-    );
+        "muuk.lock.toml");
 
     muuk::logger::info("Generating Ninja file for '{}'", selected_profile);
     spdlog::default_logger()->flush();
@@ -98,7 +98,8 @@ tl::expected<muuk::Compiler, std::string> MuukBuilder::detect_default_compiler()
 }
 
 tl::expected<std::string, std::string> MuukBuilder::select_profile(const std::string& profile) {
-    if (!profile.empty()) return profile;
+    if (!profile.empty())
+        return profile;
 
     auto config = config_manager_.get_config();
     if (!config.contains("profile") || !config["profile"].is_table()) {
@@ -109,9 +110,7 @@ tl::expected<std::string, std::string> MuukBuilder::select_profile(const std::st
     for (const auto& [profile_name, profile_data] : *profiles_table) {
         if (profile_data.is_table()) {
             auto profile_table = profile_data.as_table();
-            if (profile_table->contains("default") &&
-                profile_table->at("default").is_boolean() &&
-                profile_table->at("default").as_boolean()) {
+            if (profile_table->contains("default") && profile_table->at("default").is_boolean() && profile_table->at("default").as_boolean()) {
                 return std::string(profile_name.str());
             }
         }
@@ -142,9 +141,7 @@ tl::expected<void, std::string> MuukBuilder::add_script(const std::string& profi
 
         muuk::logger::info("Successfully added run script to 'muuk.toml': {}", executable_path);
         return {};
-    }
-    catch (const std::exception& e) {
+    } catch (const std::exception& e) {
         return tl::unexpected("Failed to add run script: " + std::string(e.what()));
-}
     }
-
+}

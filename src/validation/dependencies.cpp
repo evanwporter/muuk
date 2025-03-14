@@ -1,19 +1,22 @@
-#include "muukvalidator.hpp"
-
-#include <string_view>
-#include <unordered_set>
-#include <unordered_map>
 #include <cctype>
+#include <string_view>
+#include <unordered_map>
+#include <unordered_set>
+
+#include "muukvalidator.hpp"
 
 namespace muuk {
     static const std::unordered_set<char> ALLOWED_CHARS = {
-        '-', '_', '/', '.', '+'  // Allowed in dependency names
+        '-', '_', '/', '.', '+' // Allowed in dependency names
     };
 
     bool is_valid_dependency_name(std::string_view name) {
-        if (name.empty()) return false;
-        if (!std::isalnum(name.front())) return false;
-        if (!std::isalnum(name.back()) && name.back() != '+') return false;
+        if (name.empty())
+            return false;
+        if (!std::isalnum(name.front()))
+            return false;
+        if (!std::isalnum(name.back()) && name.back() != '+')
+            return false;
 
         // Ensure valid characters and no consecutive non-alphanumeric characters
         bool prevNonAlphaNum = false;
@@ -26,11 +29,10 @@ namespace muuk {
 
             if (!std::isalnum(c)) {
                 if (prevNonAlphaNum && c != '+') {
-                    return false;  // Consecutive non-alphanumeric (except `+`)
+                    return false; // Consecutive non-alphanumeric (except `+`)
                 }
                 prevNonAlphaNum = true;
-            }
-            else {
+            } else {
                 prevNonAlphaNum = false;
             }
         }
@@ -50,8 +52,10 @@ namespace muuk {
             ++charFreq[c];
         }
 
-        if (charFreq['/'] > 1) return false;  // At most one `/`
-        if (charFreq['+'] != 0 && charFreq['+'] != 2) return false;  // `+` must be zero or exactly two
+        if (charFreq['/'] > 1)
+            return false; // At most one `/`
+        if (charFreq['+'] != 0 && charFreq['+'] != 2)
+            return false; // `+` must be zero or exactly two
 
         // Ensure `+` characters are consecutive
         if (charFreq['+'] == 2) {

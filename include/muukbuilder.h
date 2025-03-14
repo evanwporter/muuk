@@ -1,17 +1,17 @@
 #ifndef MUUK_BUILDER_H
 #define MUUK_BUILDER_H
 
-#include "../include/muukfiler.h"
-#include "../include/muuklockgen.h"
-#include "../include/buildbackend.hpp"  
-#include "../include/logger.h"
-
-#include "muuk.h"
-
-#include <vector>
 #include <memory>
+#include <vector>
+
 #include <spdlog/spdlog.h>
 #include <tl/expected.hpp>
+
+#include "buildbackend.hpp"
+#include "logger.h"
+#include "muuk.h"
+#include "muukfiler.h"
+#include "muuklockgen.h"
 
 class MuukBuilder {
 public:

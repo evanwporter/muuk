@@ -1,5 +1,8 @@
-#include "../include/buildmanager.h"
 #include <iostream>
+
+#include "buildmanager.h"
+#include "buildtargets.h"
+#include "logger.h"
 
 void BuildManager::add_compilation_target(std::string src, std::string obj, std::vector<std::string> cflags, std::vector<std::string> iflags) {
     // Prevent empty inputs
@@ -14,7 +17,6 @@ void BuildManager::add_compilation_target(std::string src, std::string obj, std:
     }
 }
 
-
 void BuildManager::add_archive_target(std::string lib, std::vector<std::string> objs, std::vector<std::string> aflags) {
     if (lib.empty() || objs.empty()) {
         muuk::logger::trace("Skipping since Archive target must have a library name and at least one object file.\n");
@@ -25,7 +27,6 @@ void BuildManager::add_archive_target(std::string lib, std::vector<std::string> 
         library_registry[lib] = lib;
     }
 }
-
 
 void BuildManager::add_link_target(std::string exe, std::vector<std::string> objs, std::vector<std::string> libs, std::vector<std::string> lflags) {
     if (exe.empty() || objs.empty()) {

@@ -2,15 +2,14 @@
 #ifndef MAKE_BACKEND_HPP
 #define MAKE_BACKEND_HPP
 
-#include "./buildbackend.hpp"
-#include "./buildtargets.h"
-#include "./buildparser.hpp"
-#include "./buildmanager.h"
-
-#include <fstream>
-#include <memory>
 #include <filesystem>
+#include <memory>
 #include <sstream>
+
+#include "buildbackend.hpp"
+#include "buildmanager.h"
+#include "buildparser.hpp"
+#include "buildtargets.h"
 
 namespace fs = std::filesystem;
 
@@ -26,13 +25,11 @@ public:
         muuk::Compiler compiler,
         const std::string& archiver,
         const std::string& linker,
-        const std::string& lockfile_path = "muuk.lock.toml"
-    );
+        const std::string& lockfile_path = "muuk.lock.toml");
 
     void generate_build_file(
         const std::string& target_build,
-        const std::string& profile
-    ) override;
+        const std::string& profile) override;
 
 private:
     std::string generate_rule(const CompilationTarget& target);

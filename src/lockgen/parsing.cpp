@@ -1,10 +1,11 @@
-#include "muuklockgen.h"
-#include "logger.h"
-
 #include <memory>
 #include <string>
-#include <toml++/toml.h>
+
 #include <fmt/ranges.h>
+#include <toml++/toml.h>
+
+#include "logger.h"
+#include "muuklockgen.h"
 
 void MuukLockGenerator::parse_flags(const toml::table& profile_data, const std::string& profile_name, const std::string& flag_type) {
     if (profile_data.contains(flag_type) && profile_data.at(flag_type).is_array()) {
@@ -29,11 +30,9 @@ Result<void> MuukLockGenerator::parse_dependencies(const toml::table& data, std:
 
             if (dep_value.is_table()) {
                 dependency_info = Dependency::from_toml(*dep_value.as_table());
-            }
-            else if (dep_value.is_string()) {
-                dependency_info.version = *dep_value.value<std::string>();  // If just a version string
-            }
-            else {
+            } else if (dep_value.is_string()) {
+                dependency_info.version = *dep_value.value<std::string>(); // If just a version string
+            } else {
                 muuk::logger::error("Invalid dependency format for '{}'", dep_name.str());
                 return Err("");
             }
@@ -45,30 +44,26 @@ Result<void> MuukLockGenerator::parse_dependencies(const toml::table& data, std:
                     dep_entry = std::make_shared<Dependency>(Dependency::from_toml(*dep_value.as_table()));
                 } else if (dep_value.is_string()) {
                     dep_entry = std::make_shared<Dependency>();
-                    dep_entry->version = *dep_value.value<std::string>();  // Store version
+                    dep_entry->version = *dep_value.value<std::string>(); // Store version
                 } else {
                     muuk::logger::error("Invalid dependency format for '{}'", dep_name_str);
                     return Err("");
                 }
-            }
-            else {
+            } else {
                 // Merge features if dependency already exists
                 dep_entry->enabled_features.insert(
                     dependency_info.enabled_features.begin(),
-                    dependency_info.enabled_features.end()
-                );
+                    dependency_info.enabled_features.end());
             }
 
             dependencies_[dep_name_str][dep_entry->version] = dep_entry;
             package->dependencies_[dep_name_str][dep_entry->version] = dep_entry;
             muuk::logger::info("  → Dependency '{}' (v{}) added with details:", dep_name_str, dep_entry->version);
-
         }
     }
 
     return {};
 };
-
 
 Result<void> MuukLockGenerator::parse_library(const toml::table& section, std::shared_ptr<Package> package) {
     muuk::logger::trace("Parsing section for package: {}", package->name);
@@ -98,8 +93,7 @@ Result<void> MuukLockGenerator::parse_library(const toml::table& section, std::s
                 while (flag_stream >> flag) {
                     extracted_cflags.push_back(flag);
                 }
-            }
-            else {
+            } else {
                 file_path = source_entry;
             }
 
@@ -164,8 +158,7 @@ Result<void> MuukLockGenerator::parse_profile(const toml::table& data) {
                             }
                             merge_profiles(std::string(profile_name.str()), inherited_profile);
                         }
-                    }
-                    else if (profile_data.as_table()->at("inherits").is_string()) {
+                    } else if (profile_data.as_table()->at("inherits").is_string()) {
                         std::string inherited_profile = *profile_data.as_table()->at("inherits").value<std::string>();
                         if (profiles_.find(inherited_profile) == profiles_.end()) {
                             muuk::logger::error("Inherited profile '" + inherited_profile + "' not found.");
@@ -190,8 +183,7 @@ Result<void> MuukLockGenerator::parse_builds(const toml::table& data, const std:
                 std::string(build_name.str()),
                 std::string(package_version),
                 fs::path(path).parent_path().string(),
-                "build"
-            );
+                "build");
 
             parse_library(*build_info.as_table(), build_package);
             parse_dependencies(*build_info.as_table(), build_package);
@@ -205,7 +197,6 @@ Result<void> MuukLockGenerator::parse_builds(const toml::table& data, const std:
             }
 
             builds[std::string(build_name.str())] = build_package;
-
         }
     }
     return {};
@@ -258,24 +249,21 @@ Result<void> MuukLockGenerator::parse_features(const toml::table& data, std::sha
     for (const auto& [feature_name, feature_value] : *data["features"].as_table()) {
         Feature feature_data;
 
-        if (feature_value.is_array()) {  // List Syntax
+        if (feature_value.is_array()) { // List Syntax
             for (const auto& item : *feature_value.as_array()) {
                 if (item.is_string()) {
                     std::string value = *item.value<std::string>();
 
                     if (value.rfind("D:", 0) == 0) {
-                        feature_data.defines.insert(value.substr(2));  // Remove "D:"
-                    }
-                    else if (value.rfind("dep:", 0) == 0) {
-                        feature_data.dependencies.insert(value.substr(4));  // Remove "dep:"
-                    }
-                    else {
+                        feature_data.defines.insert(value.substr(2)); // Remove "D:"
+                    } else if (value.rfind("dep:", 0) == 0) {
+                        feature_data.dependencies.insert(value.substr(4)); // Remove "dep:"
+                    } else {
                         std::cerr << "Warning: Unrecognized feature syntax: " << value << "\n";
                     }
                 }
             }
-        }
-        else if (feature_value.is_table()) {  // Table Syntax
+        } else if (feature_value.is_table()) { // Table Syntax
             const auto& feature_table = *feature_value.as_table();
 
             if (feature_table.contains("define") && feature_table["define"].is_array()) {
@@ -293,8 +281,7 @@ Result<void> MuukLockGenerator::parse_features(const toml::table& data, std::sha
                     }
                 }
             }
-        }
-        else {
+        } else {
             // TODO: This eventually will be unnecessary
             muuk::logger::warn("Invalid format for feature '{}'. Must be either a table or a array", std::string(feature_name.str()));
             continue;

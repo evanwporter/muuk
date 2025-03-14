@@ -2,24 +2,25 @@
 
 #include <iostream>
 #include <string>
-#include <nlohmann/json.hpp>
 #include <vector>
+
 #include <argparse/argparse.hpp>
+#include <nlohmann/json.hpp>
 #include <tl/expected.hpp>
 
+#include "logger.h"
 #include "muuk.h"
 #include "muuker.hpp"
 #include "muukfiler.h"
-#include "logger.h"
 #include "package_manager.h"
 
 // Define a macro to handle tl::expected, if the unexpected happens it will log the error and return 1, otherwise it will return 0
-#define CHECK_CALL(call)                    \
-    do {                                             \
-        auto result = (call);                        \
-        if (!result) {                               \
-            return 1;                                \
-        }                                            \
+#define CHECK_CALL(call)      \
+    do {                      \
+        auto result = (call); \
+        if (!result) {        \
+            return 1;         \
+        }                     \
     } while (0)
 
 // using namespace Muuk;
@@ -36,7 +37,6 @@ void start_repl(std::unordered_map<std::string, std::function<void()>>& command_
     }
     std::cout << "\n\n";
 
-
     while (true) {
         std::cout << ">> ";
         std::string command;
@@ -50,8 +50,7 @@ void start_repl(std::unordered_map<std::string, std::function<void()>>& command_
         auto it = command_map.find(command);
         if (it != command_map.end()) {
             it->second();
-        }
-        else {
+        } else {
             std::cout << "Unknown command: " << command << "\n";
         }
     }
@@ -76,7 +75,7 @@ int main(int argc, char* argv[]) {
     clean_command.add_argument("clean_args")
         .remaining()
         .help("Build arguments passed to the build system")
-        .default_value(std::vector<std::string>{});
+        .default_value(std::vector<std::string> {});
 
     argparse::ArgumentParser run_command("run", "Run a custom script");
     run_command.add_argument("script")
@@ -84,7 +83,7 @@ int main(int argc, char* argv[]) {
     run_command.add_argument("extra_args")
         .remaining()
         .help("Extra arguments passed to the command")
-        .default_value(std::vector<std::string>{});
+        .default_value(std::vector<std::string> {});
 
     argparse::ArgumentParser build_command("build", "Build the project");
     build_command.add_argument("-t", "--target-build")
@@ -165,7 +164,6 @@ int main(int argc, char* argv[]) {
     program.add_subparser(qinit_command);
     program.add_subparser(add_command);
 
-
     if (argc < 2) {
         std::cerr << muuk::ERROR_PREFIX << "Usage: " << std::string(argv[0]) << " <command> [--muuk-path <path>] [other options]\n";
         return 1;
@@ -226,8 +224,7 @@ int main(int argc, char* argv[]) {
                 // tag,
                 // branch,
                 is_system,
-                target_section
-            );
+                target_section);
 
             return 0;
         }
@@ -275,8 +272,7 @@ int main(int argc, char* argv[]) {
         //     return 0;
         // }
 #endif
-    }
-    catch (const std::runtime_error& err) {
+    } catch (const std::runtime_error& err) {
         muuk::logger::error(std::string(err.what()) + "\n");
         return 1;
     }

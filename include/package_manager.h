@@ -1,12 +1,13 @@
 #pragma once
 
+#include <memory>
+#include <string>
+
+#include <spdlog/spdlog.h>
+#include <tl/expected.hpp>
+
 #include "logger.h"
 #include "rustify.hpp"
-
-#include <tl/expected.hpp>
-#include <spdlog/spdlog.h>
-#include <string>
-#include <memory>
 
 namespace muuk {
     namespace package_manager {
@@ -20,17 +21,14 @@ namespace muuk {
             std::string& git_url,
             std::string& muuk_path,
             bool is_system,
-            const std::string& target_section
-        );
+            const std::string& target_section);
 
         tl::expected<void, std::string> install(
-            const std::string& lockfile_path_string = "muuk.lock.toml"
-        );
+            const std::string& lockfile_path_string = "muuk.lock.toml");
 
         Result<void> remove_package(
             const std::string& package_name,
             const std::string& toml_path = "muuk.toml",
-            const std::string& lockfile_path = "muuk.lock.toml"
-        );
+            const std::string& lockfile_path = "muuk.lock.toml");
     }
 }

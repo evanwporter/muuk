@@ -1,6 +1,9 @@
+#include <stdexcept>
+#include <string>
+#include <unordered_map>
+
 #include "compiler.hpp"
 #include "rustify.hpp"
-#include <stdexcept>
 
 namespace muuk {
 
@@ -10,9 +13,7 @@ namespace muuk {
 
     Result<Compiler> Compiler::from_string(const std::string& compilerStr) {
         static const std::unordered_map<std::string, Type> compilerMap = {
-            { "g++", Type::GCC }, { "gcc", Type::GCC },
-            { "clang++", Type::Clang }, { "clang", Type::Clang },
-            { "cl", Type::MSVC }, { "msvc", Type::MSVC }
+            { "g++", Type::GCC }, { "gcc", Type::GCC }, { "clang++", Type::Clang }, { "clang", Type::Clang }, { "cl", Type::MSVC }, { "msvc", Type::MSVC }
         };
 
         auto it = compilerMap.find(compilerStr);
@@ -25,36 +26,48 @@ namespace muuk {
 
     std::string Compiler::to_string(Type type) {
         switch (type) {
-        case Type::GCC: return "g++";
-        case Type::Clang: return "clang++";
-        case Type::MSVC: return "cl";
-        default: return "Unknown";
+        case Type::GCC:
+            return "g++";
+        case Type::Clang:
+            return "clang++";
+        case Type::MSVC:
+            return "cl";
+        default:
+            return "Unknown";
         }
     }
 
     std::string Compiler::to_string() const {
         switch (type_) {
-        case Type::GCC: return "g++";
-        case Type::Clang: return "clang++";
-        case Type::MSVC: return "cl";
+        case Type::GCC:
+            return "g++";
+        case Type::Clang:
+            return "clang++";
+        case Type::MSVC:
+            return "cl";
         }
     }
 
     // Detect archiver based on compiler
     std::string Compiler::detect_archiver() const {
         switch (type_) {
-        case Type::MSVC: return "lib";
-        case Type::Clang: return "llvm-ar";
-        case Type::GCC: return "ar";
+        case Type::MSVC:
+            return "lib";
+        case Type::Clang:
+            return "llvm-ar";
+        case Type::GCC:
+            return "ar";
         }
     }
 
     // Detect linker based on compiler
     std::string Compiler::detect_linker() const {
         switch (type_) {
-        case Type::MSVC: return "link";
+        case Type::MSVC:
+            return "link";
         case Type::Clang:
-        case Type::GCC: return to_string(); // Compiler acts as linker
+        case Type::GCC:
+            return to_string(); // Compiler acts as linker
         }
     }
 
@@ -72,11 +85,16 @@ namespace muuk {
         static const std::unordered_map<std::string, Year> editionMap = {
             { "98", Year::Cpp98 },
             { "03", Year::Cpp03 },
-            { "0x", Year::Cpp11 }, { "11", Year::Cpp11 },
-            { "1y", Year::Cpp14 }, { "14", Year::Cpp14 },
-            { "1z", Year::Cpp17 }, { "17", Year::Cpp17 },
-            { "2a", Year::Cpp20 }, { "20", Year::Cpp20 },
-            { "2b", Year::Cpp23 }, { "23", Year::Cpp23 },
+            { "0x", Year::Cpp11 },
+            { "11", Year::Cpp11 },
+            { "1y", Year::Cpp14 },
+            { "14", Year::Cpp14 },
+            { "1z", Year::Cpp17 },
+            { "17", Year::Cpp17 },
+            { "2a", Year::Cpp20 },
+            { "20", Year::Cpp20 },
+            { "2b", Year::Cpp23 },
+            { "23", Year::Cpp23 },
             { "2c", Year::Cpp26 }
         };
 
@@ -96,15 +114,24 @@ namespace muuk {
 
     std::string Edition::to_string() const {
         switch (year_) {
-        case Year::Cpp98: return "C++98";
-        case Year::Cpp03: return "C++03";
-        case Year::Cpp11: return "C++11";
-        case Year::Cpp14: return "C++14";
-        case Year::Cpp17: return "C++17";
-        case Year::Cpp20: return "C++20";
-        case Year::Cpp23: return "C++23";
-        case Year::Cpp26: return "C++26";
-        default: return "Unknown";
+        case Year::Cpp98:
+            return "C++98";
+        case Year::Cpp03:
+            return "C++03";
+        case Year::Cpp11:
+            return "C++11";
+        case Year::Cpp14:
+            return "C++14";
+        case Year::Cpp17:
+            return "C++17";
+        case Year::Cpp20:
+            return "C++20";
+        case Year::Cpp23:
+            return "C++23";
+        case Year::Cpp26:
+            return "C++26";
+        default:
+            return "Unknown";
         }
     }
 
@@ -134,8 +161,7 @@ namespace muuk {
 
         if (compiler == Compiler::MSVC) {
             return msvcFlags.count(year_) ? msvcFlags.at(year_) : "/std:c++latest";
-        }
-        else {
+        } else {
             return gccClangFlags.count(year_) ? gccClangFlags.at(year_) : "-std=c++2b"; // Default for GCC/Clang
         }
     }
@@ -143,19 +169,24 @@ namespace muuk {
     namespace compiler {
         std::string to_string(Compiler compiler) {
             switch (compiler) {
-            case Compiler::GCC: return "g++";
-            case Compiler::Clang: return "clang++";
-            case Compiler::MSVC: return "cl";
+            case Compiler::GCC:
+                return "g++";
+            case Compiler::Clang:
+                return "clang++";
+            case Compiler::MSVC:
+                return "cl";
             }
             throw std::invalid_argument("Invalid compiler type");
         }
 
         Compiler from_string(const std::string& compiler_str) {
-            if (compiler_str == "g++" || compiler_str == "gcc") return Compiler::GCC;
-            if (compiler_str == "clang++" || compiler_str == "clang") return Compiler::Clang;
-            if (compiler_str == "cl" || compiler_str == "msvc") return Compiler::MSVC;
+            if (compiler_str == "g++" || compiler_str == "gcc")
+                return Compiler::GCC;
+            if (compiler_str == "clang++" || compiler_str == "clang")
+                return Compiler::Clang;
+            if (compiler_str == "cl" || compiler_str == "msvc")
+                return Compiler::MSVC;
             throw std::invalid_argument("Unsupported compiler: " + compiler_str);
         }
     }
 } // namespace muuk
-

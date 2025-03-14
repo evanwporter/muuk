@@ -1,34 +1,28 @@
-#include "muuk.h"
-#include "../include/logger.h"
-#include "../include/util.h"
-
+#include <algorithm>
+#include <array>
+#include <cstdio>
+#include <cstdlib>
+#include <ctime>
 #include <filesystem>
 #include <fstream>
 #include <regex>
-#include <iostream>
+#include <set>
 #include <sstream>
-#include <cstdlib>
-#include <locale>
-#include <spdlog/spdlog.h>
-#include <regex>
-#include <spdlog/sinks/basic_file_sink.h>
-#include <concepts>
-#include <array>
-#include <cstdio>
-#include <chrono>
-#include <ctime>
 #include <string>
+#include <vector>
+
 #ifdef _WIN32
 #include <windows.h>
 #endif
-#include <set>
-#include <vector>
-#include <algorithm>
-#include <unordered_set>
 
 extern "C" {
 #include "zip.h"
 }
+
+#include <tl/expected.hpp>
+
+#include "logger.h"
+#include "util.h"
 
 namespace fs = std::filesystem;
 
@@ -39,8 +33,7 @@ namespace util {
         if (!fs::exists(dir_path)) {
             fs::create_directories(dir_path);
             muuk::logger::info("Created directory: {}", dir_path);
-        }
-        else {
+        } else {
             muuk::logger::debug("Directory already exists: {}", dir_path);
         }
 
@@ -52,8 +45,7 @@ namespace util {
                     gitignore_stream << "*\n";
                     gitignore_stream.close();
                     muuk::logger::info("Created .gitignore file in directory: {}", dir_path);
-                }
-                else {
+                } else {
                     muuk::logger::error("Failed to create .gitignore file in directory: {}", dir_path);
                 }
             }
@@ -70,8 +62,7 @@ namespace util {
         if (fs::exists(path)) {
             fs::remove_all(path);
             muuk::logger::info("Removed path: {}", path);
-        }
-        else {
+        } else {
             muuk::logger::warn("Attempted to remove non-existent path: {}", path);
         }
     }
@@ -81,8 +72,7 @@ namespace util {
         if (pattern[0] == '!') {
             std::string inner_pattern = pattern.substr(1);
             matches = !std::regex_match(path, std::regex(".*" + std::regex_replace(inner_pattern, std::regex("\\*"), ".*") + "$"));
-        }
-        else {
+        } else {
             matches = std::regex_match(path, std::regex(".*" + std::regex_replace(pattern, std::regex("\\*"), ".*") + "$"));
         }
         muuk::logger::debug("Matching '{}' with pattern '{}': {}", path, pattern, matches);
@@ -110,8 +100,7 @@ namespace util {
                     (void)arg;
                     return 0;
                 },
-                nullptr
-            );
+                nullptr);
 
             if (result < 0) {
                 muuk::logger::error("Failed to extract zip archive '{}'. Error code: {}", archive, result);
@@ -119,12 +108,10 @@ namespace util {
             }
 
             muuk::logger::info("Extraction completed successfully for: {}", archive);
-        }
-        catch (const std::exception& ex) {
+        } catch (const std::exception& ex) {
             muuk::logger::error("Exception during zip extraction: {}", ex.what());
             throw;
-        }
-        catch (...) {
+        } catch (...) {
             muuk::logger::error("Unknown error occurred during zip extraction.");
             throw;
         }
@@ -134,13 +121,10 @@ namespace util {
         std::string command;
 
         if (command_line::command_exists("wget")) {
-            command = "wget --quiet --output-document=" + output_path +
-                " --no-check-certificate " + url;
-        }
-        else if (command_line::command_exists("curl")) {
+            command = "wget --quiet --output-document=" + output_path + " --no-check-certificate " + url;
+        } else if (command_line::command_exists("curl")) {
             command = "curl -L -o " + output_path + " " + url;
-        }
-        else {
+        } else {
             spdlog::error("Neither wget nor curl is available on the system.");
             throw std::runtime_error("No suitable downloader found. Install wget or curl.");
         }
@@ -208,32 +192,32 @@ namespace util {
         Result<nlohmann::json> fetch_json(const std::string& url) {
             std::string output_file = "github_api_response.json";
             std::string command = "wget --quiet -O - "
-                "--header=\"Accept: application/vnd.github.v3+json\" "
-                "--header=\"User-Agent: Mozilla/5.0\" "
-                "--no-check-certificate " + url;
+                                  "--header=\"Accept: application/vnd.github.v3+json\" "
+                                  "--header=\"User-Agent: Mozilla/5.0\" "
+                                  "--no-check-certificate "
+                + url;
 
             std::string result = command_line::execute_command_get_out(command);
 
             try {
                 return nlohmann::json::parse(result);
-            }
-            catch (const std::exception& e) {
+            } catch (const std::exception& e) {
                 return tl::unexpected("JSON parsing failed: " + std::string(e.what()));
             }
         }
     } // namespace network
 
-
     std::string to_utf8(const std::wstring& wstr) {
 #ifdef _WIN32
-        if (wstr.empty()) return "";
+        if (wstr.empty())
+            return "";
 
         int size_needed = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, nullptr, 0, nullptr, nullptr);
         std::string utf8_str(size_needed - 1, 0);
         WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, &utf8_str[0], size_needed, nullptr, nullptr);
         return utf8_str;
 #else
-        std::mbstate_t state{};
+        std::mbstate_t state {};
         const wchar_t* src = wstr.c_str();
         size_t len = 1 + std::wcsrtombs(nullptr, &src, 0, &state);
         std::string dest(len, '\0');
@@ -249,12 +233,10 @@ namespace util {
             std::replace(normalized.begin(), normalized.end(), '\\', '/');
 
             return normalized;
-        }
-        catch (const std::exception& e) {
+        } catch (const std::exception& e) {
             muuk::logger::warn("Exception during path normalizing {}", e.what());
             return path;
-        }
-        catch (...) {
+        } catch (...) {
             muuk::logger::error("Unknown error occurred during normalize path.");
             throw;
         }
@@ -262,10 +244,9 @@ namespace util {
 
     std::vector<std::string> to_linux_path(const std::vector<std::string>& paths, const std::string& prefix) {
         std::vector<std::string> new_paths;
-        new_paths.reserve(paths.size());  // Reserve space for efficiency
+        new_paths.reserve(paths.size()); // Reserve space for efficiency
 
-        std::transform(paths.begin(), paths.end(), std::back_inserter(new_paths),
-            [&prefix](const std::string& path) { return to_linux_path(path, prefix); });
+        std::transform(paths.begin(), paths.end(), std::back_inserter(new_paths), [&prefix](const std::string& path) { return to_linux_path(path, prefix); });
 
         return new_paths;
     }
@@ -311,11 +292,13 @@ namespace util {
     }
 
     std::string join_strings(const std::vector<std::string>& strings, const std::string& delimiter) {
-        if (strings.empty()) return "";
+        if (strings.empty())
+            return "";
 
         std::ostringstream result;
         for (size_t i = 0; i < strings.size(); ++i) {
-            if (i > 0) result << delimiter;
+            if (i > 0)
+                result << delimiter;
             result << strings[i];
         }
         return result.str();
@@ -328,7 +311,7 @@ namespace util {
 
         int current_year() {
             std::time_t t = std::time(nullptr);
-            std::tm time_info{};
+            std::tm time_info {};
 
 #ifdef _WIN32
             localtime_s(&time_info, &t);
@@ -340,6 +323,4 @@ namespace util {
 
     } // namespace time
 
-
 } // namespace util
-

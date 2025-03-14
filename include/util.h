@@ -1,16 +1,16 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include "muuk.h"
-
+#include <set>
 #include <string>
 #include <vector>
-#include <set>
-#include <unordered_map>
+
 #include <nlohmann/json.hpp>
 
+#include "rustify.hpp"
+
 template <typename T>
-concept Streamable = requires(std::ostream & os, const T & value) {
+concept Streamable = requires(std::ostream& os, const T& value) {
     { os << value } -> std::same_as<std::ostream&>;
 };
 

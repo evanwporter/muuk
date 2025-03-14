@@ -1,11 +1,11 @@
+#include <conio.h> // For _getch()
 #include <iostream>
 #include <vector>
-#include <conio.h> // For _getch()
 #include <windows.h> // For system("cls")
 
-#define KEY_UP 72       // Up arrow character
-#define KEY_DOWN 80     // Down arrow character
-#define KEY_ENTER '\r'  // Enter key character
+#define KEY_UP 72 // Up arrow character
+#define KEY_DOWN 80 // Down arrow character
+#define KEY_ENTER '\r' // Enter key character
 
 bool selecting = true; // Global flag to handle exit
 

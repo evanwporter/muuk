@@ -1,5 +1,7 @@
-#include <gtest/gtest.h>
 #include "../include/buildmanager.h"
+#include <algorithm>
+#include <gtest/gtest.h>
+
 
 class BuildManagerTest : public ::testing::Test {
 protected:
@@ -30,7 +32,7 @@ TEST_F(BuildManagerTest, AddDuplicateCompilationTarget) {
     build_manager.add_compilation_target("source.cpp", "source.o", { "-O3" }, { "-Ilib" });
 
     auto compilation_targets = build_manager.get_compilation_targets();
-    EXPECT_EQ(compilation_targets.size(), 1);  // Should only contain one entry
+    EXPECT_EQ(compilation_targets.size(), 1); // Should only contain one entry
 }
 
 // Test adding an archive target
@@ -50,7 +52,7 @@ TEST_F(BuildManagerTest, AddDuplicateArchiveTarget) {
     build_manager.add_archive_target("libmylib.a", { "utils.o" }, { "rcs" });
 
     auto archive_targets = build_manager.get_archive_targets();
-    EXPECT_EQ(archive_targets.size(), 1);  // Should only contain one entry
+    EXPECT_EQ(archive_targets.size(), 1); // Should only contain one entry
 }
 
 // Test adding a link target

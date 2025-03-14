@@ -2,15 +2,16 @@
 #ifndef BUILD_BACKEND_H
 #define BUILD_BACKEND_H
 
-#include <memory>
-#include <vector>
-#include <fstream>
 #include <filesystem>
-#include "buildtargets.h" 
+#include <memory>
+
 #include "buildmanager.h"
 #include "buildparser.hpp"
 #include "buildtargets.h"
+#include "compiler.hpp"
 #include "muukfiler.h"
+
+namespace fs = std::filesystem;
 
 class BuildBackend {
 protected:
@@ -24,20 +25,19 @@ public:
 
     BuildBackend(
         muuk::Compiler compiler,
-        std::string archiver, std::string linker,
-        const std::string& lockfile_path
-    ) :
+        std::string archiver,
+        std::string linker,
+        const std::string& lockfile_path) :
         compiler_(compiler),
         archiver_(std::move(archiver)),
         linker_(std::move(linker)),
-        muuk_filer(std::make_shared<MuukFiler>(lockfile_path))
-    {
+        muuk_filer(std::make_shared<MuukFiler>(lockfile_path)) {
     }
 
     virtual void generate_build_file(
         const std::string& target_build,
-        const std::string& profile
-    ) = 0;
+        const std::string& profile)
+        = 0;
 };
 
 class NinjaBackend : public BuildBackend {
@@ -52,13 +52,11 @@ public:
         muuk::Compiler compiler,
         const std::string& archiver,
         const std::string& linker,
-        const std::string& lockfile_path = "muuk.lock.toml"
-    );
+        const std::string& lockfile_path = "muuk.lock.toml");
 
     void generate_build_file(
         const std::string& target_build,
-        const std::string& profile
-    ) override;
+        const std::string& profile) override;
 
 private:
     std::string generate_rule(const CompilationTarget& target);
@@ -69,4 +67,4 @@ private:
     void write_header(std::ostringstream& out, std::string profile);
 };
 
-#endif  // BUILD_BACKEND_H
+#endif // BUILD_BACKEND_H
