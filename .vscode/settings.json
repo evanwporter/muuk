@@ -111,13 +111,19 @@
     "editor.semanticHighlighting.enabled": true,
     "editor.stickyScroll.defaultModel": "foldingProviderModel",
     "editor.suggest.insertMode": "replace",
-    "editor.defaultFormatter": "ms-vscode.cpptools"
+    // "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd",
+    "editor.formatOnSave": true,
   },
+  "[json]": {},
   "C_Cpp.default.compileCommands": "${workspaceFolder}/build/debug/compile_commands.json",
   "C_Cpp.codeAnalysis.runAutomatically": true,
   "C_Cpp.experimentalFeatures": "enabled",
+  "C_Cpp.intelliSenseEngine": "disabled",
+  "C_Cpp.formatting": "disabled",
   "files.encoding": "utf8",
-  "python.testing.pytestArgs": ["${workspaceFolder}/tests/external/"],
+  "python.testing.pytestArgs": [
+    "${workspaceFolder}/tests/external/"
+  ],
   "python.testing.cwd": "${workspaceFolder}/tests/external",
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
@@ -126,15 +132,28 @@
     "editor.defaultColorDecorators": "never",
     "editor.formatOnType": true,
     "editor.wordBasedSuggestions": "off",
-    "editor.defaultFormatter": "ms-python.black-formatter"
+    "editor.defaultFormatter": "charliermarsh.ruff"
   },
   "launches": {
     "lauchDebugger": "(Windows) Launch"
   },
+  "clangd.arguments": [
+    "--experimental-modules-support",
+    "--compile-commands-dir=${workspaceFolder}/build/debug",
+    "--compile-commands-dir=${workspaceFolder}/build/release",
+    "--clang-tidy"
+    // "--completion-style=detailed",
+    // "--header-insertion=never"
+  ],
   "c-cpp-flylint.run": "onSave",
-  "c-cpp-flylint.standard": ["c23", "c++23"],
+  "c-cpp-flylint.standard": [
+    "c23",
+    "c++23"
+  ],
   "c-cpp-flylint.lizard.enable": false,
   "c-cpp-flylint.flexelint.enable": false,
   "c-cpp-flylint.flawfinder.enable": false,
-  "c-cpp-flylint.cppcheck.extraArgs": ["--suppress=missingIncludeSystem"]
+  "c-cpp-flylint.cppcheck.extraArgs": [
+    "--suppress=missingIncludeSystem"
+  ]
 }

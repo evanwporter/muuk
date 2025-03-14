@@ -1,21 +1,16 @@
 #ifndef MUUK_FILER_H
 #define MUUK_FILER_H
 
-#include "logger.h"
-#include "util.h"
-#include "ifileops.hpp"
-#include "fileops.hpp"
-#include "muukvalidator.hpp"
-#include "rustify.hpp"
-#include "types.h"
-
-#include <fstream>
-#include <filesystem>
 #include <unordered_map>
 #include <vector>
 #include <toml++/toml.hpp>
 #include <spdlog/spdlog.h>
 #include <tl/expected.hpp>
+
+#include "ifileops.hpp"
+#include "fileops.hpp"
+#include "rustify.hpp"
+#include "types.h"
 
 class MuukFiler {
 private:
@@ -40,11 +35,6 @@ public:
 
     toml::table get_config() const;
     bool has_section(const std::string& section) const;
-
-    static std::string format_dependencies(
-        const DependencyVersionMap<toml::table>& dependencies,
-        std::string section_name = "dependencies"
-    );
 
     const std::vector<std::string>& get_section_order() const {
         return section_order_;

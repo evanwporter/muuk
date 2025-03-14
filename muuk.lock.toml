@@ -1,20 +1,31 @@
 [[library]]
-name = "argparse"
-include = [  "deps/argparse/d924b84eba1f0f0adf38b20b7b4829f6f65b6570/include",]
+name = "unordered_dense"
+include = [  "deps/unordered_dense/73f3cbb237e84d483afafc743f1f14ec53e12314/include",]
 cflags = []
-version = "d924b84eba1f0f0adf38b20b7b4829f6f65b6570"
+defines = []
+version = "73f3cbb237e84d483afafc743f1f14ec53e12314"
 libs = []
 modules = []
 dependencies = []
 profiles = []
-platform.linux = { cflags = [] }
-compiler.clang = { cflags = ["-std=c++20"] }
 
 [[library]]
 name = "compile-time-regular-expressions"
 include = [  "deps/compile-time-regular-expressions/a9418a5d8bd60afa0b71565ab95c16b1eab168e7/single-header",]
 cflags = []
+defines = []
 version = "a9418a5d8bd60afa0b71565ab95c16b1eab168e7"
+libs = []
+modules = []
+dependencies = []
+profiles = []
+
+[[library]]
+name = "expected"
+include = [  "deps/expected/41d3e1f48d682992a2230b2a715bca38b848b269/include",]
+cflags = []
+defines = []
+version = "41d3e1f48d682992a2230b2a715bca38b848b269"
 libs = []
 modules = []
 dependencies = []
@@ -24,6 +35,7 @@ profiles = []
 name = "fmt"
 include = [  "deps/fmt/577fd3be883accf8629423ed77fcca8a24bccee2/include",]
 cflags = []
+defines = []
 sources = [
   { path = "deps/fmt/577fd3be883accf8629423ed77fcca8a24bccee2/src/format.cc", cflags = [] },
 ]
@@ -34,32 +46,10 @@ dependencies = []
 profiles = []
 
 [[library]]
-name = "cracklib"
-include = [  "deps/cracklib/2014acb865cd04d97102f29d9d07d2a490b32629/include",]
-cflags = []
-sources = [
-  { path = "deps/cracklib/2014acb865cd04d97102f29d9d07d2a490b32629/src/cracklib.cpp", cflags = [] },
-]
-version = "2014acb865cd04d97102f29d9d07d2a490b32629"
-libs = []
-modules = []
-dependencies = []
-profiles = []
-
-[[library]]
-name = "expected"
-include = [  "deps/expected/41d3e1f48d682992a2230b2a715bca38b848b269/include",]
-cflags = []
-version = "41d3e1f48d682992a2230b2a715bca38b848b269"
-libs = []
-modules = []
-dependencies = []
-profiles = []
-
-[[library]]
 name = "json"
 include = [  "deps/json/0b6881a95f8aaf60bd2324ecdf2258a65bf33baf/single_include",]
 cflags = []
+defines = []
 version = "0b6881a95f8aaf60bd2324ecdf2258a65bf33baf"
 libs = []
 modules = []
@@ -70,6 +60,7 @@ profiles = []
 name = "glob"
 include = [  "deps/glob/d025092c0e1eb1a8b226d3a799fd32680d2fd13f/include/",]
 cflags = []
+defines = []
 sources = [
   { path = "deps/glob/d025092c0e1eb1a8b226d3a799fd32680d2fd13f/source/glob.cpp", cflags = [] },
 ]
@@ -83,6 +74,7 @@ profiles = []
 name = "spdlog"
 include = [  "deps/spdlog/3335c380a08c5e0f5117a66622df6afdb3d74959/include",  "deps/fmt/577fd3be883accf8629423ed77fcca8a24bccee2/include",]
 cflags = ["/DSPDLOG_FMT_EXTERNAL", "/DSPDLOG_COMPILED_LIB"]
+defines = []
 sources = [
   { path = "deps/spdlog/3335c380a08c5e0f5117a66622df6afdb3d74959/src/async.cpp", cflags = [] },
   { path = "deps/spdlog/3335c380a08c5e0f5117a66622df6afdb3d74959/src/cfg.cpp", cflags = [] },
@@ -102,6 +94,7 @@ profiles = []
 name = "tomlplusplus"
 include = [  "deps/tomlplusplus/cbc00d6766f14bcd2b3e72de2a3c369a0d48b98a/include/",]
 cflags = []
+defines = []
 sources = [
   { path = "deps/tomlplusplus/cbc00d6766f14bcd2b3e72de2a3c369a0d48b98a/src/toml.cpp", cflags = [] },
 ]
@@ -112,19 +105,10 @@ dependencies = []
 profiles = []
 
 [[library]]
-name = "unordered_dense"
-include = [  "deps/unordered_dense/73f3cbb237e84d483afafc743f1f14ec53e12314/include",]
-cflags = []
-version = "73f3cbb237e84d483afafc743f1f14ec53e12314"
-libs = []
-modules = []
-dependencies = []
-profiles = []
-
-[[library]]
 name = "zip"
 include = [  "deps/zip/d7a2252a537926cbdef8512741a322a183fcfd09/src",]
 cflags = []
+defines = []
 sources = [
   { path = "deps/zip/d7a2252a537926cbdef8512741a322a183fcfd09/src/zip.c", cflags = [] },
 ]
@@ -136,12 +120,13 @@ profiles = []
 
 [[library]]
 name = "muuk"
-include = [  "deps/json/0b6881a95f8aaf60bd2324ecdf2258a65bf33baf/single_include",  "include",  "deps/cracklib/2014acb865cd04d97102f29d9d07d2a490b32629/include",  "deps/zip/d7a2252a537926cbdef8512741a322a183fcfd09/src",  "deps/glob/d025092c0e1eb1a8b226d3a799fd32680d2fd13f/include/",  "deps/spdlog/3335c380a08c5e0f5117a66622df6afdb3d74959/include",  "deps/compile-time-regular-expressions/a9418a5d8bd60afa0b71565ab95c16b1eab168e7/single-header",  "deps/argparse/d924b84eba1f0f0adf38b20b7b4829f6f65b6570/include",  "deps/fmt/577fd3be883accf8629423ed77fcca8a24bccee2/include",  "deps/expected/41d3e1f48d682992a2230b2a715bca38b848b269/include",  "deps/tomlplusplus/cbc00d6766f14bcd2b3e72de2a3c369a0d48b98a/include/",  "deps/unordered_dense/73f3cbb237e84d483afafc743f1f14ec53e12314/include",]
+include = [  "deps/json/0b6881a95f8aaf60bd2324ecdf2258a65bf33baf/single_include",  "include",  "deps/unordered_dense/73f3cbb237e84d483afafc743f1f14ec53e12314/include",  "deps/compile-time-regular-expressions/a9418a5d8bd60afa0b71565ab95c16b1eab168e7/single-header",  "deps/spdlog/3335c380a08c5e0f5117a66622df6afdb3d74959/include",  "deps/zip/d7a2252a537926cbdef8512741a322a183fcfd09/src",  "deps/glob/d025092c0e1eb1a8b226d3a799fd32680d2fd13f/include/",  "deps/expected/41d3e1f48d682992a2230b2a715bca38b848b269/include",  "deps/fmt/577fd3be883accf8629423ed77fcca8a24bccee2/include",  "deps/tomlplusplus/cbc00d6766f14bcd2b3e72de2a3c369a0d48b98a/include/",]
 cflags = ["/W4", "/DSPDLOG_COMPILED_LIB", "/DSPDLOG_FMT_EXTERNAL"]
+defines = []
 sources = [
   { path = "src/muuker.cpp", cflags = [] },
-  { path = "src/util/util.cpp", cflags = [] },
   { path = "src/util/git_util.cpp", cflags = [] },
+  { path = "src/util/util.cpp", cflags = [] },
   { path = "src/logger.cpp", cflags = [] },
   { path = "src/muukfiler.cpp", cflags = [] },
   { path = "src/muukbuilder.cpp", cflags = [] },
@@ -156,47 +141,110 @@ sources = [
   { path = "src/builder/ninjabackend.cpp", cflags = [] },
   { path = "src/builder/buildparser.cpp", cflags = [] },
   { path = "src/builder/buildmanager.cpp", cflags = [] },
-  { path = "src/muukvalidator.cpp", cflags = [] },
+  { path = "src/validation/dependencies.cpp", cflags = [] },
+  { path = "src/validation/flag.cpp", cflags = [] },
+  { path = "src/validation/muuk.cpp", cflags = [] },
   { path = "src/quickinitializer.cpp", cflags = [] },
   { path = "src/muukterminal.cpp", cflags = [] },
+  { path = "src/compiler.cpp", cflags = [] },
 ]
 version = "1.0.0"
 libs = []
 modules = []
-dependencies = ["argparse", "compile-time-regular-expressions", "fmt", "cracklib", "expected", "json", "glob", "spdlog", "tomlplusplus", "unordered_dense", "zip"]
+dependencies = ["unordered_dense", "compile-time-regular-expressions", "expected", "fmt", "json", "glob", "spdlog", "tomlplusplus", "zip"]
 profiles = []
 platform.linux = { cflags = [] }
 platform.windows = { cflags = [] }
+
+[[library]]
+name = "argparse"
+include = [  "deps/argparse/d924b84eba1f0f0adf38b20b7b4829f6f65b6570/include",]
+cflags = []
+defines = []
+version = "d924b84eba1f0f0adf38b20b7b4829f6f65b6570"
+libs = []
+modules = []
+dependencies = []
+profiles = []
+platform.linux = { cflags = [] }
 compiler.clang = { cflags = ["-std=c++20"] }
 
 [[build]]
 name = "bin"
-include = [  "include",  "deps/cracklib/2014acb865cd04d97102f29d9d07d2a490b32629/include",  "deps/json/0b6881a95f8aaf60bd2324ecdf2258a65bf33baf/single_include",  "deps/argparse/d924b84eba1f0f0adf38b20b7b4829f6f65b6570/include",  "deps/spdlog/3335c380a08c5e0f5117a66622df6afdb3d74959/include",  "deps/compile-time-regular-expressions/a9418a5d8bd60afa0b71565ab95c16b1eab168e7/single-header",  "deps/zip/d7a2252a537926cbdef8512741a322a183fcfd09/src",  "deps/glob/d025092c0e1eb1a8b226d3a799fd32680d2fd13f/include/",  "deps/fmt/577fd3be883accf8629423ed77fcca8a24bccee2/include",  "deps/expected/41d3e1f48d682992a2230b2a715bca38b848b269/include",  "deps/tomlplusplus/cbc00d6766f14bcd2b3e72de2a3c369a0d48b98a/include/",  "deps/unordered_dense/73f3cbb237e84d483afafc743f1f14ec53e12314/include",]
+include = [  "deps/zip/d7a2252a537926cbdef8512741a322a183fcfd09/src",  "deps/glob/d025092c0e1eb1a8b226d3a799fd32680d2fd13f/include/",  "deps/compile-time-regular-expressions/a9418a5d8bd60afa0b71565ab95c16b1eab168e7/single-header",  "deps/spdlog/3335c380a08c5e0f5117a66622df6afdb3d74959/include",  "deps/argparse/d924b84eba1f0f0adf38b20b7b4829f6f65b6570/include",  "include",  "deps/json/0b6881a95f8aaf60bd2324ecdf2258a65bf33baf/single_include",  "deps/unordered_dense/73f3cbb237e84d483afafc743f1f14ec53e12314/include",  "deps/expected/41d3e1f48d682992a2230b2a715bca38b848b269/include",  "deps/fmt/577fd3be883accf8629423ed77fcca8a24bccee2/include",  "deps/tomlplusplus/cbc00d6766f14bcd2b3e72de2a3c369a0d48b98a/include/",]
 cflags = ["/W4", "/DSPDLOG_FMT_EXTERNAL", "/DSPDLOG_COMPILED_LIB"]
+defines = []
 sources = [
   { path = "src/main.cpp", cflags = [] },
 ]
 version = "1.0.0"
 libs = []
 modules = []
-dependencies = ["compile-time-regular-expressions", "muuk", "argparse", "cracklib", "fmt", "expected", "glob", "json", "spdlog", "tomlplusplus", "unordered_dense", "zip"]
+dependencies = ["argparse", "compile-time-regular-expressions", "unordered_dense", "muuk", "expected", "fmt", "glob", "json", "spdlog", "tomlplusplus", "zip"]
 profiles = ["release", "debug"]
 platform.linux = { cflags = [] }
 platform.windows = { cflags = [] }
 compiler.clang = { cflags = ["-std=c++20"] }
 
+[[library]]
+name = "googletest"
+include = [  "deps/googletest/3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f/googletest",  "deps/googletest/3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f/googletest/include",  "deps/googletest/3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f/googlemock",  "deps/googletest/3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f/googlemock/include",]
+cflags = []
+defines = []
+sources = [
+  { path = "deps/googletest/3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f/googletest/src/gtest-all.cc", cflags = [] },
+  { path = "deps/googletest/3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f/googlemock/src/gmock-all.cc", cflags = [] },
+]
+version = "3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f"
+libs = []
+modules = []
+dependencies = []
+profiles = []
+
+[[build]]
+name = "test"
+include = [  "deps/googletest/3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f/googletest/include",  "deps/fmt/577fd3be883accf8629423ed77fcca8a24bccee2/include",  "deps/googletest/3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f/googletest",  "deps/googletest/3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f/googlemock/include",  "deps/googletest/3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f/googlemock",  "include",  "deps/json/0b6881a95f8aaf60bd2324ecdf2258a65bf33baf/single_include",  "deps/unordered_dense/73f3cbb237e84d483afafc743f1f14ec53e12314/include",  "deps/spdlog/3335c380a08c5e0f5117a66622df6afdb3d74959/include",  "deps/compile-time-regular-expressions/a9418a5d8bd60afa0b71565ab95c16b1eab168e7/single-header",  "deps/glob/d025092c0e1eb1a8b226d3a799fd32680d2fd13f/include/",  "deps/zip/d7a2252a537926cbdef8512741a322a183fcfd09/src",  "deps/expected/41d3e1f48d682992a2230b2a715bca38b848b269/include",  "deps/tomlplusplus/cbc00d6766f14bcd2b3e72de2a3c369a0d48b98a/include/",]
+cflags = ["/W4", "/DSPDLOG_FMT_EXTERNAL", "/DSPDLOG_COMPILED_LIB"]
+defines = []
+sources = [
+  { path = "test/internal/muuk_test.cpp", cflags = [] },
+]
+version = "1.0.0"
+libs = []
+modules = []
+dependencies = ["googletest", "compile-time-regular-expressions", "unordered_dense", "muuk", "expected", "fmt", "glob", "json", "spdlog", "tomlplusplus", "zip"]
+profiles = ["debug"]
+platform.linux = { cflags = [] }
+platform.windows = { cflags = [] }
+
+[[build]]
+name = "test_util"
+include = [  "deps/googletest/3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f/googletest/include",  "deps/fmt/577fd3be883accf8629423ed77fcca8a24bccee2/include",  "deps/googletest/3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f/googletest",  "deps/googletest/3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f/googlemock/include",  "deps/googletest/3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f/googlemock",  "include",  "deps/json/0b6881a95f8aaf60bd2324ecdf2258a65bf33baf/single_include",  "deps/unordered_dense/73f3cbb237e84d483afafc743f1f14ec53e12314/include",  "deps/spdlog/3335c380a08c5e0f5117a66622df6afdb3d74959/include",  "deps/compile-time-regular-expressions/a9418a5d8bd60afa0b71565ab95c16b1eab168e7/single-header",  "deps/glob/d025092c0e1eb1a8b226d3a799fd32680d2fd13f/include/",  "deps/zip/d7a2252a537926cbdef8512741a322a183fcfd09/src",  "deps/expected/41d3e1f48d682992a2230b2a715bca38b848b269/include",  "deps/tomlplusplus/cbc00d6766f14bcd2b3e72de2a3c369a0d48b98a/include/",]
+cflags = ["/W4", "/DSPDLOG_FMT_EXTERNAL", "/DSPDLOG_COMPILED_LIB"]
+defines = []
+sources = [
+  { path = "test/internal/test_util.cpp", cflags = [] },
+]
+version = "1.0.0"
+libs = []
+modules = []
+dependencies = ["googletest", "compile-time-regular-expressions", "unordered_dense", "muuk", "expected", "fmt", "glob", "json", "spdlog", "tomlplusplus", "zip"]
+profiles = ["debug"]
+platform.linux = { cflags = [] }
+platform.windows = { cflags = [] }
+
 [dependencies]
-argparse = { version = 'd924b84eba1f0f0adf38b20b7b4829f6f65b6570', git = 'https://github.com/p-ranav/argparse.git' }
-compile-time-regular-expressions = { version = 'a9418a5d8bd60afa0b71565ab95c16b1eab168e7', git = 'https://github.com/hanickadot/compile-time-regular-expressions.git' }
-cracklib = { version = '2014acb865cd04d97102f29d9d07d2a490b32629', git = 'https://github.com/evanwporter/cracklib.git' }
-fmt = { version = '577fd3be883accf8629423ed77fcca8a24bccee2', git = 'https://github.com/fmtlib/fmt.git', muuk_path = 'deps/fmt/muuk.toml', revision = '577fd3be883accf8629423ed77fcca8a24bccee2' }
-expected = { version = '41d3e1f48d682992a2230b2a715bca38b848b269', git = 'https://github.com/TartanLlama/expected.git' }
-glob = { version = 'd025092c0e1eb1a8b226d3a799fd32680d2fd13f', git = 'https://github.com/p-ranav/glob.git' }
-json = { version = '0b6881a95f8aaf60bd2324ecdf2258a65bf33baf', git = 'https://github.com/nlohmann/json.git' }
-spdlog = { version = '3335c380a08c5e0f5117a66622df6afdb3d74959', git = 'https://github.com/gabime/spdlog.git' }
-tomlplusplus = { version = 'cbc00d6766f14bcd2b3e72de2a3c369a0d48b98a', git = 'https://github.com/marzer/tomlplusplus.git' }
-unordered_dense = { version = '73f3cbb237e84d483afafc743f1f14ec53e12314', git = 'https://github.com/martinus/unordered_dense.git' }
-zip = { version = 'd7a2252a537926cbdef8512741a322a183fcfd09', git = 'https://github.com/kuba--/zip.git' }
+unordered_dense = { git = 'https://github.com/martinus/unordered_dense.git', version = '73f3cbb237e84d483afafc743f1f14ec53e12314' }
+compile-time-regular-expressions = { git = 'https://github.com/hanickadot/compile-time-regular-expressions.git', version = 'a9418a5d8bd60afa0b71565ab95c16b1eab168e7' }
+expected = { git = 'https://github.com/TartanLlama/expected.git', version = '41d3e1f48d682992a2230b2a715bca38b848b269' }
+fmt = { git = 'https://github.com/fmtlib/fmt.git', version = '577fd3be883accf8629423ed77fcca8a24bccee2' }
+json = { git = 'https://github.com/nlohmann/json.git', version = '0b6881a95f8aaf60bd2324ecdf2258a65bf33baf' }
+glob = { git = 'https://github.com/p-ranav/glob.git', version = 'd025092c0e1eb1a8b226d3a799fd32680d2fd13f' }
+spdlog = { git = 'https://github.com/gabime/spdlog.git', version = '3335c380a08c5e0f5117a66622df6afdb3d74959' }
+tomlplusplus = { features = '', git = 'https://github.com/marzer/tomlplusplus.git', version = 'cbc00d6766f14bcd2b3e72de2a3c369a0d48b98a' }
+zip = { git = 'https://github.com/kuba--/zip.git', version = 'd7a2252a537926cbdef8512741a322a183fcfd09' }
+argparse = { git = 'https://github.com/p-ranav/argparse.git', version = 'd924b84eba1f0f0adf38b20b7b4829f6f65b6570' }
+googletest = { git = 'https://github.com/google/googletest.git', version = '3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f' }
 
 [profile.debug]
 cflags = [ '/Od', '/DDEBUG', '/FC', '/Zi', '/std:c++20', '/RTC1', '/GS', '/utf-8', '/EHsc', '/FS' ]

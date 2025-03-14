@@ -1,15 +1,16 @@
-#include "muuklockgen.h"
-#include "logger.h"
-#include "buildconfig.h"
-#include "util.h"
-#include "muuk.h"
-#include "rustify.hpp"
-
 #include <glob/glob.h>
 #include <tl/expected.hpp>
 #include <toml++/toml.h>
 #include <fmt/core.h>
 #include <fmt/ranges.h>
+
+#include "muuklockgen.h"
+#include "logger.h"
+#include "buildconfig.h"
+#include "muukfiler.h"
+#include "util.h"
+#include "muuk.h"
+#include "rustify.hpp"
 
 MuukLockGenerator::MuukLockGenerator(const std::string& base_path) : base_path_(base_path) {
     muuk::logger::trace("MuukLockGenerator initialized with base path: {}", base_path_);
@@ -145,12 +146,12 @@ tl::expected<void, std::string> MuukLockGenerator::resolve_dependencies(const st
             muuk::logger::info("Resolving dependency '{}' for '{}'", dep_name, package_name);
 
             std::string dep_search_path;
-            if (!dep_info.path.empty()) {
-                dep_search_path = dep_info.path;
+            if (!dep_info->path.empty()) {
+                dep_search_path = dep_info->path;
                 muuk::logger::info("Using defined muuk_path for dependency '{}': {}", dep_name, dep_search_path);
             }
 
-            if (dep_info.system) {
+            if (dep_info->system) {
                 resolve_system_dependency(dep_name, package);
             }
             else {
@@ -174,13 +175,10 @@ tl::expected<void, std::string> MuukLockGenerator::resolve_dependencies(const st
                 ) {
                 muuk::logger::info("Merging '{}' into '{}'", dep_name, package_name);
                 if (package) {
+                    package->enable_features(dep_info->enabled_features);
                     package->merge(*resolved_packages[dep_name][dep_version]);
                 }
             }
-
-            toml::table dependency_entry = dep_info.to_toml();
-
-            dependencies_[dep_name][dep_version] = dependency_entry;
         }
     }
 
@@ -262,7 +260,6 @@ void MuukLockGenerator::generate_lockfile(const std::string& output_path) {
         build->merge(*base_package_);
     }
 
-
     for (const auto& [package_name, version] : resolved_order_) {
         auto package_opt = find_package(package_name, version);
         if (!package_opt) continue;
@@ -278,7 +275,7 @@ void MuukLockGenerator::generate_lockfile(const std::string& output_path) {
         muuk::logger::info("Written package '{}' to lockfile.", package_name);
     }
 
-    lockfile << MuukFiler::format_dependencies(dependencies_);
+    lockfile << format_dependencies(dependencies_);
 
     if (!profiles_.empty()) {
         for (const auto& [profile_name, profile_settings] : profiles_) {
@@ -384,7 +381,7 @@ void MuukLockGenerator::resolve_system_dependency(const std::string& package_nam
     if (include_path.empty() && lib_path.empty()) {
         muuk::logger::error("Failed to resolve system dependency '{}'. Consider installing it or specifying paths manually.", package_name);
     }
-}
+    }
 
 // Merges the settings of the inherited profile into the base profile.
 void MuukLockGenerator::merge_profiles(const std::string& base_profile, const std::string& inherited_profile) {
@@ -400,53 +397,58 @@ void MuukLockGenerator::merge_profiles(const std::string& base_profile, const st
     }
 }
 
-void MuukLockGenerator::resolve_enabled_features() {
-    muuk::logger::info("Resolving enabled features for all packages...");
+std::string MuukLockGenerator::format_dependencies(const DependencyVersionMap<toml::table>& dependencies, std::string section_name) {
+    std::ostringstream oss;
+    oss << "[" << section_name << "]\n";
 
-    for (auto& [package_name, version_map] : resolved_packages) {
-        for (auto& [version, package] : version_map) {
-            muuk::logger::info("Processing features for package: {} ({})", package_name, version);
+    for (const auto& [dep_name, versions] : dependencies) {
+        for (const auto& [version, dep_info] : versions) {
+            oss << dep_name << " = { ";
 
-            std::unordered_set<std::string> enabled_features;
+            std::string dep_entries;
+            bool first = true;
 
-            // Step 1: Collect enabled features from dependencies
-            for (const auto& [dep_name, dep_versions] : package->dependencies_) {
-                for (const auto& [dep_version, dep_info] : dep_versions) {
-                    for (const auto& feature : dep_info.features) {
-                        enabled_features.insert(feature);
-                    }
-                }
+            for (const auto& [key, val] : dep_info) {
+                if (!first) dep_entries += ", ";
+                dep_entries += fmt::format("{} = '{}'", std::string(key.str()), *val.value<std::string>());
+                first = false;
             }
 
-            // Step 2: Process each enabled feature
-            for (const std::string& feature : enabled_features) {
-                if (package->features.find(feature) != package->features.end()) {
-                    const auto& feature_data = package->features.at(feature);
-
-                    // Apply feature: Add defines
-                    package->cflags.insert(feature_data.defines.begin(), feature_data.defines.end());
-
-                    // Apply feature: Add dependencies
-                    for (const auto& dep : feature_data.dependencies) {
-                        if (resolved_packages.find(dep) != resolved_packages.end()) {
-                            muuk::logger::info("Feature '{}' enabled in '{}', adding dependency '{}'", feature, package_name, dep);
-                            package->deps.insert(dep);
-                        }
-                        else {
-                            muuk::logger::warn("Feature '{}' requires missing dependency '{}'", feature, dep);
-                        }
-                    }
-
-                    muuk::logger::info("  → Applied feature '{}' to package '{}'", feature, package_name);
-                }
-                else {
-                    muuk::logger::warn("Package '{}' does not define feature '{}'", package_name, feature);
-                }
-            }
-
-            if (!enabled_features.empty()) {
-                muuk::logger::info("  Enabled features for '{}': {}", package_name, fmt::join(enabled_features, ", "));
-            }
+            oss << fmt::format("{} }}\n", dep_entries);
         }
     }
+ 
+    oss << "\n";
+    return oss.str();
+}
+
+std::string MuukLockGenerator::format_dependencies(
+    const DependencyVersionMap<std::shared_ptr<Dependency>>& dependencies, 
+    const std::string& section_name
+) {
+    std::ostringstream oss;
+    oss << "[" << section_name << "]\n";
+
+    for (const auto& [dep_name, versions] : dependencies) {
+        for (const auto& [version, dep_ptr] : versions) {
+            if (!dep_ptr) {
+                muuk::logger::warn("Skipping dependency '{}' (version '{}') due to null pointer.", dep_name, version);
+                continue;
+            }
+
+            toml::table dep_table = dep_ptr->to_toml();  // Convert Dependency to TOML table
+
+            oss << dep_name << " = { ";
+
+            std::vector<std::string> dep_entries;
+            for (const auto& [key, val] : dep_table) {
+                dep_entries.push_back(fmt::format("{} = '{}'", std::string(key.str()), *val.value<std::string>()));
+            }
+
+            oss << fmt::format("{} }}\n", fmt::join(dep_entries, ", "));
+        }
+    }
+
+    oss << "\n";
+    return oss.str();
 }

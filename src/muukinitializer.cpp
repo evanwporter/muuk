@@ -1,61 +1,61 @@
-#include <memory>
 #include <iostream>
 #include <fstream>
-#include <toml++/toml.hpp>
 #include <filesystem>
+
+#include <fmt/core.h>
+#include <toml++/toml.hpp>
 
 #include "muuk.h"
 #include "rustify.hpp"
 #include "logger.h"
 #include "muukfiler.h"
-#include "fmt/core.h"
 
 namespace fs = std::filesystem;
 
 namespace muuk {
 
-    void generate_license(const std::string& license, const std::string& author) {
-        std::string license_text;
+    // void generate_license(const std::string& license, const std::string& author) {
+    //     std::string license_text;
 
-        if (license == "MIT") {
-            license_text = fmt::format(R"(MIT License
+    //     if (license == "MIT") {
+    //         license_text = fmt::format(R"(MIT License
     
-    Copyright (c) {0} {1}
+    // Copyright (c) {0} {1}
     
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the "Software"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
+    // Permission is hereby granted, free of charge, to any person obtaining a copy
+    // of this software and associated documentation files (the "Software"), to deal
+    // in the Software without restriction, including without limitation the rights
+    // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    // copies of the Software, and to permit persons to whom the Software is
+    // furnished to do so, subject to the following conditions:
     
-    The above copyright notice and this permission notice shall be included in all
-    copies or substantial portions of the Software.
+    // The above copyright notice and this permission notice shall be included in all
+    // copies or substantial portions of the Software.
     
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-    SOFTWARE.)", util::time::current_year(), author);
-        }
-        else if (license == "GPL") {
-            license_text = "GNU GENERAL PUBLIC LICENSE\nVersion 3, 29 June 2007...";
-        }
-        else {
-            license_text = fmt::format(R"(Unlicensed
+    // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    // AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    // SOFTWARE.)", util::time::current_year(), author);
+    //     }
+    //     else if (license == "GPL") {
+    //         license_text = "GNU GENERAL PUBLIC LICENSE\nVersion 3, 29 June 2007...";
+    //     }
+    //     else {
+    //         license_text = fmt::format(R"(Unlicensed
     
-    All rights reserved. {0} {1} reserves all rights to the software.
-    )", util::time::current_year(), author);
-        }
+    // All rights reserved. {0} {1} reserves all rights to the software.
+    // )", util::time::current_year(), author);
+    //     }
 
-        std::ofstream license_file("LICENSE");
-        if (license_file) {
-            license_file << license_text;
-            muuk::logger::info("[muuk] Generated LICENSE file.");
-        }
-    }
+    //     std::ofstream license_file("LICENSE");
+    //     if (license_file) {
+    //         license_file << license_text;
+    //         muuk::logger::info("[muuk] Generated LICENSE file.");
+    //     }
+    // }
 
     Result<void> init_project() {
         muuk::logger::info("Initializing a new muuk.toml configuration...");

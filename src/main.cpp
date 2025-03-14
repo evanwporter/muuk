@@ -1,23 +1,17 @@
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 
+#include <iostream>
+#include <string>
+#include <nlohmann/json.hpp>
+#include <vector>
+#include <argparse/argparse.hpp>
+#include <tl/expected.hpp>
+
 #include "muuk.h"
 #include "muuker.hpp"
 #include "muukfiler.h"
 #include "logger.h"
-#include "util.h"
 #include "package_manager.h"
-
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <cstdlib>
-#include <nlohmann/json.hpp>
-#include <filesystem>
-#include <unordered_map>
-#include <functional>
-#include <vector>
-#include <argparse/argparse.hpp>
-#include <tl/expected.hpp>
 
 // Define a macro to handle tl::expected, if the unexpected happens it will log the error and return 1, otherwise it will return 0
 #define CHECK_CALL(call)                    \
@@ -28,7 +22,6 @@
         }                                            \
     } while (0)
 
-namespace fs = std::filesystem;
 // using namespace Muuk;
 
 #ifdef DEBUG

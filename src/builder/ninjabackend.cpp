@@ -1,6 +1,6 @@
-#include "../../include/buildparser.hpp"
-#include "../../include/buildmanager.h"
-#include "../../include/buildbackend.hpp"
+#include "buildparser.hpp"
+#include "buildmanager.h"
+#include "buildbackend.hpp"
 
 #include <fstream>
 #include <memory>
@@ -178,8 +178,7 @@ void NinjaBackend::write_header(std::ostringstream& out, std::string profile) {
     if (compiler_ == muuk::Compiler::MSVC) {
         // MSVC (cl)
         out << "rule compile\n"
-            << "  command = $cxx /c $in /ifcSearchDir "
-            << module_dir
+            << "  command = $cxx /c $in"
             << " /Fo$out $profile_cflags $platform_cflags $cflags /showIncludes\n"
             << "  deps = msvc\n"
             << "  description = Compiling $in\n\n"

@@ -1,6 +1,5 @@
 #include "muuklockgen.h"
 #include "logger.h"
-#include "buildconfig.h"
 #include "util.h" 
 
 #include <string>
@@ -48,6 +47,7 @@ void Package::merge(const Package& child_pkg) {
         include.insert(path);
     }
     cflags.insert(child_pkg.cflags.begin(), child_pkg.cflags.end());
+    defines.insert(child_pkg.defines.begin(), child_pkg.defines.end());
 
     system_include.insert(child_pkg.system_include.begin(), child_pkg.system_include.end());
 
@@ -71,7 +71,15 @@ void Package::merge(const Package& child_pkg) {
 std::string Package::serialize() const {
     std::ostringstream toml_stream; // string steam to allow more control over the final product
     toml::table data;
-    toml::array include_array, cflags_array, sources_array, modules_array, libs_array, deps_array, profiles_array;
+    toml::array
+        include_array,
+        cflags_array,
+        sources_array,
+        modules_array,
+        libs_array,
+        deps_array,
+        profiles_array,
+        defines_array;
 
     if (!include.empty()) {
         toml_stream << "include = [";
@@ -82,6 +90,7 @@ std::string Package::serialize() const {
     }
 
     print_array(toml_stream, "cflags", cflags);
+    print_array(toml_stream, "defines", defines);
 
     if (!sources.empty()) {
         toml_stream << "sources = [\n";
@@ -147,4 +156,25 @@ std::string Package::serialize() const {
     }
 
     return toml_stream.str();
+}
+
+void Package::enable_features(const std::unordered_set<std::string>& feature_set) {
+    for (const std::string& feature : feature_set) {
+        if (features.find(feature) != features.end()) {
+            const auto& feature_data = features.at(feature);
+
+            // Apply feature defines
+            defines.insert(feature_data.defines.begin(), feature_data.defines.end());
+
+            // Add feature dependencies
+            for (const auto& dep : feature_data.dependencies) {
+                deps.insert(dep);
+            }
+
+            muuk::logger::info("Enabled feature '{}' for package '{}'", feature, name);
+        }
+        else {
+            muuk::logger::warn("Feature '{}' not found in package '{}'", feature, name);
+        }
+    }
 }

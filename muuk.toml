@@ -7,34 +7,30 @@ hello = 'echo Hello!'
 run = './build/debug/muuk'
 
 [clean]
-patterns = [ '*.obj', '*.lib', '*.pdb' ]
+patterns = ['*.obj', '*.lib', '*.pdb']
 
 [library]
-cflags = [ '/W4' ]
-include = [ 'include' ]
+cflags = ['/W4']
+include = ['include']
 libs = []
 sources = [
     'src/muuker.cpp',
-    'src/util/util.cpp',
-    'src/util/git_util.cpp',
+    'src/util/*.cpp',
     'src/logger.cpp',
     'src/muukfiler.cpp',
     'src/muukbuilder.cpp',
-    'src/lockgen/muuklockgen.cpp',
-    'src/lockgen/package.cpp',
-    'src/lockgen/parsing.cpp',
-    'src/packagemanager/installer.cpp',
-    'src/packagemanager/package_manager.cpp',
+    'src/lockgen/*.cpp',
+    'src/packagemanager/*.cpp',
     'src/muukinitializer.cpp',
     'src/flags.cpp',
     'src/builder/buildtargets.cpp',
     'src/builder/ninjabackend.cpp',
     'src/builder/buildparser.cpp',
     'src/builder/buildmanager.cpp',
-    'src/validation/muukvalidator.cpp',
-    'src/validation/dependencies.cpp',
+    'src/validation/*.cpp',
     'src/quickinitializer.cpp',
-    'src/muukterminal.cpp'
+    'src/muukterminal.cpp',
+    'src/compiler.cpp',
 ]
 
 [dependencies]
@@ -44,7 +40,9 @@ fmt = { git = 'https://github.com/fmtlib/fmt.git', version = '577fd3be883accf862
 glob = { git = 'https://github.com/p-ranav/glob.git', version = 'd025092c0e1eb1a8b226d3a799fd32680d2fd13f' }
 json = { git = 'https://github.com/nlohmann/json.git', version = '0b6881a95f8aaf60bd2324ecdf2258a65bf33baf' }
 spdlog = { git = 'https://github.com/gabime/spdlog.git', version = '3335c380a08c5e0f5117a66622df6afdb3d74959' }
-tomlplusplus = { git = 'https://github.com/marzer/tomlplusplus.git', version = 'cbc00d6766f14bcd2b3e72de2a3c369a0d48b98a' }
+tomlplusplus = { git = 'https://github.com/marzer/tomlplusplus.git', version = 'cbc00d6766f14bcd2b3e72de2a3c369a0d48b98a', features = [
+    'use_std_optional',
+] }
 unordered_dense = { git = 'https://github.com/martinus/unordered_dense.git', version = '73f3cbb237e84d483afafc743f1f14ec53e12314' }
 zip = { git = 'https://github.com/kuba--/zip.git', version = 'd7a2252a537926cbdef8512741a322a183fcfd09' }
 
@@ -55,6 +53,20 @@ sources = ['src/main.cpp']
 [build.bin.dependencies]
 argparse = { git = 'https://github.com/p-ranav/argparse.git', version = 'd924b84eba1f0f0adf38b20b7b4829f6f65b6570' }
 
+[build.test]
+profile = ['debug']
+sources = ['test/internal/muuk_test.cpp']
+
+[build.test.dependencies]
+googletest = { git = 'https://github.com/google/googletest.git', version = '3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f' }
+
+[build.test_util]
+profile = ['debug']
+sources = ['test/internal/test_util.cpp']
+
+[build.test_util.dependencies]
+googletest = { git = 'https://github.com/google/googletest.git', version = '3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f' }
+
 [platform.windows]
 cflags = []
 
@@ -62,22 +74,21 @@ cflags = []
 cflags = []
 
 [profile.base]
-cflags = [ '/std:c++20', '/utf-8', '/EHsc', '/FS' ]
+cflags = ['/std:c++20', '/utf-8', '/EHsc', '/FS']
 
 [profile.release]
-cflags = [ '/O2', '/DNDEBUG', '/GL' ]
-inherits = [ 'base' ]
-lflags = [ '/OPT:REF', '/OPT:ICF', '/LTCG' ]
+cflags = ['/O2', '/DNDEBUG', '/GL']
+inherits = ['base']
+lflags = ['/OPT:REF', '/OPT:ICF', '/LTCG']
 
 [profile.release_x86]
 inherits = 'release'
-lflags = [ '/MACHINE:X86' ]
+lflags = ['/MACHINE:X86']
 
 [profile.debug]
-cflags = [ '/Od', '/DDEBUG', '/Zi', '/RTC1', '/FC', '/GS' ]
+cflags = ['/Od', '/DDEBUG', '/Zi', '/RTC1', '/FC', '/GS']
 default = true
-include = [ 'include' ]
+include = ['include']
 inherits = 'base'
-lflags = [ '/DEBUG', '/MACHINE:X86' ]
+lflags = ['/DEBUG', '/MACHINE:X86']
 libs = []
-

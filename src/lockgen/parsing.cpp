@@ -1,6 +1,8 @@
 #include "muuklockgen.h"
 #include "logger.h"
 
+#include <memory>
+#include <string>
 #include <toml++/toml.h>
 #include <fmt/ranges.h>
 
@@ -21,9 +23,9 @@ Result<void> MuukLockGenerator::parse_dependencies(const toml::table& data, std:
     if (data.contains("dependencies") && data["dependencies"].is_table()) {
         for (const auto& [dep_name, dep_value] : *data["dependencies"].as_table()) {
             Dependency dependency_info;
-            std::string version = "unknown";
+            auto dep_name_str = std::string(dep_name.str());
 
-            package->deps.insert(std::string(dep_name.str()));
+            package->deps.insert(dep_name_str);
 
             if (dep_value.is_table()) {
                 dependency_info = Dependency::from_toml(*dep_value.as_table());
@@ -36,11 +38,30 @@ Result<void> MuukLockGenerator::parse_dependencies(const toml::table& data, std:
                 return Err("");
             }
 
-            package->dependencies_[std::string(dep_name.str())][dependency_info.version] = dependency_info;
+            auto& dep_entry = dependencies_[dep_name_str][dependency_info.version];
+            if (!dep_entry) {
+                // Parse dependency details if it doesn't exist yet
+                if (dep_value.is_table()) {
+                    dep_entry = std::make_shared<Dependency>(Dependency::from_toml(*dep_value.as_table()));
+                } else if (dep_value.is_string()) {
+                    dep_entry = std::make_shared<Dependency>();
+                    dep_entry->version = *dep_value.value<std::string>();  // Store version
+                } else {
+                    muuk::logger::error("Invalid dependency format for '{}'", dep_name_str);
+                    return Err("");
+                }
+            }
+            else {
+                // Merge features if dependency already exists
+                // dep_entry->enabled_features.insert(
+                //     dependency_info.enabled_features.begin(),
+                //     dependency_info.enabled_features.end()
+                // );
+            }
+            dependencies_[dep_name_str][dep_entry->version] = dep_entry;
+            package->dependencies_[dep_name_str][dep_entry->version] = dep_entry;
+            muuk::logger::info("  → Dependency '{}' (v{}) added with details:", dep_name_str, dep_entry->version);
 
-            muuk::logger::info("  → Dependency '{}' (v{}) added with details:", std::string(dep_name.str()), dependency_info.version);
-            // for (const auto& [key, val] : dependency_info) {
-            //     muuk::logger::info("      - {}: {}", key, val);
         }
     }
 

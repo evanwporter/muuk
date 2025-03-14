@@ -1,20 +1,15 @@
 #ifndef MUUK_LOCK_GEN_H
 #define MUUK_LOCK_GEN_H
 
-#include "../include/muukfiler.h"
-#include "../include/muukmoduleparser.hpp"
-
 #include <spdlog/spdlog.h>
-#include <filesystem>
-#include <iostream>
-#include <fstream>
 #include <unordered_map>
 #include <vector>
 #include <memory>
 #include <unordered_set>
 #include <optional>
 
-namespace fs = std::filesystem;
+#include "muukfiler.h"
+#include "muukmoduleparser.hpp"
 
 enum class LinkType {
     STATIC,
@@ -72,7 +67,7 @@ struct Dependency {
     std::string git_url;
     std::string path;
     std::string version;
-    std::unordered_set<std::string> features;
+    std::unordered_set<std::string> enabled_features;
     bool system = false;
 
     static Dependency from_toml(const toml::table& data) {
@@ -90,7 +85,7 @@ struct Dependency {
         if (data.contains("features") && data["features"].is_array()) {
             for (const auto& feature : *data["features"].as_array()) {
                 if (feature.is_string()) {
-                    dep.features.insert(*feature.value<std::string>());
+                    dep.enabled_features.insert(*feature.value<std::string>());
                 }
             }
         }
@@ -103,9 +98,9 @@ struct Dependency {
         if (!git_url.empty()) dep_table.insert("git", git_url);
         if (!path.empty()) dep_table.insert("path", path);
         if (!version.empty()) dep_table.insert("version", version);
-        if (!features.empty()) {
+        if (!enabled_features.empty()) {
             toml::array feature_array;
-            for (const auto& feat : features) {
+            for (const auto& feat : enabled_features) {
                 feature_array.push_back(feat);
             }
             dep_table.insert("features", feature_array);
@@ -133,6 +128,7 @@ public:
     void merge(const Package& child_pkg);
 
     std::string serialize() const;
+    void enable_features(const std::unordered_set<std::string>& feature_set);
 
     std::string name;
     std::string version;
@@ -142,6 +138,7 @@ public:
     std::unordered_set<std::string> include;
     std::unordered_set<std::string> system_include;
     std::unordered_set<std::string> cflags;
+    std::unordered_set<std::string> defines;
     std::vector<std::pair<std::string, std::vector<std::string>>> sources;
     std::vector<std::string> modules;
     std::vector<std::string> libs;
@@ -150,8 +147,9 @@ public:
     std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_set<std::string>>> platform_;
     std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_set<std::string>>> compiler_;
 
-    // TODO store the package and add serialize as depedency method
-    DependencyInfoMap dependencies_;
+    // Reference the dependency held in the MuukLockGen
+    DependencyVersionMap<std::shared_ptr<Dependency>> dependencies_;
+
     std::unordered_set<std::string> deps;
 
     std::unordered_map<std::string, Feature> features;
@@ -178,7 +176,9 @@ private:
     std::shared_ptr<spdlog::logger> logger_;
     std::unique_ptr<MuukModuleParser> module_parser_;
 
-    DependencyVersionMap<toml::table> dependencies_;
+    // Meant to be a general reference for packages to refer to
+    DependencyVersionMap<std::shared_ptr<Dependency>> dependencies_;
+
 
     std::unordered_set<std::string> visited;
 
@@ -207,23 +207,20 @@ private:
         const toml::table& data,
         std::shared_ptr<Package> package
     );
-    static Result<void> parse_dependencies(
-        const toml::table& data,
-        std::shared_ptr<Package> package
-    );
     static Result<void> parse_features(
         const toml::table& data,
         std::shared_ptr<Package> package
     );
-
+    Result<void> parse_dependencies(
+        const toml::table& data,
+        std::shared_ptr<Package> package
+    );
     Result<void> parse_profile(const toml::table& data);
     Result<void> parse_builds(
         const toml::table& data,
         const std::string& package_version,
         const std::string& path
     );
-
-
 
     void search_and_parse_dependency(
         const std::string& package_name,
@@ -247,8 +244,6 @@ private:
         std::optional<std::shared_ptr<Package>> package
     );
 
-    void resolve_enabled_features();
-
     void merge_profiles(const std::string& base_profile, const std::string& inherited_profile);
 
 
@@ -259,6 +254,17 @@ private:
         std::optional<std::string> version = std::nullopt,
         std::optional<std::string> search_path = std::nullopt
     );
+
+    static std::string format_dependencies(
+        const DependencyVersionMap<toml::table>& dependencies, 
+        std::string section_name = "dependencies"
+    );
+
+    static std::string format_dependencies(
+        const DependencyVersionMap<std::shared_ptr<Dependency>>& dependencies, 
+        const std::string& section_name  = "dependencies"
+    );
+
 };
 
 #endif // MUUK_PARSER_H

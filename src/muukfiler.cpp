@@ -1,11 +1,11 @@
+#include <sstream>
+#include <string>
+
 #include "muukfiler.h"
 #include "logger.h"
 #include "muukvalidator.hpp"
 #include "types.h"
-
-#include <iostream>
-#include <format>
-#include <sstream>
+#include "util.h"
 
 MuukFiler::MuukFiler(std::shared_ptr<IFileOperations> file_ops, bool is_lock_file_)
     : file_ops_(std::move(file_ops)), is_lock_file(is_lock_file_) {
@@ -186,29 +186,4 @@ toml::table MuukFiler::get_config() const {
 
 bool MuukFiler::has_section(const std::string& section) const {
     return sections_.find(section) != sections_.end();
-}
-
-std::string MuukFiler::format_dependencies(const DependencyVersionMap<toml::table>& dependencies, std::string section_name) {
-    std::ostringstream oss;
-    oss << "[" << section_name << "]\n";
-
-    for (const auto& [dep_name, versions] : dependencies) {
-        for (const auto& [version, dep_info] : versions) {
-            oss << dep_name << " = { ";
-
-            std::string dep_entries;
-            bool first = true;
-
-            for (const auto& [key, val] : dep_info) {
-                if (!first) dep_entries += ", ";
-                dep_entries += fmt::format("{} = '{}'", std::string(key.str()), *val.value<std::string>());
-                first = false;
-            }
-
-            oss << fmt::format("{} }}\n", dep_entries);
-        }
-    }
-
-    oss << "\n";
-    return oss.str();
 }

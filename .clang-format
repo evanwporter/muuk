@@ -1,0 +1,6 @@
+BasedOnStyle: WebKit
+IndentWidth: 4
+UseTab: Always
+BreakBeforeBraces: Attach
+BreakBeforeClosingBrace: Never
+ColumnLimit: 0

@@ -14,16 +14,11 @@
 //       #///####(((########                       ######&@%@##(//###     @##(&   
 // ?.:+*++ = : .        .. : ---- : .      .   ...     .. : = ++ += .. .       .
 
-#include "muuk.h"
+#include <filesystem>
+#include <glob/glob.h>
+
 #include "muukfiler.h"
 #include "util.h"
-
-#include <filesystem>
-#include <cstdlib>
-#include <iostream>
-#include <glob/glob.h>
-#include <unordered_set>
-#include <format>
 
 namespace fs = std::filesystem;
 
