@@ -3,13 +3,13 @@
 
 #include <memory>
 #include <optional>
-#include <spdlog/spdlog.h>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
 #include "muukfiler.h"
 #include "muukmoduleparser.hpp"
+#include "rustify.hpp"
 
 enum class LinkType {
     STATIC,
@@ -243,6 +243,10 @@ private:
         std::optional<std::string> version = std::nullopt,
         std::optional<std::string> search_path = std::nullopt);
 
+    Result<void> merge_resolved_dependencies(
+        const std::string& package_name,
+        std::optional<std::string> version = std::nullopt);
+
     static std::string format_dependencies(
         const DependencyVersionMap<toml::table>& dependencies,
         std::string section_name = "dependencies");
@@ -250,6 +254,11 @@ private:
     static std::string format_dependencies(
         const DependencyVersionMap<std::shared_ptr<Dependency>>& dependencies,
         const std::string& section_name = "dependencies");
+
+    static void parse_and_store_flag_categories(
+        const toml::table& data,
+        std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_set<std::string>>>& target,
+        const std::vector<std::string>& flag_categories);
 };
 
 #endif // MUUK_PARSER_H

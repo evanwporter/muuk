@@ -136,7 +136,6 @@ tl::expected<void, std::string> MuukLockGenerator::resolve_dependencies(const st
     auto package = package_opt.value();
     std::vector<std::tuple<std::string, std::string, std::shared_ptr<Dependency>>> resolved_deps;
 
-    // First Pass: Resolve Dependencies
     for (const auto& [dep_name, version_map] : package->dependencies_) {
         for (const auto& [dep_version, dep_info] : version_map) {
 
@@ -179,17 +178,43 @@ tl::expected<void, std::string> MuukLockGenerator::resolve_dependencies(const st
         }
     }
 
-    // Second Pass: Merge Dependencies into the Package
-    for (const auto& [dep_name, dep_version, dep_info] : resolved_deps) {
-        muuk::logger::info("Merging '{}' into '{}'", dep_name, package_name);
-        if (package) {
-            package->enable_features(dep_info->enabled_features);
-            package->merge(*resolved_packages[dep_name][dep_version]);
+    muuk::logger::info("Added '{}' to resolved order list.", package_name);
+    resolved_order_.push_back(std::make_pair(package_name, version.value_or("unknown")));
+    return {};
+}
+
+Result<void> MuukLockGenerator::merge_resolved_dependencies(const std::string& package_name, std::optional<std::string> version) {
+    std::optional<std::shared_ptr<Package>> package_opt = find_package(package_name, version);
+
+    if (!package_opt) {
+        muuk::logger::error("Package '{}' not found.", package_name);
+        return {};
+    }
+
+    auto package = package_opt.value();
+
+    // Base case: If no dependencies, return
+    if (package->dependencies_.empty()) {
+        return {};
+    }
+
+    muuk::logger::info("Merging dependencies into '{}'", package_name);
+
+    for (const auto& [dep_name, version_map] : package->dependencies_) {
+        for (const auto& [dep_version, dep_info] : version_map) {
+            if (resolved_packages.count(dep_name) && resolved_packages[dep_name].count(dep_version)) {
+                auto dep_package = resolved_packages[dep_name][dep_version];
+
+                // Recursively merge dependencies for this package first
+                merge_resolved_dependencies(dep_name, dep_version);
+
+                // Now merge this dependency into the current package
+                muuk::logger::info("Merging '{}' into '{}'", dep_name, package_name);
+                package->merge(*dep_package);
+            }
         }
     }
 
-    muuk::logger::info("Added '{}' to resolved order list.", package_name);
-    resolved_order_.push_back(std::make_pair(package_name, version.value_or("unknown")));
     return {};
 }
 
@@ -256,6 +281,36 @@ void MuukLockGenerator::generate_lockfile(const std::string& output_path) {
         if (!result) {
             muuk::logger::error(
                 "Failed to resolve dependencies for build package '{}': {}",
+                build_name,
+                result.error());
+        }
+    }
+
+    for (const auto& [package_name, version] : resolved_order_) {
+        auto package_opt = find_package(package_name, version);
+        if (!package_opt)
+            continue;
+
+        auto package = package_opt.value();
+
+        for (const auto& [dep_name, version_map] : package->dependencies_) {
+            for (const auto& [dep_version, dep_info] : version_map) {
+                if (dependencies_.count(dep_name) && dependencies_[dep_name].count(dep_version)) {
+                    auto dep = dependencies_[dep_name][dep_version];
+                    auto package_dep = resolved_packages[dep_name][dep_version];
+                    package_dep->enable_features(dep->enabled_features);
+                }
+            }
+        }
+    }
+
+    merge_resolved_dependencies(base_package_name, base_package_version);
+
+    for (const auto& [build_name, build] : builds) {
+        auto result = merge_resolved_dependencies(build_name);
+        if (!result) {
+            muuk::logger::error(
+                "Failed to merge dependencies for build package '{}': {}",
                 build_name,
                 result.error());
         }
@@ -468,4 +523,22 @@ std::string MuukLockGenerator::format_dependencies(
 
     oss << "\n";
     return oss.str();
+}
+
+void MuukLockGenerator::parse_and_store_flag_categories(
+    const toml::table& data,
+    std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_set<std::string>>>& target,
+    const std::vector<std::string>& flag_categories) {
+    for (const auto& [category_name, category_data] : data) {
+        if (!category_data.is_table()) {
+            continue;
+        }
+
+        std::string category_name_str = std::string(category_name.str());
+
+        for (const auto& flag_type : flag_categories) {
+            target[category_name_str][flag_type] = MuukFiler::parse_array_as_set(
+                *category_data.as_table(), flag_type);
+        }
+    }
 }

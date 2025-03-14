@@ -37,11 +37,19 @@ Result<void> MuukBuilder::build(std::string& target_build, const std::string& co
         selected_linker,
         "muuk.lock.toml");
 
+    compdb_backend_ = std::make_unique<CompileCommandsBackend>(
+        *compiler_result,
+        selected_archiver,
+        selected_linker,
+        "muuk.lock.toml");
+
     muuk::logger::info("Generating Ninja file for '{}'", selected_profile);
     spdlog::default_logger()->flush();
 
     ninja_backend_->generate_build_file(target_build, selected_profile);
     execute_build(selected_profile);
+    generate_compile_commands(selected_profile);
+
     return {};
 }
 
@@ -59,15 +67,6 @@ tl::expected<void, std::string> MuukBuilder::execute_build(const std::string& pr
 
     muuk::logger::info("Build for profile '{}' completed successfully.", profile);
 
-    std::string compdb_command = "cd " + build_dir + " && ninja -t compdb > compile_commands.json";
-    muuk::logger::info("Generating compile_commands.json...");
-
-    int compdb_result = util::command_line::execute_command(compdb_command.c_str());
-    if (compdb_result != 0) {
-        return tl::unexpected("Failed to generate compile_commands.json for profile '" + profile + "'");
-    }
-
-    muuk::logger::info("Successfully generated compile_commands.json for profile '{}'", profile);
     return {};
 }
 
@@ -125,6 +124,7 @@ tl::expected<std::string, std::string> MuukBuilder::select_profile(const std::st
 }
 
 tl::expected<void, std::string> MuukBuilder::add_script(const std::string& profile, const std::string& build_name) {
+    (void)build_name;
     try {
         MuukFiler muuk_filer("muuk.toml");
 
@@ -144,4 +144,17 @@ tl::expected<void, std::string> MuukBuilder::add_script(const std::string& profi
     } catch (const std::exception& e) {
         return tl::unexpected("Failed to add run script: " + std::string(e.what()));
     }
+}
+
+void MuukBuilder::generate_compile_commands(const std::string& profile) {
+    muuk::logger::info("Generating compile_commands.json using CompileCommandsBackend...");
+
+    if (!compdb_backend_) {
+        muuk::logger::error("CompileCommandsBackend was not initialized!");
+        return;
+    }
+
+    compdb_backend_->generate_build_file("compile_commands", profile);
+
+    muuk::logger::info("Successfully generated compile_commands.json for profile '{}'", profile);
 }

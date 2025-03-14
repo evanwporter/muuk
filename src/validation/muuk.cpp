@@ -145,9 +145,7 @@ namespace muuk {
     Result<void> validate_muuk_lock_toml(const toml::table& toml_data) {
         SchemaMap schema = SchemaMap {
             { "library", { false, TomlType::Table, std::nullopt, SchemaMap { { "*", { false, TomlType::Table, std::nullopt, SchemaMap { { "include", { false, TomlType::Array, std::vector<TomlType> { TomlType::String }, std::nullopt } }, { "source", { false, TomlType::Array, std::vector<TomlType> { TomlType::String }, std::nullopt } }, { "cflags", { false, TomlType::Array, std::vector<TomlType> { TomlType::String }, std::nullopt } }, { "system_include", { false, TomlType::Array, std::vector<TomlType> { TomlType::String }, std::nullopt } }, { "dependencies", { false, TomlType::Array, std::vector<TomlType> { TomlType::String }, std::nullopt } } } } } } } },
-
             { "build", { false, TomlType::Table, std::nullopt, SchemaMap { { "*", { false, TomlType::Table, std::nullopt, SchemaMap { { "include", { false, TomlType::Array, std::vector<TomlType> { TomlType::String }, std::nullopt } }, { "cflags", { false, TomlType::Array, std::vector<TomlType> { TomlType::String }, std::nullopt } }, { "system_include", { false, TomlType::Array, std::vector<TomlType> { TomlType::String }, std::nullopt } }, { "dependencies", { false, TomlType::Table, std::nullopt, SchemaMap {} } } } } } } } },
-
             { "dependencies", { false, TomlType::Table, std::nullopt, SchemaMap { { "*", { false, TomlType::Table, std::nullopt, SchemaMap { { "git", { true, TomlType::String, std::nullopt, std::nullopt } }, { "muuk_path", { true, TomlType::String, std::nullopt, std::nullopt } }, { "version", { true, TomlType::String, std::nullopt, std::nullopt } } } } } } } }
         };
 

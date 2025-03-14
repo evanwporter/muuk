@@ -45,6 +45,7 @@ void BuildParser::parse_compilation_targets() {
 
         std::vector<std::string> cflags = extract_flags(package_table, "cflags");
         std::vector<std::string> iflags = extract_flags(package_table, "include", "-I../../");
+        std::vector<std::string> defines = extract_flags(package_table, "defines", "-D");
 
         // Extract platform and compiler-specific flags
         std::vector<std::string> platform_cflags = extract_platform_flags(package_table);
@@ -244,19 +245,23 @@ void BuildParser::parse_executables() {
     }
 }
 
-std::vector<std::string> BuildParser::extract_flags(
-    const toml::table& table,
-    const std::string& key,
-    const std::string& prefix) {
+std::vector<std::string> BuildParser::extract_flags(const toml::table& table, const std::string& key, const std::string& prefix) {
     std::vector<std::string> flags;
     if (table.contains(key)) {
         auto flag_array = table.at(key).as_array();
         if (flag_array) {
             for (const auto& flag : *flag_array) {
-                flags.push_back(prefix + *flag.value<std::string>());
+                if (flag.is_string()) {
+                    flags.push_back(prefix + *flag.value<std::string>());
+                }
             }
+        } else {
+            muuk::logger::warn("Invalid '{}' array in configuration.", key);
         }
+    } else {
+        muuk::logger::warn("No '{}' section found in configuration.", key);
     }
+
     return flags;
 }
 
@@ -287,14 +292,8 @@ std::vector<std::string> BuildParser::extract_platform_flags(const toml::table& 
         if (!platform_entry)
             return flags;
 
-        if (platform_entry->contains("cflags")) {
-            auto cflags_array = platform_entry->at("cflags").as_array();
-            if (cflags_array) {
-                for (const auto& flag : *cflags_array) {
-                    flags.push_back(*flag.value<std::string>());
-                }
-            }
-        }
+        flags = extract_flags(*platform_entry, "cflags");
+
     } else {
         muuk::logger::warn("No configuration found for platform '{}'.", detected_platform);
     }
@@ -319,14 +318,7 @@ std::vector<std::string> BuildParser::extract_compiler_flags(const toml::table& 
         if (!compiler_entry)
             return flags;
 
-        if (compiler_entry->contains("cflags")) {
-            auto cflags_array = compiler_entry->at("cflags").as_array();
-            if (cflags_array) {
-                for (const auto& flag : *cflags_array) {
-                    flags.push_back(*flag.value<std::string>());
-                }
-            }
-        }
+        flags = extract_flags(*compiler_entry, "cflags");
     } else {
         muuk::logger::warn("No configuration found for compiler '{}'.", compiler_);
     }
@@ -365,38 +357,24 @@ std::pair<std::string, std::string> BuildParser::extract_profile_flags(const std
     }
 
     // Handle CFLAGS extraction safely
-    if (profile_entry->contains("cflags")) {
-        auto cflags_array = profile_entry->at("cflags").as_array();
-        if (cflags_array) {
-            for (const auto& flag : *cflags_array) {
-                if (flag.is_string()) {
-                    profile_cflags_str += muuk::normalize_flag(flag.value<std::string>().value_or(""), compiler) + " ";
-                }
-            }
-            muuk::logger::info("Profile '{}' CFLAGS: {}", profile, profile_cflags_str);
-        } else {
-            muuk::logger::warn("Profile '{}' contains an invalid 'cflags' array.", profile);
-        }
-    } else {
-        muuk::logger::warn("No 'cflags' found for profile '{}'.", profile);
+    std::vector<std::string> profile_cflags = extract_flags(*profile_entry, "cflags");
+    for (const auto& flag : profile_cflags) {
+        profile_cflags_str += muuk::normalize_flag(flag, compiler) + " ";
     }
+    muuk::logger::info("Profile '{}' CFLAGS: {}", profile, profile_cflags_str);
 
     // Handle LFLAGS extraction safely
-    if (profile_entry->contains("lflags")) {
-        auto lflags_array = profile_entry->at("lflags").as_array();
-        if (lflags_array) {
-            for (const auto& flag : *lflags_array) {
-                if (flag.is_string()) {
-                    profile_lflags_str += muuk::normalize_flag(flag.value<std::string>().value_or(""), compiler) + " ";
-                }
-            }
-            muuk::logger::info("Profile '{}' LFLAGS: {}", profile, profile_lflags_str);
-        } else {
-            muuk::logger::warn("Profile '{}' contains an invalid 'lflags' array.", profile);
-        }
-    } else {
-        muuk::logger::warn("No 'lflags' found for profile '{}'.", profile);
+    std::vector<std::string> profile_lflags = extract_flags(*profile_entry, "lflags");
+    for (const auto& flag : profile_lflags) {
+        profile_lflags_str += muuk::normalize_flag(flag, compiler) + " ";
     }
+    muuk::logger::info("Profile '{}' LFLAGS: {}", profile, profile_lflags_str);
+
+    std::vector<std::string> profile_defines = extract_flags(*profile_entry, "defines", "-D");
+    for (const auto& flag : profile_defines) {
+        profile_cflags_str += muuk::normalize_flag(flag, compiler) + " ";
+    }
+    muuk::logger::info("Profile '{}' Defines: {}", profile, profile_cflags_str);
 
     muuk::logger::info("Extracted profile_cflags: '{}'", profile_cflags_str);
     muuk::logger::info("Extracted profile_lflags: '{}'", profile_lflags_str);

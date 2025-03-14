@@ -5,13 +5,13 @@
 #include <filesystem>
 #include <memory>
 
+#include <nlohmann/json.hpp>
+
 #include "buildmanager.h"
 #include "buildparser.hpp"
 #include "buildtargets.h"
 #include "compiler.hpp"
 #include "muukfiler.h"
-
-namespace fs = std::filesystem;
 
 class BuildBackend {
 protected:
@@ -45,7 +45,7 @@ private:
     std::shared_ptr<BuildManager> build_manager;
     std::shared_ptr<BuildParser> build_parser;
     std::string ninja_filename;
-    fs::path build_dir_;
+    std::filesystem::path build_dir_;
 
 public:
     NinjaBackend(
@@ -65,6 +65,27 @@ private:
 
     void generate_build_rules(std::ostringstream& out, const std::string& target_build);
     void write_header(std::ostringstream& out, std::string profile);
+};
+
+class CompileCommandsBackend : public BuildBackend {
+private:
+    std::shared_ptr<BuildManager> build_manager;
+    std::shared_ptr<BuildParser> build_parser;
+    std::filesystem::path build_dir_;
+
+public:
+    CompileCommandsBackend(
+        muuk::Compiler compiler,
+        const std::string& archiver,
+        const std::string& linker,
+        const std::string& lockfile_path = "muuk.lock.toml");
+
+    void generate_build_file(
+        const std::string& target_build,
+        const std::string& profile) override;
+
+private:
+    nlohmann::json generate_compile_commands(const std::string& profile_cflags);
 };
 
 #endif // BUILD_BACKEND_H

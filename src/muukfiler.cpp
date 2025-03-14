@@ -1,20 +1,22 @@
 #include <sstream>
 #include <string>
+#include <unordered_set>
 
-#include "muukfiler.h"
+#include "fileops.hpp"
 #include "logger.h"
+#include "muukfiler.h"
 #include "muukvalidator.hpp"
 #include "types.h"
 #include "util.h"
 
-MuukFiler::MuukFiler(std::shared_ptr<IFileOperations> file_ops, bool is_lock_file_)
-    : file_ops_(std::move(file_ops)), is_lock_file(is_lock_file_) {
+MuukFiler::MuukFiler(std::shared_ptr<IFileOperations> file_ops, bool is_lock_file_) :
+    file_ops_(std::move(file_ops)), is_lock_file(is_lock_file_) {
     config_file_ = file_ops_->get_file_path();
     parse();
 }
 
-MuukFiler::MuukFiler(const std::string& config_file, bool is_lock_file)
-    : MuukFiler(std::make_shared<FileOperations>(config_file), is_lock_file) {
+MuukFiler::MuukFiler(const std::string& config_file, bool is_lock_file) :
+    MuukFiler(std::make_shared<FileOperations>(config_file), is_lock_file) {
 }
 
 Result<MuukFiler> MuukFiler::create(std::shared_ptr<IFileOperations> file_ops, bool is_lock_file) {
@@ -35,8 +37,7 @@ Result<MuukFiler> MuukFiler::create(std::shared_ptr<IFileOperations> file_ops, b
 
     if (is_lock_file) {
         auto result = muuk::validate_muuk_lock_toml(filer.get_config());
-    }
-    else {
+    } else {
         auto result = muuk::validate_muuk_toml(filer.get_config());
     }
     auto result = muuk::validate_muuk_toml(filer.get_config());
@@ -64,11 +65,9 @@ void MuukFiler::parse() {
     // slows down the process
     try {
         config_ = toml::parse(content);
-    }
-    catch (const toml::parse_error& e) {
+    } catch (const toml::parse_error& e) {
         muuk::fmt_rt_err("TOML Parsing Error for {}: {}", config_file_, e.what());
-    }
-    catch (const muuk::invalid_toml& e) {
+    } catch (const muuk::invalid_toml& e) {
         muuk::fmt_rt_err("TOML Validation Error for {}: {}", config_file_, e.what());
     }
 
@@ -81,7 +80,7 @@ void MuukFiler::parse() {
         std::string trimmed = util::trim_whitespace(line);
 
         if (trimmed.empty() || trimmed[0] == '#') {
-            continue;  // Ignore empty lines and comments
+            continue; // Ignore empty lines and comments
         }
 
         // Detect arrays of tables [[section]]
@@ -117,7 +116,7 @@ void MuukFiler::parse() {
         }
 
         if (new_section_started) {
-            section_data.str("");  // Reset section data
+            section_data.str(""); // Reset section data
             section_data.clear();
             new_section_started = false;
         }
@@ -153,7 +152,7 @@ void MuukFiler::parse() {
 
 toml::table& MuukFiler::get_section(const std::string& section) {
     if (sections_.find(section) == sections_.end()) {
-        sections_[section] = toml::table{};
+        sections_[section] = toml::table {};
         section_order_.push_back(section);
     }
     return sections_.at(section);
@@ -186,4 +185,44 @@ toml::table MuukFiler::get_config() const {
 
 bool MuukFiler::has_section(const std::string& section) const {
     return sections_.find(section) != sections_.end();
+}
+
+std::vector<std::string> MuukFiler::parse_array_as_vec(const toml::table& table, const std::string& key, const std::string& prefix) {
+    std::vector<std::string> arr_;
+    if (table.contains(key)) {
+        auto toml_arr_ = table.at(key).as_array();
+        if (toml_arr_) {
+            for (const auto& value : *toml_arr_) {
+                if (value.is_string()) {
+                    arr_.push_back(prefix + *value.value<std::string>());
+                }
+            }
+        } else {
+            muuk::logger::warn("Invalid '{}' array in configuration.", key);
+        }
+    } else {
+        muuk::logger::warn("No '{}' section found in configuration.", key);
+    }
+
+    return arr_;
+}
+
+std::unordered_set<std::string> MuukFiler::parse_array_as_set(const toml::table& table, const std::string& key, const std::string& prefix) {
+    std::unordered_set<std::string> arr_;
+    if (table.contains(key)) {
+        auto toml_arr_ = table.at(key).as_array();
+        if (toml_arr_) {
+            for (const auto& value : *toml_arr_) {
+                if (value.is_string()) {
+                    arr_.insert(prefix + *value.value<std::string>());
+                }
+            }
+        } else {
+            muuk::logger::warn("Invalid '{}' array in configuration.", key);
+        }
+    } else {
+        muuk::logger::warn("No '{}' section found in configuration.", key);
+    }
+
+    return arr_;
 }

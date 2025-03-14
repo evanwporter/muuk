@@ -24,6 +24,8 @@ private:
     MuukFiler& config_manager_;
     std::unique_ptr<MuukLockGenerator> lock_generator_;
     std::unique_ptr<NinjaBackend> ninja_backend_;
+    std::unique_ptr<CompileCommandsBackend> compdb_backend_;
+
     std::shared_ptr<spdlog::logger> logger_;
 
     tl::expected<void, std::string> execute_build(const std::string& profile) const;
@@ -32,6 +34,8 @@ private:
     std::string detect_linker(muuk::Compiler compiler) const;
     tl::expected<std::string, std::string> select_profile(const std::string& profile);
     tl::expected<void, std::string> add_script(const std::string& profile, const std::string& build_name);
+
+    void generate_compile_commands(const std::string& profile);
 };
 
 #endif // MUUK_BUILDER_H
