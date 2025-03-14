@@ -53,10 +53,10 @@ Result<void> MuukLockGenerator::parse_dependencies(const toml::table& data, std:
             }
             else {
                 // Merge features if dependency already exists
-                // dep_entry->enabled_features.insert(
-                //     dependency_info.enabled_features.begin(),
-                //     dependency_info.enabled_features.end()
-                // );
+                dep_entry->enabled_features.insert(
+                    dependency_info.enabled_features.begin(),
+                    dependency_info.enabled_features.end()
+                );
             }
             dependencies_[dep_name_str][dep_entry->version] = dep_entry;
             package->dependencies_[dep_name_str][dep_entry->version] = dep_entry;

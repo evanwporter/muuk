@@ -442,7 +442,23 @@ std::string MuukLockGenerator::format_dependencies(
 
             std::vector<std::string> dep_entries;
             for (const auto& [key, val] : dep_table) {
-                dep_entries.push_back(fmt::format("{} = '{}'", std::string(key.str()), *val.value<std::string>()));
+                std::string key_str = std::string(key.str());
+
+                if (val.is_string()) {
+                    dep_entries.push_back(fmt::format("{} = '{}'", key_str, *val.value<std::string>()));
+                } 
+                else if (val.is_array()) {
+                    std::vector<std::string> array_values;
+                    for (const auto& item : *val.as_array()) {
+                        if (item.is_string()) {
+                            array_values.push_back(fmt::format("'{}'", *item.value<std::string>()));
+                        }
+                    }
+                    dep_entries.push_back(fmt::format("{} = [{}]", key_str, fmt::join(array_values, ", ")));
+                } 
+                else {
+                    muuk::logger::warn("Skipping unsupported TOML type for key '{}'", key_str);
+                }
             }
 
             oss << fmt::format("{} }}\n", fmt::join(dep_entries, ", "));
