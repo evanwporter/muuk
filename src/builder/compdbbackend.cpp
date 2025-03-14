@@ -26,6 +26,7 @@ CompileCommandsBackend::CompileCommandsBackend(
 }
 
 void CompileCommandsBackend::generate_build_file(const std::string& target_build, const std::string& profile) {
+    (void)target_build;
     muuk::logger::info("");
     muuk::logger::info("  Generating compile_commands.json for '{}'", profile);
     muuk::logger::info("----------------------------------------------");

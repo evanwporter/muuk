@@ -1,14 +1,14 @@
-#include <iostream>
-#include <fstream>
 #include <filesystem>
+#include <fstream>
+#include <iostream>
 
 #include <fmt/core.h>
 #include <toml++/toml.hpp>
 
-#include "muuk.h"
-#include "rustify.hpp"
 #include "logger.h"
+#include "muuk.h"
 #include "muukfiler.h"
+#include "rustify.hpp"
 
 namespace fs = std::filesystem;
 
@@ -19,19 +19,19 @@ namespace muuk {
 
     //     if (license == "MIT") {
     //         license_text = fmt::format(R"(MIT License
-    
+
     // Copyright (c) {0} {1}
-    
+
     // Permission is hereby granted, free of charge, to any person obtaining a copy
     // of this software and associated documentation files (the "Software"), to deal
     // in the Software without restriction, including without limitation the rights
     // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
     // copies of the Software, and to permit persons to whom the Software is
     // furnished to do so, subject to the following conditions:
-    
+
     // The above copyright notice and this permission notice shall be included in all
     // copies or substantial portions of the Software.
-    
+
     // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -45,7 +45,7 @@ namespace muuk {
     //     }
     //     else {
     //         license_text = fmt::format(R"(Unlicensed
-    
+
     // All rights reserved. {0} {1} reserves all rights to the software.
     // )", util::time::current_year(), author);
     //     }
@@ -75,15 +75,18 @@ namespace muuk {
 
         std::cout << "Enter project version (default: 0.1.0): ";
         std::getline(std::cin, version);
-        if (version.empty()) version = "0.1.0";
+        if (version.empty())
+            version = "0.1.0";
 
         std::cout << "Enter license (e.g., MIT, GPL, Apache, Unlicensed, default: MIT): ";
         std::getline(std::cin, license);
-        if (license.empty()) license = "MIT";
+        if (license.empty())
+            license = "MIT";
 
         std::cout << "Enter include path (default: include/): ";
         std::getline(std::cin, include_path);
-        if (include_path.empty()) include_path = "include/";
+        if (include_path.empty())
+            include_path = "include/";
 
         fs::create_directories("src");
         fs::create_directories("include");
@@ -108,64 +111,50 @@ namespace muuk {
         }
         MuukFiler filer = result.value();
 
-        toml::table package_section{
-            {"name", project_name},
-            {"author", author},
-            {"version", version},
-            {"license", license}
+        toml::table package_section {
+            { "name", project_name },
+            { "author", author },
+            { "version", version },
+            { "license", license }
         };
         filer.modify_section("package", package_section);
 
-        toml::table scripts_section{
-            {"hello", "echo Hello, Muuk!"}
+        toml::table scripts_section {
+            { "hello", "echo Hello, Muuk!" }
         };
         filer.modify_section("scripts", scripts_section);
 
-        toml::table clean_section{
-            {"patterns", toml::array{ "*.obj", "*.lib", "*.pdb", "*.o", "*.a", "*.so", "*.dll", "*.exe" }}
+        toml::table clean_section {
+            { "patterns", toml::array { "*.obj", "*.lib", "*.pdb", "*.o", "*.a", "*.so", "*.dll", "*.exe" } }
         };
         filer.modify_section("clean", clean_section);
 
-        toml::table library_section{
-            {"include", toml::array{ include_path }},
-            {"libs", toml::array{}},
-            {"sources", toml::array{ "src/" + project_name + ".cpp" }},
-            {"dependencies", toml::table{}}
+        toml::table library_section {
+            { "include", toml::array { include_path } },
+            { "libs", toml::array {} },
+            { "sources", toml::array { "src/" + project_name + ".cpp" } },
+            { "dependencies", toml::table {} }
         };
         filer.modify_section("library." + project_name, library_section);
 
-        toml::table build_section{
-            {"dependencies", toml::table{
-                {project_name, "v" + version}
-            }},
+        toml::table build_section {
+            { "dependencies", toml::table { { project_name, "v" + version } } },
             // TODO: Remove
-            {"gflags", toml::array{ "/std:c++20", "/utf-8", "/EHsc", "/FS" }},
-            {"sources", toml::array{ "src/main.cpp" }}
+            { "gflags", toml::array { "/std:c++20", "/utf-8", "/EHsc", "/FS" } },
+            { "sources", toml::array { "src/main.cpp" } }
         };
         filer.modify_section("build.bin", build_section);
 
         toml::table profiles_section;
-        profiles_section.insert_or_assign("debug", toml::table{
-            {"cflags", toml::array{ "-g", "-O0", "-DDEBUG", "-Wall" }}
-            });
-        profiles_section.insert_or_assign("release", toml::table{
-            {"cflags", toml::array{ "-O3", "-DNDEBUG", "-march=native" }}
-            });
-        profiles_section.insert_or_assign("tests", toml::table{
-            {"cflags", toml::array{ "-g", "-O0", "-DTESTING", "-Wall" }}
-            });
+        profiles_section.insert_or_assign("debug", toml::table { { "cflags", toml::array { "-g", "-O0", "-DDEBUG", "-Wall" } } });
+        profiles_section.insert_or_assign("release", toml::table { { "cflags", toml::array { "-O3", "-DNDEBUG", "-march=native" } } });
+        profiles_section.insert_or_assign("tests", toml::table { { "cflags", toml::array { "-g", "-O0", "-DTESTING", "-Wall" } } });
         filer.modify_section("profile", profiles_section);
 
         toml::table platform_section;
-        platform_section.insert_or_assign("windows", toml::table{
-            {"cflags", toml::array{ "/I." }}
-            });
-        platform_section.insert_or_assign("linux", toml::table{
-            {"cflags", toml::array{ "-pthread", "-rdynamic" }}
-            });
-        platform_section.insert_or_assign("macos", toml::table{
-            {"cflags", toml::array{ "-stdlib=libc++", "-mmacosx-version-min=10.13" }}
-            });
+        platform_section.insert_or_assign("windows", toml::table { { "cflags", toml::array { "/I." } } });
+        platform_section.insert_or_assign("linux", toml::table { { "cflags", toml::array { "-pthread", "-rdynamic" } } });
+        platform_section.insert_or_assign("macos", toml::table { { "cflags", toml::array { "-stdlib=libc++", "-mmacosx-version-min=10.13" } } });
         filer.modify_section("platform", platform_section);
 
         filer.write_to_file();
@@ -214,7 +203,8 @@ void hello_muuk();)";
 #include "include/" + project_name + R"(.h"
 
 void hello_muuk() {
-    std::cout << "This is a file in " << )" << project_name << R"( << " library!" << std::endl;
+    std::cout << "This is a file in " << )"
+                     << project_name << R"( << " library!" << std::endl;
 })";
             lib_file.close();
         }

@@ -68,8 +68,7 @@ namespace muuk {
                 try {
                     value = std::stoi(input);
                     return value;
-                }
-                catch (...) {
+                } catch (...) {
                     std::cout << "Invalid input. Please enter a valid number.\n";
                 }
             }
