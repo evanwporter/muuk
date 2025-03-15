@@ -15,8 +15,6 @@ public:
 
     BuildTarget(std::string target_name, std::string target_output);
     virtual ~BuildTarget() = default;
-
-    virtual std::string generate_ninja_rule() const = 0;
 };
 
 class CompilationTarget : public BuildTarget {
@@ -24,23 +22,19 @@ public:
     CompilationTarget(std::string src, std::string obj, std::vector<std::string> cflags, std::vector<std::string> iflags);
     virtual ~CompilationTarget() = default;
 
-    std::string generate_ninja_rule() const override;
+    std::string input;
 };
 
 class ArchiveTarget : public BuildTarget {
 public:
     ArchiveTarget(std::string lib, std::vector<std::string> objs, std::vector<std::string> aflags);
     virtual ~ArchiveTarget() = default;
-
-    std::string generate_ninja_rule() const override;
 };
 
 class LinkTarget : public BuildTarget {
 public:
     LinkTarget(std::string exe, std::vector<std::string> objs, std::vector<std::string> libs, std::vector<std::string> lflags);
     virtual ~LinkTarget() = default;
-
-    std::string generate_ninja_rule() const override;
 };
 
 #endif
