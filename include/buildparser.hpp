@@ -39,11 +39,6 @@ private:
     void parse_libraries();
     void parse_executables();
 
-    std::vector<std::string> extract_flags(
-        const toml::table& table,
-        const std::string& key,
-        const std::string& prefix = "");
-
     /** Extract platform-specific CFLAGS */
     std::vector<std::string> extract_platform_flags(const toml::table& package_table);
 

@@ -43,9 +43,9 @@ void BuildParser::parse_compilation_targets() {
         fs::path module_dir = build_dir / package_name;
         std::filesystem::create_directories(module_dir);
 
-        std::vector<std::string> cflags = extract_flags(package_table, "cflags");
-        std::vector<std::string> iflags = extract_flags(package_table, "include", "-I../../");
-        std::vector<std::string> defines = extract_flags(package_table, "defines", "-D");
+        std::vector<std::string> cflags = MuukFiler::parse_array_as_vec(package_table, "cflags");
+        std::vector<std::string> iflags = MuukFiler::parse_array_as_vec(package_table, "include", "-I../../");
+        std::vector<std::string> defines = MuukFiler::parse_array_as_vec(package_table, "defines", "-D");
 
         // Extract platform and compiler-specific flags
         std::vector<std::string> platform_cflags = extract_platform_flags(package_table);
@@ -78,7 +78,7 @@ void BuildParser::parse_compilation_targets() {
                             + OBJ_EXT,
                         "../../");
 
-                    std::vector<std::string> src_cflags = extract_flags(*source_table, "cflags");
+                    std::vector<std::string> src_cflags = MuukFiler::parse_array_as_vec(*source_table, "cflags");
                     src_cflags.insert(src_cflags.end(), cflags.begin(), cflags.end());
 
                     // Add platform and compiler-specific flags
@@ -129,7 +129,7 @@ void BuildParser::parse_libraries() {
             }
         }
 
-        std::vector<std::string> aflags = extract_flags(package_table, "aflags");
+        std::vector<std::string> aflags = MuukFiler::parse_array_as_vec(package_table, "aflags");
         muuk::normalize_flags_inplace(aflags, compiler);
         build_manager->add_archive_target(lib_path, obj_files, aflags);
 
@@ -221,7 +221,7 @@ void BuildParser::parse_executables() {
 
                         if (lib_table.contains("include")) {
                             // Header-only library, add include directories
-                            std::vector<std::string> include_flags = extract_flags(lib_table, "include", "-I../../");
+                            std::vector<std::string> include_flags = MuukFiler::parse_array_as_vec(lib_table, "include", "-I../../");
                             iflags.insert(iflags.end(), include_flags.begin(), include_flags.end());
                         }
                     }
@@ -230,7 +230,7 @@ void BuildParser::parse_executables() {
         }
 
         // Collect linker flags
-        std::vector<std::string> lflags = extract_flags(build_table, "lflags");
+        std::vector<std::string> lflags = MuukFiler::parse_array_as_vec(build_table, "lflags");
 
         muuk::normalize_flags_inplace(lflags, compiler);
 
@@ -243,26 +243,6 @@ void BuildParser::parse_executables() {
         muuk::logger::trace("  - Include Flags: {}", fmt::join(iflags, ", "));
         muuk::logger::trace("  - Linker Flags: {}", fmt::join(lflags, ", "));
     }
-}
-
-std::vector<std::string> BuildParser::extract_flags(const toml::table& table, const std::string& key, const std::string& prefix) {
-    std::vector<std::string> flags;
-    if (table.contains(key)) {
-        auto flag_array = table.at(key).as_array();
-        if (flag_array) {
-            for (const auto& flag : *flag_array) {
-                if (flag.is_string()) {
-                    flags.push_back(prefix + *flag.value<std::string>());
-                }
-            }
-        } else {
-            muuk::logger::warn("Invalid '{}' array in configuration.", key);
-        }
-    } else {
-        muuk::logger::warn("No '{}' section found in configuration.", key);
-    }
-
-    return flags;
 }
 
 /** Extract platform-specific FLAGS */
@@ -292,7 +272,7 @@ std::vector<std::string> BuildParser::extract_platform_flags(const toml::table& 
         if (!platform_entry)
             return flags;
 
-        flags = extract_flags(*platform_entry, "cflags");
+        flags = MuukFiler::parse_array_as_vec(*platform_entry, "cflags");
 
     } else {
         muuk::logger::warn("No configuration found for platform '{}'.", detected_platform);
@@ -318,7 +298,7 @@ std::vector<std::string> BuildParser::extract_compiler_flags(const toml::table& 
         if (!compiler_entry)
             return flags;
 
-        flags = extract_flags(*compiler_entry, "cflags");
+        flags = MuukFiler::parse_array_as_vec(*compiler_entry, "cflags");
     } else {
         muuk::logger::warn("No configuration found for compiler '{}'.", compiler_);
     }
@@ -357,20 +337,20 @@ std::pair<std::string, std::string> BuildParser::extract_profile_flags(const std
     }
 
     // Handle CFLAGS extraction safely
-    std::vector<std::string> profile_cflags = extract_flags(*profile_entry, "cflags");
+    std::vector<std::string> profile_cflags = MuukFiler::parse_array_as_vec(*profile_entry, "cflags");
     for (const auto& flag : profile_cflags) {
         profile_cflags_str += muuk::normalize_flag(flag, compiler) + " ";
     }
     muuk::logger::info("Profile '{}' CFLAGS: {}", profile, profile_cflags_str);
 
     // Handle LFLAGS extraction safely
-    std::vector<std::string> profile_lflags = extract_flags(*profile_entry, "lflags");
+    std::vector<std::string> profile_lflags = MuukFiler::parse_array_as_vec(*profile_entry, "lflags");
     for (const auto& flag : profile_lflags) {
         profile_lflags_str += muuk::normalize_flag(flag, compiler) + " ";
     }
     muuk::logger::info("Profile '{}' LFLAGS: {}", profile, profile_lflags_str);
 
-    std::vector<std::string> profile_defines = extract_flags(*profile_entry, "defines", "-D");
+    std::vector<std::string> profile_defines = MuukFiler::parse_array_as_vec(*profile_entry, "defines", "-D");
     for (const auto& flag : profile_defines) {
         profile_cflags_str += muuk::normalize_flag(flag, compiler) + " ";
     }

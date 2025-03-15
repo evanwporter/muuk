@@ -201,7 +201,7 @@ std::vector<std::string> MuukFiler::parse_array_as_vec(const toml::table& table,
             muuk::logger::warn("Invalid '{}' array in configuration.", key);
         }
     } else {
-        muuk::logger::warn("No '{}' section found in configuration.", key);
+        // muuk::logger::warn("No '{}' section found in configuration.", key);
     }
 
     return arr_;
@@ -221,7 +221,7 @@ std::unordered_set<std::string> MuukFiler::parse_array_as_set(const toml::table&
             muuk::logger::warn("Invalid '{}' array in configuration.", key);
         }
     } else {
-        muuk::logger::warn("No '{}' section found in configuration.", key);
+        // muuk::logger::warn("No '{}' section found in configuration.", key);
     }
 
     return arr_;
