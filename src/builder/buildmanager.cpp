@@ -48,3 +48,14 @@ std::vector<ArchiveTarget> BuildManager::get_archive_targets() const {
 std::vector<LinkTarget> BuildManager::get_link_targets() const {
     return link_targets;
 }
+
+CompilationTarget* BuildManager::find_compilation_target(const std::string& key, const std::string& value) {
+    auto it = std::find_if(
+        compilation_targets.begin(),
+        compilation_targets.end(),
+        [&](const CompilationTarget& target) {
+            return (key == "input" && target.input == value) || (key == "output" && target.output == value);
+        });
+
+    return (it != compilation_targets.end()) ? &(*it) : nullptr;
+}

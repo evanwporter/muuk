@@ -11,6 +11,7 @@
 #include "buildmanager.h"
 #include "buildparser.hpp"
 #include "logger.h"
+#include "moduleresolver.hpp"
 #include "muuk.h"
 #include "muukfiler.h"
 #include "util.h"
@@ -26,7 +27,6 @@ BuildParser::BuildParser(std::shared_ptr<BuildManager> manager, std::shared_ptr<
 }
 
 void BuildParser::parse() {
-
     parse_compilation_targets();
     parse_libraries();
     parse_executables();
@@ -40,8 +40,8 @@ void BuildParser::parse_compilation_targets() {
             continue;
 
         std::string package_name = pkg_name.substr(pkg_name.find('.') + 1);
-        fs::path module_dir = build_dir / package_name;
-        std::filesystem::create_directories(module_dir);
+        fs::path pkg_dir = build_dir / package_name;
+        std::filesystem::create_directories(pkg_dir);
 
         std::vector<std::string> cflags = MuukFiler::parse_array_as_vec(package_table, "cflags");
         std::vector<std::string> iflags = MuukFiler::parse_array_as_vec(package_table, "include", "-I../../");
@@ -55,6 +55,44 @@ void BuildParser::parse_compilation_targets() {
         muuk::normalize_flags_inplace(iflags, compiler);
         muuk::normalize_flags_inplace(platform_cflags, compiler);
         muuk::normalize_flags_inplace(compiler_cflags, compiler);
+
+        if (package_table.contains("modules")) {
+            auto modules = package_table.at("modules").as_array();
+            if (modules) {
+                for (const auto& mod_entry : *modules) {
+                    if (!mod_entry.is_table())
+                        continue;
+
+                    auto module_table = mod_entry.as_table();
+                    if (!module_table->contains("path"))
+                        continue;
+
+                    std::string mod_path = util::to_linux_path(
+                        std::filesystem::absolute(
+                            std::filesystem::path(*module_table->at("path").value<std::string>()))
+                            .string(),
+                        "../../");
+
+                    std::string mod_obj_path = util::to_linux_path(
+                        (pkg_dir / "modules" / std::filesystem::path(mod_path).stem()).string() + OBJ_EXT,
+                        "../../");
+
+                    std::vector<std::string> mod_cflags = MuukFiler::parse_array_as_vec(*module_table, "cflags");
+                    mod_cflags.insert(mod_cflags.end(), cflags.begin(), cflags.end());
+                    mod_cflags.insert(mod_cflags.end(), platform_cflags.begin(), platform_cflags.end());
+                    mod_cflags.insert(mod_cflags.end(), compiler_cflags.begin(), compiler_cflags.end());
+
+                    muuk::normalize_flags_inplace(mod_cflags, compiler);
+
+                    // Add module as a compilation target
+                    build_manager->add_compilation_target(mod_path, mod_obj_path, mod_cflags, iflags);
+
+                    muuk::logger::info("Added module compilation target: {} -> {}", mod_path, mod_obj_path);
+                    muuk::logger::trace("  - Module CFLAGS: {}", fmt::join(mod_cflags, ", "));
+                    muuk::logger::trace("  - Module Include Flags: {}", fmt::join(iflags, ", "));
+                }
+            }
+        }
 
         if (package_table.contains("sources")) {
             auto sources = package_table.at("sources").as_array();
@@ -74,7 +112,7 @@ void BuildParser::parse_compilation_targets() {
                         "../../");
 
                     std::string obj_path = util::to_linux_path(
-                        (module_dir / std::filesystem::path(src_path).stem()).string()
+                        (pkg_dir / std::filesystem::path(src_path).stem()).string()
                             + OBJ_EXT,
                         "../../");
 
@@ -96,6 +134,8 @@ void BuildParser::parse_compilation_targets() {
             }
         }
     }
+
+    muuk::resolve_modules(build_manager, build_dir.string());
 }
 
 void BuildParser::parse_libraries() {

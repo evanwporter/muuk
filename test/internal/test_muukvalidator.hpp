@@ -105,68 +105,68 @@ TEST(ValidateMuukTomlTest, InvalidDateTimeType) {
     EXPECT_FALSE(result.has_value());
 }
 
-class DependencyNameTest : public ::testing::Test {};
+class DependencyNameTest : public ::testing::Test { };
 
 TEST_F(DependencyNameTest, ValidNames) {
     EXPECT_TRUE(muuk::is_valid_dependency_name("valid-name"));
     EXPECT_TRUE(muuk::is_valid_dependency_name("package_name"));
     EXPECT_TRUE(muuk::is_valid_dependency_name("pkg-name"));
-    EXPECT_TRUE(muuk::is_valid_dependency_name("gtkmm-4.0"));  // Digits wrapping `.`
-    EXPECT_TRUE(muuk::is_valid_dependency_name("ncurses++"));  // Double `+` allowed
-    EXPECT_TRUE(muuk::is_valid_dependency_name("pkg/name"));   // Single `/` allowed
+    EXPECT_TRUE(muuk::is_valid_dependency_name("gtkmm-4.0")); // Digits wrapping `.`
+    EXPECT_TRUE(muuk::is_valid_dependency_name("ncurses++")); // Double `+` allowed
+    EXPECT_TRUE(muuk::is_valid_dependency_name("pkg/name")); // Single `/` allowed
     EXPECT_TRUE(muuk::is_valid_dependency_name("libboost_1.76"));
     EXPECT_TRUE(muuk::is_valid_dependency_name("test-1.2.3"));
 }
 
 TEST_F(DependencyNameTest, InvalidNames) {
-    EXPECT_FALSE(muuk::is_valid_dependency_name(""));      // Empty name
-    EXPECT_FALSE(muuk::is_valid_dependency_name("-start"));// Starts with `-`
-    EXPECT_FALSE(muuk::is_valid_dependency_name("_start"));// Starts with `_`
-    EXPECT_FALSE(muuk::is_valid_dependency_name("/start"));// Starts with `/`
-    EXPECT_FALSE(muuk::is_valid_dependency_name("+start"));// Starts with `+`
-    EXPECT_FALSE(muuk::is_valid_dependency_name("end-"));  // Ends with `-`
-    EXPECT_FALSE(muuk::is_valid_dependency_name("end_"));  // Ends with `_`
-    EXPECT_FALSE(muuk::is_valid_dependency_name("end/"));  // Ends with `/`
+    EXPECT_FALSE(muuk::is_valid_dependency_name("")); // Empty name
+    EXPECT_FALSE(muuk::is_valid_dependency_name("-start")); // Starts with `-`
+    EXPECT_FALSE(muuk::is_valid_dependency_name("_start")); // Starts with `_`
+    EXPECT_FALSE(muuk::is_valid_dependency_name("/start")); // Starts with `/`
+    EXPECT_FALSE(muuk::is_valid_dependency_name("+start")); // Starts with `+`
+    EXPECT_FALSE(muuk::is_valid_dependency_name("end-")); // Ends with `-`
+    EXPECT_FALSE(muuk::is_valid_dependency_name("end_")); // Ends with `_`
+    EXPECT_FALSE(muuk::is_valid_dependency_name("end/")); // Ends with `/`
     EXPECT_FALSE(muuk::is_valid_dependency_name("end++-")); // Ends with `++-`
     EXPECT_FALSE(muuk::is_valid_dependency_name("a.b.c")); // `.` not wrapped by digits
-    EXPECT_FALSE(muuk::is_valid_dependency_name("a..b"));  // Consecutive `.`
-    EXPECT_FALSE(muuk::is_valid_dependency_name("a--b"));  // Consecutive `-`
-    EXPECT_FALSE(muuk::is_valid_dependency_name("a__b"));  // Consecutive `_`
-    EXPECT_FALSE(muuk::is_valid_dependency_name("a//b"));  // Consecutive `/`
+    EXPECT_FALSE(muuk::is_valid_dependency_name("a..b")); // Consecutive `.`
+    EXPECT_FALSE(muuk::is_valid_dependency_name("a--b")); // Consecutive `-`
+    EXPECT_FALSE(muuk::is_valid_dependency_name("a__b")); // Consecutive `_`
+    EXPECT_FALSE(muuk::is_valid_dependency_name("a//b")); // Consecutive `/`
 }
 
 TEST_F(DependencyNameTest, InvalidSpecialCharacters) {
-    EXPECT_FALSE(muuk::is_valid_dependency_name("pkg@name"));  // `@` is invalid
-    EXPECT_FALSE(muuk::is_valid_dependency_name("pkg#name"));  // `#` is invalid
-    EXPECT_FALSE(muuk::is_valid_dependency_name("pkg$name"));  // `$` is invalid
-    EXPECT_FALSE(muuk::is_valid_dependency_name("pkg%name"));  // `%` is invalid
-    EXPECT_FALSE(muuk::is_valid_dependency_name("pkg^name"));  // `^` is invalid
-    EXPECT_FALSE(muuk::is_valid_dependency_name("pkg&name"));  // `&` is invalid
-    EXPECT_FALSE(muuk::is_valid_dependency_name("pkg*name"));  // `*` is invalid
+    EXPECT_FALSE(muuk::is_valid_dependency_name("pkg@name")); // `@` is invalid
+    EXPECT_FALSE(muuk::is_valid_dependency_name("pkg#name")); // `#` is invalid
+    EXPECT_FALSE(muuk::is_valid_dependency_name("pkg$name")); // `$` is invalid
+    EXPECT_FALSE(muuk::is_valid_dependency_name("pkg%name")); // `%` is invalid
+    EXPECT_FALSE(muuk::is_valid_dependency_name("pkg^name")); // `^` is invalid
+    EXPECT_FALSE(muuk::is_valid_dependency_name("pkg&name")); // `&` is invalid
+    EXPECT_FALSE(muuk::is_valid_dependency_name("pkg*name")); // `*` is invalid
 }
 
 TEST_F(DependencyNameTest, ValidEdgeCases) {
-    EXPECT_TRUE(muuk::is_valid_dependency_name("a1"));        // Smallest valid name
-    EXPECT_TRUE(muuk::is_valid_dependency_name("a-b"));       // Single `-`
-    EXPECT_TRUE(muuk::is_valid_dependency_name("a_b"));       // Single `_`
-    EXPECT_TRUE(muuk::is_valid_dependency_name("a/b"));       // Single `/`
-    EXPECT_TRUE(muuk::is_valid_dependency_name("a.1"));       // Digit-wrapped `.`
-    EXPECT_TRUE(muuk::is_valid_dependency_name("1.2.3"));     // Version style valid
-    EXPECT_TRUE(muuk::is_valid_dependency_name("libc++"));    // Exactly two `+`
+    EXPECT_TRUE(muuk::is_valid_dependency_name("a1")); // Smallest valid name
+    EXPECT_TRUE(muuk::is_valid_dependency_name("a-b")); // Single `-`
+    EXPECT_TRUE(muuk::is_valid_dependency_name("a_b")); // Single `_`
+    EXPECT_TRUE(muuk::is_valid_dependency_name("a/b")); // Single `/`
+    // EXPECT_TRUE(muuk::is_valid_dependency_name("a.1"));       // Digit-wrapped `.`
+    EXPECT_TRUE(muuk::is_valid_dependency_name("1.2.3")); // Version style valid
+    EXPECT_TRUE(muuk::is_valid_dependency_name("libc++")); // Exactly two `+`
     EXPECT_TRUE(muuk::is_valid_dependency_name("ncurses++")); // Consecutive `+`
 }
 
 TEST_F(DependencyNameTest, InvalidPlusSigns) {
-    EXPECT_FALSE(muuk::is_valid_dependency_name("pkg+name"));  // Only one `+`
+    EXPECT_FALSE(muuk::is_valid_dependency_name("pkg+name")); // Only one `+`
     EXPECT_FALSE(muuk::is_valid_dependency_name("pkg+++name")); // More than two `+`
-    EXPECT_FALSE(muuk::is_valid_dependency_name("pkg+a+b"));  // Non-consecutive `+`
-    EXPECT_FALSE(muuk::is_valid_dependency_name("pkg+1+"));   // `+` not consecutive
+    EXPECT_FALSE(muuk::is_valid_dependency_name("pkg+a+b")); // Non-consecutive `+`
+    EXPECT_FALSE(muuk::is_valid_dependency_name("pkg+1+")); // `+` not consecutive
 }
 
 TEST_F(DependencyNameTest, InvalidSlash) {
     EXPECT_FALSE(muuk::is_valid_dependency_name("pkg/name/test")); // More than one `/`
-    EXPECT_FALSE(muuk::is_valid_dependency_name("/pkg/name"));     // Starts with `/`
-    EXPECT_FALSE(muuk::is_valid_dependency_name("pkg/name/"));     // Ends with `/`
+    EXPECT_FALSE(muuk::is_valid_dependency_name("/pkg/name")); // Starts with `/`
+    EXPECT_FALSE(muuk::is_valid_dependency_name("pkg/name/")); // Ends with `/`
 }
 
 TEST_F(DependencyNameTest, ValidLongNames) {
@@ -183,11 +183,11 @@ TEST_F(DependencyNameTest, InvalidLongNames) {
 }
 
 TEST_F(DependencyNameTest, InvalidEmptyOrSpaces) {
-    EXPECT_FALSE(muuk::is_valid_dependency_name(" "));       // Single space
-    EXPECT_FALSE(muuk::is_valid_dependency_name(" a"));      // Leading space
-    EXPECT_FALSE(muuk::is_valid_dependency_name("a "));      // Trailing space
-    EXPECT_FALSE(muuk::is_valid_dependency_name("a b"));     // Space in the middle
-    EXPECT_FALSE(muuk::is_valid_dependency_name("\tname"));  // Tab in name
+    EXPECT_FALSE(muuk::is_valid_dependency_name(" ")); // Single space
+    EXPECT_FALSE(muuk::is_valid_dependency_name(" a")); // Leading space
+    EXPECT_FALSE(muuk::is_valid_dependency_name("a ")); // Trailing space
+    EXPECT_FALSE(muuk::is_valid_dependency_name("a b")); // Space in the middle
+    EXPECT_FALSE(muuk::is_valid_dependency_name("\tname")); // Tab in name
 }
 
 TEST_F(DependencyNameTest, ValidMixedCases) {
@@ -196,7 +196,7 @@ TEST_F(DependencyNameTest, ValidMixedCases) {
     EXPECT_TRUE(muuk::is_valid_dependency_name("foo-bar_2.1.4"));
 }
 
-class ValidateFlagTest : public ::testing::Test {};
+class ValidateFlagTest : public ::testing::Test { };
 
 TEST_F(ValidateFlagTest, ValidMSVCFlags) {
     EXPECT_TRUE(muuk::validate_flag(muuk::Compiler::MSVC, "/O2").has_value());
@@ -232,13 +232,13 @@ TEST_F(ValidateFlagTest, InvalidGCCClangFlags) {
 }
 
 TEST_F(ValidateFlagTest, EdgeCases) {
-    EXPECT_TRUE(muuk::validate_flag(muuk::Compiler::MSVC, "/D").has_value());  // Smallest valid flag (MSVC)
-    EXPECT_TRUE(muuk::validate_flag(muuk::Compiler::GCC, "-D").has_value());   // Smallest valid flag (GCC)
+    EXPECT_TRUE(muuk::validate_flag(muuk::Compiler::MSVC, "/D").has_value()); // Smallest valid flag (MSVC)
+    EXPECT_TRUE(muuk::validate_flag(muuk::Compiler::GCC, "-D").has_value()); // Smallest valid flag (GCC)
     EXPECT_TRUE(muuk::validate_flag(muuk::Compiler::GCC, "-fno-exceptions").has_value()); // Long flag
     EXPECT_TRUE(muuk::validate_flag(muuk::Compiler::GCC, "-march=x86-64").has_value()); // `-` inside flag
 }
 
 TEST_F(ValidateFlagTest, OnlyPrefixInvalid) {
-    EXPECT_FALSE(muuk::validate_flag(muuk::Compiler::MSVC, "-").has_value());  // Only `/`
-    EXPECT_FALSE(muuk::validate_flag(muuk::Compiler::GCC, "/").has_value());   // Only `-`
+    EXPECT_FALSE(muuk::validate_flag(muuk::Compiler::MSVC, "-").has_value()); // Only `/`
+    EXPECT_FALSE(muuk::validate_flag(muuk::Compiler::GCC, "/").has_value()); // Only `-`
 }

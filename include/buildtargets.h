@@ -11,7 +11,6 @@ public:
     std::vector<std::string> inputs; // Input files (source files or dependencies)
     std::string output; // Output file (e.g., .o, .a, executable)
     std::vector<std::string> flags; // Compiler, linker, or archive flags
-    std::vector<std::string> dependencies; // Files that must be built first
 
     BuildTarget(std::string target_name, std::string target_output);
     virtual ~BuildTarget() = default;
@@ -23,6 +22,8 @@ public:
     virtual ~CompilationTarget() = default;
 
     std::string input;
+    std::string logical_name;
+    std::vector<CompilationTarget*> dependencies; // Files that must be built first
 };
 
 class ArchiveTarget : public BuildTarget {
