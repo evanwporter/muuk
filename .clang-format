@@ -8,9 +8,3 @@ NamespaceIndentation: All
 
 AlignAfterOpenBracket: AlwaysBreak
 BinPackParameters: false
-# BreakBeforeParameters: Always
-# BreakBeforeFunctionCallArguments: All
-# PenaltyBreakBeforeClosingBracket: 0
-
-# BreakBeforeParameters: true
-# AlwaysBreakAfterReturnType: None

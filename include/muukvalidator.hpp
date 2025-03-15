@@ -23,15 +23,17 @@ namespace muuk {
             std::runtime_error(message) { }
     };
 
-    enum class TomlType { Table,
-                          Array,
-                          String,
-                          Integer,
-                          Float,
-                          Boolean,
-                          Date,
-                          Time,
-                          DateTime };
+    enum class TomlType {
+        Table,
+        Array,
+        String,
+        Integer,
+        Float,
+        Boolean,
+        Date,
+        Time,
+        DateTime
+    };
 
     struct SchemaNode {
         bool required;

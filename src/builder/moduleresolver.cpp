@@ -15,7 +15,7 @@
 
 namespace muuk {
 
-    /** Generates the compilation database */
+    // Generates the compilation database for clang-scan-deps
     void generate_compilation_database(const std::shared_ptr<BuildManager>& build_manager, const std::string& dependency_db, const std::string& build_dir) {
         nlohmann::json compdb = nlohmann::json::array();
 
@@ -67,7 +67,7 @@ namespace muuk {
         muuk::logger::info("Compilation database written to {}", dependency_db);
     }
 
-    /** Runs clang-scan-deps and retrieves dependency information */
+    // Runs clang-scan-deps and retrieves dependency information
     nlohmann::json parse_dependency_db(const std::string& dependency_db) {
         auto out = util::command_line::execute_command_get_out(
             fmt::format("clang-scan-deps -format=p1689 -compilation-database {}", dependency_db));
@@ -82,7 +82,7 @@ namespace muuk {
         return dependencies;
     }
 
-    /** Resolves provided modules and maps logical names to compilation targets */
+    // Resolves provided modules and maps logical names to compilation targets
     void resolve_provided_modules(
         const nlohmann::json& dependencies,
         std::unordered_map<std::string, CompilationTarget*>& target_map) {
@@ -111,7 +111,7 @@ namespace muuk {
         }
     }
 
-    /** Resolves required modules and links dependencies */
+    // Resolves required modules and links dependencies
     void resolve_required_modules(
         const nlohmann::json& dependencies,
         std::shared_ptr<BuildManager> build_manager,

@@ -114,7 +114,10 @@
     "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd",
     "editor.formatOnSave": true,
   },
-  "[json]": {},
+  "[json]": {
+    "editor.indentSize": 4,
+    "editor.formatOnSave": true,
+  },
   "C_Cpp.default.compileCommands": "${workspaceFolder}/build/debug/compile_commands.json",
   "C_Cpp.codeAnalysis.runAutomatically": true,
   "C_Cpp.experimentalFeatures": "enabled",
@@ -122,9 +125,9 @@
   "C_Cpp.formatting": "disabled",
   "files.encoding": "utf8",
   "python.testing.pytestArgs": [
-    "${workspaceFolder}/tests/external/"
+    "${workspaceFolder}/test/external/test.py"
   ],
-  "python.testing.cwd": "${workspaceFolder}/tests/external",
+  "python.testing.cwd": "${workspaceFolder}/test/external",
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
   "[python]": {
