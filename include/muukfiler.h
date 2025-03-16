@@ -18,6 +18,8 @@ private:
     std::shared_ptr<IFileOperations> file_ops_;
     std::string config_file_;
     std::unordered_map<std::string, toml::table> sections_;
+    std::unordered_map<std::string, std::vector<toml::table>> array_sections_;
+
     std::vector<std::string> section_order_;
 
     toml::table config_;
@@ -41,8 +43,14 @@ public:
         return section_order_;
     }
 
-    const std::unordered_map<std::string, toml::table>& get_sections() const {
+    const std::unordered_map<std::string, toml::table>&
+    get_sections() const {
         return sections_;
+    }
+
+    const std::unordered_map<std::string, std::vector<toml::table>>&
+    get_array_section() const {
+        return array_sections_;
     }
 
     static Result<MuukFiler> create(std::shared_ptr<IFileOperations> file_ops, bool is_lock_file = false);
