@@ -85,9 +85,12 @@ void MuukFiler::parse() {
 
         // Detect arrays of tables [[section]]
         if (trimmed.starts_with("[[") && trimmed.ends_with("]]")) {
-            // Save previous section data
             if (!current_section.empty()) {
-                sections_[current_section] = toml::parse(section_data.str());
+                if (is_array_of_tables) {
+                    array_sections_[current_section].push_back(toml::parse(section_data.str()));
+                } else {
+                    sections_[current_section] = toml::parse(section_data.str());
+                }
                 section_data.str("");
                 section_data.clear();
             }
@@ -123,19 +126,19 @@ void MuukFiler::parse() {
 
         section_data << line << "\n";
 
-        if (is_array_of_tables && trimmed.starts_with("name =")) {
-            std::string name_value = trimmed.substr(7);
-            name_value = util::trim_whitespace(name_value);
-            name_value.erase(std::remove(name_value.begin(), name_value.end(), '\"'), name_value.end()); // Remove quotes if present
+        //     if (is_array_of_tables && trimmed.starts_with("name =")) {
+        //         std::string name_value = trimmed.substr(7);
+        //         name_value = util::trim_whitespace(name_value);
+        //         name_value.erase(std::remove(name_value.begin(), name_value.end(), '\"'), name_value.end()); // Remove quotes if present
 
-            if (name_value.empty()) {
-                muuk::logger::error("Error: [[{}]] section must contain a 'name' key.", current_section);
-                throw std::runtime_error("Invalid TOML format: Missing 'name' in array-of-tables.");
-            }
+        //         if (name_value.empty()) {
+        //             muuk::logger::error("Error: [[{}]] section must contain a 'name' key.", current_section);
+        //             throw std::runtime_error("Invalid TOML format: Missing 'name' in array-of-tables.");
+        //         }
 
-            current_section = current_section + "." + name_value;
-            section_order_.push_back(current_section);
-        }
+        //         current_section = current_section + "." + name_value;
+        //         section_order_.push_back(current_section);
+        //     }
     }
 
     // Save last section

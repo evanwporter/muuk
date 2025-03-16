@@ -128,6 +128,22 @@ std::string Package::serialize() const {
     print_array(toml_stream, "libs", libs);
     print_array(toml_stream, "modules", modules);
     print_array(toml_stream, "dependencies", deps);
+    if (!dependencies_.empty()) {
+        toml_stream << "dependencies2 = [\n";
+
+        for (const auto& [dep_name, versions] : dependencies_) {
+            for (const auto& [dep_version, dep_ptr] : versions) {
+                if (!dep_ptr) {
+                    muuk::logger::warn("Skipping dependency '{}' (version '{}') due to null pointer.", dep_name, dep_version);
+                    continue;
+                }
+
+                toml_stream << "  { name = \"" << dep_name << "\", version = \"" << dep_version << "\" },\n";
+            }
+        }
+
+        toml_stream << "]\n";
+    }
     print_array(toml_stream, "profiles", inherited_profiles);
 
     if (!platform_.empty()) {
