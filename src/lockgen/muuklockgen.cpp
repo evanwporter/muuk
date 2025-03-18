@@ -24,15 +24,13 @@ MuukLockGenerator::MuukLockGenerator(const std::string& base_path) :
     muuk::logger::trace("MuukLockGenerator initialized with base path: {}", base_path_);
 
     resolved_packages = {};
-
-    module_parser_ = std::make_unique<MuukModuleParser>(base_path);
 }
 
 // Parse a single muuk.toml file representing a package
 void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
     muuk::logger::trace("Attempting to parse muuk.toml: {}", path);
     if (!fs::exists(path)) {
-        muuk::logger::error("Error: '{}' not found!", path);
+        muuk::logger::error("Failed to locate 'muuk.toml' at path '{}'. Check if the file exists.", path);
         return;
     }
 
@@ -50,7 +48,13 @@ void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
     }
 
     std::string package_name = data["package"]["name"].value_or<std::string>("unknown");
-    std::string package_version = data["package"]["version"].value_or<std::string>("0.0.0");
+
+    const auto package_version_result = data["package"]["version"].value<std::string>();
+    if (!package_version_result) {
+        muuk::logger::warn("Version not specified for base package '{}'.", package_name);
+        return;
+    }
+    const auto& package_version = package_version_result.value_or("0.0.0");
 
     muuk::logger::info("Parsing muuk.toml for package: {} ({})", package_name, package_version);
 
@@ -60,7 +64,11 @@ void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
         package_version,
         path);
 
-    auto package = std::make_shared<Package>(std::string(package_name), std::string(package_version), fs::path(path).parent_path().string(), "library");
+    auto package = std::make_shared<Package>(
+        package_name,
+        package_version,
+        fs::path(path).parent_path().string(),
+        "library");
 
     Try(parse_dependencies(data, package));
     if (data.contains("library") && data["library"].is_table())
@@ -113,11 +121,11 @@ tl::expected<void, std::string> MuukLockGenerator::resolve_dependencies(const st
                 }
 
                 if (!package_opt) {
-                    muuk::logger::error("Error: Package '{}' not found after parsing '{}'.", package_name, *search_path);
+                    muuk::logger::error("Package '{}' not found after parsing '{}'.", package_name, *search_path);
                     return Err("");
                 }
             } else {
-                muuk::logger::error("Error: Search file '{}' for '{}' does not exist.", search_file.string(), package_name);
+                muuk::logger::error("Search file '{}' for '{}' does not exist.", search_file.string(), package_name);
                 return Err("");
             }
         } else {
@@ -268,9 +276,11 @@ void MuukLockGenerator::generate_lockfile(const std::string& output_path) {
     }
 
     // TODO: Return Err if unknown
-    std::string base_package_name = base_data["package"]["name"].value_or<std::string>("unknown");
-    std::string base_package_version = base_data["package"]["version"].value_or<std::string>("0.0.0");
+    const std::string base_package_name = base_data["package"]["name"].value_or<std::string>("unknown");
+    const std::string base_package_version = base_data["package"]["version"].value_or<std::string>("0.0.0");
     muuk::logger::info("Base package name extracted: {}, version: {}", base_package_name, base_package_version);
+
+    const auto& base_package_dep = Dependency::from_toml(base_data);
 
     // Resolve dependencies for the base package
     resolve_dependencies(base_package_name, base_package_version);
@@ -316,6 +326,7 @@ void MuukLockGenerator::generate_lockfile(const std::string& output_path) {
         }
 
         build->deps.insert(base_package_name);
+        build->deps_all_[base_package_name][base_package_version] = std::make_shared<Dependency>(base_package_dep);
         build->merge(*base_package_);
     }
 
@@ -368,20 +379,6 @@ std::optional<std::shared_ptr<Package>> MuukLockGenerator::find_package(const st
         return builds[package_name];
     }
     return std::nullopt;
-}
-
-// Processes the given module paths and adds the resolved modules to the package.
-void MuukLockGenerator::process_modules(const std::vector<std::string>& module_paths, Package& package) {
-    muuk::logger::info("Processing modules for package: {}", package.name);
-
-    module_parser_->parseAllModules(module_paths);
-
-    std::vector<std::string> resolved_modules = module_parser_->resolveAllModules();
-
-    for (const auto& mod : resolved_modules) {
-        package.modules.push_back(mod);
-        muuk::logger::info("Resolved and added module '{}' to package '{}'", mod, package.name);
-    }
 }
 
 // Resolves system dependencies by checking for include and library paths for the given package name.

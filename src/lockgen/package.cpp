@@ -7,6 +7,8 @@
 #include "muuklockgen.h"
 #include "util.h"
 
+namespace fs = std::filesystem;
+
 template <typename Container>
 static void print_array(std::ostringstream& stream, std::string_view key, const Container& values, bool new_line_at_end = true) {
     stream << key << " = [";
@@ -49,6 +51,19 @@ void Package::merge(const Package& child_pkg) {
     system_include.insert(child_pkg.system_include.begin(), child_pkg.system_include.end());
 
     deps.insert(child_pkg.deps.begin(), child_pkg.deps.end());
+
+    if (deps_all_.empty()) {
+        for (const auto& [dep_name, versions] : dependencies_) {
+            for (const auto& [dep_version, dep_ptr] : versions) {
+                if (dep_ptr) {
+                    deps_all_[dep_name][dep_version] = std::make_shared<Dependency>(*dep_ptr);
+                }
+            }
+        }
+    }
+    deps_all_.insert(
+        child_pkg.deps_all_.begin(),
+        child_pkg.deps_all_.end());
 
     for (const auto& [compiler, flags] : child_pkg.compiler_) {
         for (const auto& [flag_type, flag_values] : flags) {
@@ -128,22 +143,13 @@ std::string Package::serialize() const {
     print_array(toml_stream, "libs", libs);
     print_array(toml_stream, "modules", modules);
     print_array(toml_stream, "dependencies", deps);
-    if (!dependencies_.empty()) {
-        toml_stream << "dependencies2 = [\n";
 
-        for (const auto& [dep_name, versions] : dependencies_) {
-            for (const auto& [dep_version, dep_ptr] : versions) {
-                if (!dep_ptr) {
-                    muuk::logger::warn("Skipping dependency '{}' (version '{}') due to null pointer.", dep_name, dep_version);
-                    continue;
-                }
-
-                toml_stream << "  { name = \"" << dep_name << "\", version = \"" << dep_version << "\" },\n";
-            }
-        }
-
-        toml_stream << "]\n";
+    if (package_type == "build") {
+        serialize_dependencies(toml_stream, deps_all_, "dependencies2");
+    } else {
+        serialize_dependencies(toml_stream, dependencies_, "dependencies2");
     }
+
     print_array(toml_stream, "profiles", inherited_profiles);
 
     if (!platform_.empty()) {
@@ -189,4 +195,25 @@ void Package::enable_features(const std::unordered_set<std::string>& feature_set
             muuk::logger::warn("Feature '{}' not found in package '{}'", feature, name);
         }
     }
+}
+
+void Package::serialize_dependencies(std::ostringstream& toml_stream, const DependencyVersionMap<std::shared_ptr<Dependency>> dependencies_, const std::string section_name) {
+    if (dependencies_.empty()) {
+        return;
+    }
+
+    toml_stream << section_name << " = [\n";
+
+    for (const auto& [dep_name, versions] : dependencies_) {
+        for (const auto& [dep_version, dep_ptr] : versions) {
+            if (!dep_ptr) {
+                muuk::logger::warn("Skipping dependency '{}' (version '{}') due to null pointer.", dep_name, dep_version);
+                continue;
+            }
+
+            toml_stream << "  { name = \"" << dep_name << "\", version = \"" << dep_version << "\" },\n";
+        }
+    }
+
+    toml_stream << "]\n";
 }

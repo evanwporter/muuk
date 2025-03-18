@@ -208,6 +208,7 @@ void NinjaBackend::write_header(std::ostringstream& out, std::string profile) {
 }
 
 void NinjaBackend::generate_build_rules(std::ostringstream& out, const std::string& target_build) {
+    (void)target_build;
     std::ostringstream build_rules;
 
     // Generate compilation rules
