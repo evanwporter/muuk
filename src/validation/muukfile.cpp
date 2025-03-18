@@ -34,10 +34,7 @@ namespace muuk {
         return Err("Unknown TOML type");
     }
 
-    Result<void> validate_toml_(
-        const toml::table& toml_data,
-        const SchemaMap& schema,
-        std::string parent_path = "") {
+    Result<void> validate_toml_(const toml::table& toml_data, const SchemaMap& schema, std::string parent_path = "") {
 
         bool has_wildcard = schema.contains("*");
         const SchemaNode* wildcard_schema = has_wildcard ? &schema.at("*") : nullptr;
@@ -75,11 +72,23 @@ namespace muuk {
                     return Err("Invalid array at {}", full_path);
                 }
 
-                TomlType expected_type = std::get<TomlArray>(schema_node.type).element_type;
+                const TomlArray& expected_array = std::get<TomlArray>(schema_node.type);
+
                 for (const auto& item : *arr) {
                     auto item_type = get_toml_type(item);
-                    if (!item_type || *item_type != expected_type) {
+                    if (!item_type || *item_type != expected_array.element_type) {
                         return Err("Invalid element type in array at {}", full_path);
+                    }
+
+                    // If it's an array of tables, validate each table
+                    if (expected_array.element_type == TomlType::Table && expected_array.table_schema) {
+                        auto tbl = item.as_table();
+                        if (!tbl)
+                            return Err("Expected a table in array at {}", full_path);
+
+                        auto result = validate_toml_(*tbl, *expected_array.table_schema, full_path + "[]");
+                        if (!result)
+                            return result;
                     }
                 }
             }
@@ -162,13 +171,7 @@ namespace muuk {
     };
 
     Result<void> validate_muuk_lock_toml(const toml::table& toml_data) {
-        // SchemaMap schema = SchemaMap {
-        //     { "library", { false, TomlType::Table, std::nullopt, SchemaMap { { "*", { false, TomlType::Table, std::nullopt, SchemaMap { { "include", { false, TomlType::Array, std::vector<TomlType> { TomlType::String }, std::nullopt } }, { "source", { false, TomlType::Array, std::vector<TomlType> { TomlType::String }, std::nullopt } }, { "cflags", { false, TomlType::Array, std::vector<TomlType> { TomlType::String }, std::nullopt } }, { "system_include", { false, TomlType::Array, std::vector<TomlType> { TomlType::String }, std::nullopt } }, { "dependencies", { false, TomlType::Array, std::vector<TomlType> { TomlType::String }, std::nullopt } } } } } } } },
-        //     { "build", { false, TomlType::Table, std::nullopt, SchemaMap { { "*", { false, TomlType::Table, std::nullopt, SchemaMap { { "include", { false, TomlType::Array, std::vector<TomlType> { TomlType::String }, std::nullopt } }, { "cflags", { false, TomlType::Array, std::vector<TomlType> { TomlType::String }, std::nullopt } }, { "system_include", { false, TomlType::Array, std::vector<TomlType> { TomlType::String }, std::nullopt } }, { "dependencies", { false, TomlType::Table, std::nullopt, SchemaMap {} } } } } } } } },
-        //     { "dependencies", { false, TomlType::Table, std::nullopt, SchemaMap { { "*", { false, TomlType::Table, std::nullopt, SchemaMap { { "git", { true, TomlType::String, std::nullopt, std::nullopt } }, { "muuk_path", { true, TomlType::String, std::nullopt, std::nullopt } }, { "version", { true, TomlType::String, std::nullopt, std::nullopt } } } } } } } }
-        // };
-
-        return {}; // validate_toml_(toml_data, schema);
+        return validate_toml_(toml_data, muuk_lock_schema);
     }
 
 } // namespace muuk

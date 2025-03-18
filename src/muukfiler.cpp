@@ -74,7 +74,6 @@ void MuukFiler::parse() {
     std::string line, current_section;
     std::stringstream section_data;
     bool new_section_started = false;
-    bool is_array_of_tables = false;
 
     while (std::getline(file, line)) {
         std::string trimmed = util::trim_whitespace(line);
@@ -85,19 +84,28 @@ void MuukFiler::parse() {
 
         // Detect arrays of tables [[section]]
         if (trimmed.starts_with("[[") && trimmed.ends_with("]]")) {
-            if (!current_section.empty()) {
-                if (is_array_of_tables) {
-                    array_sections_[current_section].push_back(toml::parse(section_data.str()));
-                } else {
-                    sections_[current_section] = toml::parse(section_data.str());
+            if (current_section == "build") {
+                auto parsed_data = toml::parse(section_data.str());
+                if (parsed_data.contains("name")) {
+                    std::string build_name = parsed_data.at("name").value<std::string>().value_or("");
+                    build_sections_[build_name] = parsed_data;
                 }
+            } else if (current_section == "library") {
+                auto parsed_data = toml::parse(section_data.str());
+                if (parsed_data.contains("name") && parsed_data.contains("version")) {
+                    std::string library_name = parsed_data.at("name").value<std::string>().value_or("");
+                    std::string version = parsed_data.at("version").value<std::string>().value_or("");
+                    library_sections_[library_name][version] = parsed_data;
+                }
+            }
+            if (!current_section.empty()) {
+                array_sections_[current_section].push_back(toml::parse(section_data.str()));
                 section_data.str("");
                 section_data.clear();
             }
 
             // Extract section name
             current_section = trimmed.substr(2, trimmed.size() - 4);
-            is_array_of_tables = true;
             new_section_started = true;
             continue;
         }
@@ -106,13 +114,27 @@ void MuukFiler::parse() {
         if (trimmed.starts_with("[") && trimmed.ends_with("]") && !trimmed.starts_with("[[")) {
             // Save previous section data
             if (!current_section.empty()) {
-                sections_[current_section] = toml::parse(section_data.str());
+                if (current_section == "build") {
+                    auto parsed_data = toml::parse(section_data.str());
+                    if (parsed_data.contains("name")) {
+                        std::string build_name = parsed_data.at("name").value<std::string>().value_or("");
+                        build_sections_[build_name] = parsed_data;
+                    }
+                } else if (current_section == "library") {
+                    auto parsed_data = toml::parse(section_data.str());
+                    if (parsed_data.contains("name") && parsed_data.contains("version")) {
+                        std::string library_name = parsed_data.at("name").value<std::string>().value_or("");
+                        std::string version = parsed_data.at("version").value<std::string>().value_or("");
+                        library_sections_[library_name][version] = parsed_data;
+                    }
+                } else {
+                    sections_[current_section] = toml::parse(section_data.str());
+                }
                 section_data.str("");
                 section_data.clear();
             }
 
             current_section = trimmed.substr(1, trimmed.size() - 2);
-            is_array_of_tables = false;
             new_section_started = true;
             section_order_.push_back(current_section);
             continue;
@@ -125,25 +147,26 @@ void MuukFiler::parse() {
         }
 
         section_data << line << "\n";
-
-        //     if (is_array_of_tables && trimmed.starts_with("name =")) {
-        //         std::string name_value = trimmed.substr(7);
-        //         name_value = util::trim_whitespace(name_value);
-        //         name_value.erase(std::remove(name_value.begin(), name_value.end(), '\"'), name_value.end()); // Remove quotes if present
-
-        //         if (name_value.empty()) {
-        //             muuk::logger::error("Error: [[{}]] section must contain a 'name' key.", current_section);
-        //             throw std::runtime_error("Invalid TOML format: Missing 'name' in array-of-tables.");
-        //         }
-
-        //         current_section = current_section + "." + name_value;
-        //         section_order_.push_back(current_section);
-        //     }
     }
 
     // Save last section
     if (!current_section.empty()) {
-        sections_[current_section] = toml::parse(section_data.str());
+        if (current_section == "build") {
+            auto parsed_data = toml::parse(section_data.str());
+            if (parsed_data.contains("name")) {
+                std::string build_name = parsed_data.at("name").value<std::string>().value_or("");
+                build_sections_[build_name] = parsed_data;
+            }
+        } else if (current_section == "library") {
+            auto parsed_data = toml::parse(section_data.str());
+            if (parsed_data.contains("name") && parsed_data.contains("version")) {
+                std::string library_name = parsed_data.at("name").value<std::string>().value_or("");
+                std::string version = parsed_data.at("version").value<std::string>().value_or("");
+                library_sections_[library_name][version] = parsed_data;
+            }
+        } else {
+            sections_[current_section] = toml::parse(section_data.str());
+        }
     }
 
     // Logging to verify correct sections

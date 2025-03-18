@@ -35,6 +35,14 @@ void BuildParser::parse() {
 void BuildParser::parse_compilation_targets() {
     const auto& config_sections = muuk_filer->get_array_section();
 
+    // const auto& build_sections = muuk_filer->get_build_section();
+    // const auto& library_sections = muuk_filer->get_library_section();
+
+    // if (build_sections.empty()) {
+    //     muuk::logger::error("No build sections found.");
+    //     return;
+    // }
+
     if (config_sections.empty()) {
         muuk::logger::error("No configuration sections found.");
         return;
@@ -50,7 +58,7 @@ void BuildParser::parse_compilation_targets() {
         return;
     }
 
-    for (const auto& name : { "build", "library" }) {
+    for (std::string name : { "build", "library" }) {
         auto section = config_sections.at(name);
 
         for (const auto& package_table : section) {
@@ -68,9 +76,15 @@ void BuildParser::parse_compilation_targets() {
             }
 
             const auto package_name = package_table.at("name").value<std::string>().value();
-            const auto package_version = package_table.at("name").value<std::string>().value();
+            const auto package_version = package_table.at("version").value<std::string>().value();
+            // const fs::path pkg_dir = build_dir / package_name / package_version;
 
-            const fs::path pkg_dir = build_dir / package_name / package_version;
+            fs::path pkg_dir;
+            if (std::string(name) == "build") {
+                pkg_dir = build_dir / package_name;
+            } else {
+                pkg_dir = build_dir / package_name / package_version;
+            }
 
             // Ninja creates this I believe
             // TODO: only create if theres anything that will be put there
@@ -173,55 +187,49 @@ void BuildParser::parse_compilation_targets() {
 }
 
 void BuildParser::parse_libraries() {
-    const auto& config_sections = muuk_filer->get_sections();
+    const auto& library_sections = muuk_filer->get_library_section();
 
-    for (const auto& [package_name, package_table] : config_sections) {
-        if (!package_name.starts_with("library"))
-            continue;
+    for (const auto& [library_name, versions] : library_sections) {
+        for (const auto& [library_version, library_table] : versions) {
+            std::string lib_path = util::to_linux_path(
+                (build_dir / library_name / library_version / (library_name + LIB_EXT)).string(),
+                "../../");
 
-        std::string lib_name = package_name.substr(8);
-        std::string lib_path = util::to_linux_path(
-            (build_dir / lib_name / (lib_name + LIB_EXT)).string(),
-            "../../");
+            std::vector<std::string> obj_files;
+            if (library_table.contains("sources")) {
+                auto sources = library_table.at("sources").as_array();
+                if (sources) {
+                    for (const auto& src_entry : *sources) {
+                        if (!src_entry.is_table())
+                            continue;
+                        auto source_table = src_entry.as_table();
+                        if (!source_table->contains("path"))
+                            continue;
 
-        std::vector<std::string> obj_files;
-        if (package_table.contains("sources")) {
-            auto sources = package_table.at("sources").as_array();
-            if (sources) {
-                for (const auto& src_entry : *sources) {
-                    if (!src_entry.is_table())
-                        continue;
-                    auto source_table = src_entry.as_table();
-                    if (!source_table->contains("path"))
-                        continue;
-
-                    std::string obj_file = util::to_linux_path(
-                        (build_dir / lib_name / std::filesystem::path(*source_table->at("path").value<std::string>()).stem()).string() + OBJ_EXT,
-                        "../../");
-                    obj_files.push_back(obj_file);
+                        std::string obj_file = util::to_linux_path(
+                            (build_dir / library_name / library_version / std::filesystem::path(*source_table->at("path").value<std::string>()).stem()).string() + OBJ_EXT,
+                            "../../");
+                        obj_files.push_back(obj_file);
+                    }
                 }
             }
+
+            std::vector<std::string> aflags = MuukFiler::parse_array_as_vec(library_table, "aflags");
+            muuk::normalize_flags_inplace(aflags, compiler);
+            build_manager->add_archive_target(lib_path, obj_files, aflags);
+
+            muuk::logger::info("Added library target: {}", lib_path);
+            muuk::logger::trace("  - Object Files: {}", fmt::join(obj_files, ", "));
+            muuk::logger::trace("  - Archive Flags: {}", fmt::join(aflags, ", "));
         }
-
-        std::vector<std::string> aflags = MuukFiler::parse_array_as_vec(package_table, "aflags");
-        muuk::normalize_flags_inplace(aflags, compiler);
-        build_manager->add_archive_target(lib_path, obj_files, aflags);
-
-        muuk::logger::info("Added library target: {}", lib_path);
-        muuk::logger::trace("  - Object Files: {}", fmt::join(obj_files, ", "));
-        muuk::logger::trace("  - Archive Flags: {}", fmt::join(aflags, ", "));
     }
 }
 
 void BuildParser::parse_executables() {
-    const auto& config_sections = muuk_filer->get_sections();
+    const auto& build_sections = muuk_filer->get_build_section();
+    const auto& library_sections = muuk_filer->get_library_section();
 
-    for (const auto& [build_name, build_table] : config_sections) {
-        if (!build_name.starts_with("build."))
-            continue;
-
-        std::string executable_name = build_name.substr(6); // Remove "build." prefix
-
+    for (const auto& [executable_name, build_table] : build_sections) {
         if (build_table.contains("profiles")) {
             auto profiles = build_table.at("profiles").as_array();
             if (profiles) {
@@ -275,21 +283,24 @@ void BuildParser::parse_executables() {
             }
         }
 
+        // EXES REQUIRE MERGED DEPENDENCIES
+        // MODULES ONLY REQUIRE DIRECT DEPENDENCIES
         // Collect all dependencies (libraries & header-only includes)
-        if (build_table.contains("dependencies") && build_table.at("dependencies").is_array()) {
-            auto dependencies = build_table.at("dependencies").as_array();
+        if (build_table.contains("dependencies2") && build_table.at("dependencies2").is_array()) {
+            auto dependencies = build_table.at("dependencies2").as_array();
             if (dependencies) {
                 for (const auto& dep : *dependencies) {
-                    std::string lib_name = *dep.value<std::string>();
+                    std::string library_name = dep.as_table()->at("name").value<std::string>().value();
+                    std::string library_version = dep.as_table()->at("version").value<std::string>().value();
 
                     // Check if the library has sources (meaning it's a compiled library)
-                    if (config_sections.contains("library." + lib_name)) {
-                        const auto& lib_table = config_sections.at("library." + lib_name);
+                    if (library_sections.contains(library_name) && library_sections.at(library_name).contains(library_version)) {
+                        const auto& lib_table = library_sections.at(library_name).at(library_version);
 
                         if (lib_table.contains("sources")) {
                             // Library has sources, so we expect a .lib file
                             std::string lib_path = util::to_linux_path(
-                                (build_dir / lib_name / (lib_name + LIB_EXT)).string(),
+                                (build_dir / library_name / library_version / (library_name + LIB_EXT)).string(),
                                 "../../");
                             libs.push_back(lib_path);
                         }

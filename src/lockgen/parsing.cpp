@@ -1,3 +1,4 @@
+#include <filesystem>
 #include <memory>
 #include <string>
 
@@ -8,6 +9,8 @@
 #include "muukfiler.h"
 #include "muuklockgen.h"
 #include "rustify.hpp"
+
+namespace fs = std::filesystem;
 
 void MuukLockGenerator::parse_flags(const toml::table& profile_data, const std::string& profile_name, const std::string& flag_type) {
     if (profile_data.contains(flag_type) && profile_data.at(flag_type).is_array()) {

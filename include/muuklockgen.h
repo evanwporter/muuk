@@ -7,8 +7,9 @@
 #include <unordered_set>
 #include <vector>
 
+#include <magic_enum/magic_enum.hpp>
+
 #include "muukfiler.h"
-#include "muukmoduleparser.hpp"
 #include "rustify.hpp"
 
 enum class LinkType {
@@ -21,42 +22,45 @@ enum class PackageType {
     BUILD
 };
 
-struct BaseConfig {
-    std::unordered_set<std::string> cflags;
-    std::unordered_set<std::string> libflags;
-    std::unordered_set<std::string> lflags;
-
-    std::unordered_set<std::string> include;
-    std::unordered_set<std::string> libs;
-    std::unordered_set<std::string> defines;
-
-    std::vector<std::pair<std::string, std::unordered_set<std::string>>> sources;
-};
-
-typedef BaseConfig LinkArgs;
-typedef std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_set<std::string>>> Profiles;
-
-// class Profile {
+// class PackageType {
 // public:
-//     Profile(
-//         const std::string& name,
-//         const std::string& version,
-//         const std::string& base_path,
-//         const std::string& package_type
-//     );
+//     enum class Type {
+//         LIBRARY,
+//         BUILD
+//     };
 
-//     void add_include_path(const std::string& path);
+//     static const PackageType LIBRARY;
+//     static const PackageType BUILD;
 
-//     void merge(const Package& child_pkg);
+//     explicit PackageType(Type type) :
+//         type_(type) { }
 
-//     std::string serialize() const;
+//     static std::string to_string(Type type) {
+//         return std::string(magic_enum::enum_name(type));
+//     }
 
-//     std::string name;
+//     std::string to_string() const {
+//         return to_string(type_);
+//     }
 
-//     std::unordered_set<std::string> cflags;
-//     std::unordered_set<std::string> libflags;
-//     std::unordered_set<std::string> lflags;
+//     // Convert string to PackageType
+//     static PackageType from_string(const std::string& typeStr) {
+//         auto result = magic_enum::enum_cast<Type>(typeStr);
+//         return PackageType(result.value_or(Type::LIBRARY)); // Default to LIBRARY if not found
+//     }
+
+//     bool operator==(const PackageType& other) const { return type_ == other.type_; }
+//     bool operator!=(const PackageType& other) const { return type_ != other.type_; }
+
+// private:
+//     Type type_;
 // };
+
+// const PackageType PackageType::LIBRARY(PackageType::Type::LIBRARY);
+// const PackageType PackageType::BUILD(PackageType::Type::BUILD);
+
+typedef std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_set<std::string>>>
+    Profiles;
 
 struct Feature {
     std::unordered_set<std::string> defines;
@@ -149,12 +153,16 @@ public:
 
     // Reference the dependency held in the MuukLockGen
     DependencyVersionMap<std::shared_ptr<Dependency>> dependencies_;
+    DependencyVersionMap<std::shared_ptr<Dependency>> deps_all_;
 
     std::unordered_set<std::string> deps;
 
     std::unordered_map<std::string, Feature> features;
 
     LinkType link_type = LinkType::STATIC;
+
+private:
+    static void serialize_dependencies(std::ostringstream& toml_stream, const DependencyVersionMap<std::shared_ptr<Dependency>> dependencies_, const std::string section_name);
 };
 
 // { Dependency { Versioning { Package } } }
@@ -174,7 +182,6 @@ private:
     std::shared_ptr<Package> base_package_;
 
     std::shared_ptr<spdlog::logger> logger_;
-    std::unique_ptr<MuukModuleParser> module_parser_;
 
     // Meant to be a general reference for packages to refer to
     DependencyVersionMap<std::shared_ptr<Dependency>> dependencies_;
@@ -217,11 +224,6 @@ private:
     void search_and_parse_dependency(
         const std::string& package_name,
         const std::string& version);
-
-    // TODO: Use or Remove
-    void process_modules(
-        const std::vector<std::string>& module_paths,
-        Package& package);
 
     std::optional<std::shared_ptr<Package>> find_package(
         const std::string& package_name,

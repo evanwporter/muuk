@@ -53,6 +53,24 @@ public:
         return array_sections_;
     }
 
+    std::unordered_map<std::string, toml::table>& get_build_section() {
+        return build_sections_;
+    }
+
+    std::unordered_map<std::string, std::unordered_map<std::string, toml::table>>& get_library_section() {
+        return library_sections_;
+    }
+
+    std::optional<toml::table> get_library_section(const std::string& library_name, const std::string& version) {
+        if (library_sections_.find(library_name) != library_sections_.end()) {
+            auto& versions = library_sections_.at(library_name);
+            if (versions.find(version) != versions.end()) {
+                return versions.at(version);
+            }
+        }
+        return std::nullopt;
+    }
+
     static Result<MuukFiler> create(std::shared_ptr<IFileOperations> file_ops, bool is_lock_file = false);
 
     static Result<MuukFiler> create(const std::string& config_file, bool is_lock_file = false);
@@ -62,6 +80,8 @@ public:
 
 private:
     void parse();
+    std::unordered_map<std::string, toml::table> build_sections_;
+    DependencyVersionMap<toml::table> library_sections_;
 };
 
 #endif // MUUK_FILER_H
