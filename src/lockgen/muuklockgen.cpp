@@ -68,7 +68,7 @@ void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
         package_name,
         package_version,
         fs::path(path).parent_path().string(),
-        "library");
+        PackageType::LIBRARY);
 
     Try(parse_dependencies(data, package));
     if (data.contains("library") && data["library"].is_table())
@@ -336,11 +336,11 @@ void MuukLockGenerator::generate_lockfile(const std::string& output_path) {
             continue;
 
         const auto package = package_opt.value();
-        const std::string package_type = package->package_type;
+        const auto package_type = package->package_type;
 
         const std::string package_table = package->serialize();
 
-        lockfile << "[[" << package_type << "]]\nname = \"" << package_name << "\"\n";
+        lockfile << "[[" << package_type.to_string() << "]]\nname = \"" << package_name << "\"\n";
         lockfile << package_table << "\n";
 
         muuk::logger::info("Written package '{}' to lockfile.", package_name);

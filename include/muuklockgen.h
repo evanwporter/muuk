@@ -17,47 +17,48 @@ enum class LinkType {
     SHARED
 };
 
-enum class PackageType {
-    LIBRARY,
-    BUILD
-};
-
-// class PackageType {
-// public:
-//     enum class Type {
-//         LIBRARY,
-//         BUILD
-//     };
-
-//     static const PackageType LIBRARY;
-//     static const PackageType BUILD;
-
-//     explicit PackageType(Type type) :
-//         type_(type) { }
-
-//     static std::string to_string(Type type) {
-//         return std::string(magic_enum::enum_name(type));
-//     }
-
-//     std::string to_string() const {
-//         return to_string(type_);
-//     }
-
-//     // Convert string to PackageType
-//     static PackageType from_string(const std::string& typeStr) {
-//         auto result = magic_enum::enum_cast<Type>(typeStr);
-//         return PackageType(result.value_or(Type::LIBRARY)); // Default to LIBRARY if not found
-//     }
-
-//     bool operator==(const PackageType& other) const { return type_ == other.type_; }
-//     bool operator!=(const PackageType& other) const { return type_ != other.type_; }
-
-// private:
-//     Type type_;
+// enum class PackageType {
+//     LIBRARY,
+//     BUILD
 // };
 
-// const PackageType PackageType::LIBRARY(PackageType::Type::LIBRARY);
-// const PackageType PackageType::BUILD(PackageType::Type::BUILD);
+class PackageType {
+public:
+    enum class Type {
+        LIBRARY,
+        BUILD
+    };
+
+    static const PackageType LIBRARY;
+    static const PackageType BUILD;
+
+    explicit PackageType(Type type) :
+        type_(type) { }
+
+    static std::string to_string(Type type) {
+        if (type == Type::BUILD) {
+            return "build";
+        } else {
+            return "library";
+        }
+    }
+
+    std::string to_string() const {
+        return to_string(type_);
+    }
+
+    // Convert string to PackageType
+    static PackageType from_string(const std::string& typeStr) {
+        auto result = magic_enum::enum_cast<Type>(typeStr);
+        return PackageType(result.value_or(Type::LIBRARY)); // Default to LIBRARY if not found
+    }
+
+    bool operator==(const PackageType& other) const { return type_ == other.type_; }
+    bool operator!=(const PackageType& other) const { return type_ != other.type_; }
+
+private:
+    Type type_;
+};
 
 typedef std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_set<std::string>>>
     Profiles;
@@ -125,7 +126,7 @@ public:
         const std::string& name,
         const std::string& version,
         const std::string& base_path,
-        const std::string& package_type);
+        const PackageType package_type);
 
     void add_include_path(const std::string& path);
 
@@ -137,7 +138,7 @@ public:
     std::string name;
     std::string version;
     std::string base_path;
-    std::string package_type; // "library" or "build"
+    PackageType package_type; // "library" or "build"
 
     std::unordered_set<std::string> include;
     std::unordered_set<std::string> system_include;

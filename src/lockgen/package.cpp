@@ -9,6 +9,9 @@
 
 namespace fs = std::filesystem;
 
+const PackageType PackageType::LIBRARY(PackageType::Type::LIBRARY);
+const PackageType PackageType::BUILD(PackageType::Type::BUILD);
+
 template <typename Container>
 static void print_array(std::ostringstream& stream, std::string_view key, const Container& values, bool new_line_at_end = true) {
     stream << key << " = [";
@@ -27,7 +30,7 @@ static void print_array(std::ostringstream& stream, std::string_view key, const 
     }
 }
 
-Package::Package(const std::string& name, const std::string& version, const std::string& base_path, const std::string& package_type) :
+Package::Package(const std::string& name, const std::string& version, const std::string& base_path, const PackageType package_type) :
     name(name),
     version(version),
     base_path(base_path),
@@ -144,7 +147,7 @@ std::string Package::serialize() const {
     print_array(toml_stream, "modules", modules);
     print_array(toml_stream, "dependencies", deps);
 
-    if (package_type == "build") {
+    if (package_type == PackageType::BUILD) {
         serialize_dependencies(toml_stream, deps_all_, "dependencies2");
     } else {
         serialize_dependencies(toml_stream, dependencies_, "dependencies2");

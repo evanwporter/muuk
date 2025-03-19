@@ -183,7 +183,7 @@ Result<void> MuukLockGenerator::parse_builds(const toml::table& data, const std:
                 std::string(build_name.str()),
                 std::string(package_version),
                 fs::path(path).parent_path().string(),
-                "build");
+                PackageType::BUILD);
 
             parse_library(*build_info.as_table(), build_package);
             parse_dependencies(*build_info.as_table(), build_package);
