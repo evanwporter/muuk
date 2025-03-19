@@ -33,6 +33,7 @@ sources = [
 [dependencies]
 compile-time-regular-expressions = { git = 'https://github.com/hanickadot/compile-time-regular-expressions.git', version = 'a9418a5d8bd60afa0b71565ab95c16b1eab168e7' }
 expected = { git = 'https://github.com/TartanLlama/expected.git', version = '41d3e1f48d682992a2230b2a715bca38b848b269' }
+magic_enum = { version = "a413fcc9c46a020a746907136a384c227f3cd095" }
 fmt = { git = 'https://github.com/fmtlib/fmt.git', version = '577fd3be883accf8629423ed77fcca8a24bccee2' }
 glob = { git = 'https://github.com/p-ranav/glob.git', version = 'd025092c0e1eb1a8b226d3a799fd32680d2fd13f' }
 json = { git = 'https://github.com/nlohmann/json.git', version = '0b6881a95f8aaf60bd2324ecdf2258a65bf33baf' }
@@ -79,13 +80,13 @@ inherits = ['base']
 lflags = ['/OPT:REF', '/OPT:ICF', '/LTCG']
 
 [profile.release_x86]
-inherits = 'release'
+inherits = ['release']
 lflags = ['/MACHINE:X86']
 
 [profile.debug]
 cflags = ['/Od', '/DDEBUG', '/Zi', '/RTC1', '/FC', '/GS']
 default = true
 include = ['include']
-inherits = 'base'
+inherits = ['base']
 lflags = ['/DEBUG', '/MACHINE:X86']
 libs = []
