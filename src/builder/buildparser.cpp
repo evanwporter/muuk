@@ -303,9 +303,6 @@ std::vector<std::string> BuildParser::extract_platform_flags(const toml::table& 
             return flags;
 
         flags = MuukFiler::parse_array_as_vec(*platform_entry, "cflags");
-
-    } else {
-        muuk::logger::warn("No configuration found for platform '{}'.", detected_platform);
     }
 
     return flags;
@@ -329,8 +326,6 @@ std::vector<std::string> BuildParser::extract_compiler_flags(const toml::table& 
             return flags;
 
         flags = MuukFiler::parse_array_as_vec(*compiler_entry, "cflags");
-    } else {
-        muuk::logger::warn("No configuration found for compiler '{}'.", compiler_);
     }
 
     return flags;
