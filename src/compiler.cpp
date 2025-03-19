@@ -46,6 +46,7 @@ namespace muuk {
         case Type::MSVC:
             return "cl";
         }
+        return "clang++";
     }
 
     // Detect archiver based on compiler
@@ -58,6 +59,7 @@ namespace muuk {
         case Type::GCC:
             return "ar";
         }
+        return "llvm-ar";
     }
 
     // Detect linker based on compiler
@@ -69,6 +71,7 @@ namespace muuk {
         case Type::GCC:
             return to_string(); // Compiler acts as linker
         }
+        return to_string();
     }
 
     const Edition Edition::Cpp98(Edition::Year::Cpp98);
@@ -81,7 +84,7 @@ namespace muuk {
     const Edition Edition::Cpp26(Edition::Year::Cpp26);
     const Edition Edition::Unknown(Edition::Year::Unknown);
 
-    std::optional<Edition::Year> Edition::from_string(const std::string& str) {
+    std::optional<Edition> Edition::from_string(const std::string& str) {
         static const std::unordered_map<std::string, Year> editionMap = {
             { "98", Year::Cpp98 },
             { "03", Year::Cpp03 },
@@ -107,7 +110,7 @@ namespace muuk {
 
         auto it = editionMap.find(lastTwo);
         if (it != editionMap.end()) {
-            return it->second;
+            return Edition(it->second);
         }
         return std::nullopt;
     }
@@ -164,6 +167,10 @@ namespace muuk {
         } else {
             return gccClangFlags.count(year_) ? gccClangFlags.at(year_) : "-std=c++2b"; // Default for GCC/Clang
         }
+    }
+
+    std::string Edition::to_flag() const {
+        return to_flag(Compiler::GCC); // Default to GCC
     }
 
     namespace compiler {

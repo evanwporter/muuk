@@ -208,7 +208,7 @@ int main(int argc, char* argv[]) {
             // std::string tag = add_command.get<std::string>("--tag");
             // std::string branch = add_command.get<std::string>("--branch");
             std::string git_url = add_command.get<std::string>("--git");
-            std::string muuk_path_dependency = add_command.get<std::string>("--path");
+            std::string muuk_path_dependency = ""; // add_command.get<std::string>("--path");
             std::string target_section = add_command.get<std::string>("--target");
             bool is_system = add_command.get<bool>("--sys");
 
@@ -225,6 +225,11 @@ int main(int argc, char* argv[]) {
                 // branch,
                 is_system,
                 target_section);
+
+            if (!result) {
+                muuk::logger::error("Failed to add dependency: {}", result.error());
+                return 1;
+            }
 
             return 0;
         }

@@ -149,7 +149,7 @@ void NinjaBackend::write_header(std::ostringstream& out, std::string profile) {
 
     if (compiler_ == muuk::Compiler::MSVC) {
         // MSVC Compiler
-        out << "rule module_compile\n"
+        out << "rule compile_module\n"
             << "  command = $cxx /std:c++20 /utf-8 /c /interface $in /Fo$out /IFC:"
             << module_dir << " /ifcOutput "
             << module_dir << " /ifcSearchDir "
@@ -157,13 +157,13 @@ void NinjaBackend::write_header(std::ostringstream& out, std::string profile) {
             << "  description = Compiling C++ module $in\n\n";
     } else if (compiler_ == muuk::Compiler::Clang) {
         // Clang Compiler
-        out << "rule module_compile\n"
-            << "  command = $cxx -std=c++20 -fmodules-ts -c $in -o $out -fmodule-output="
+        out << "rule compile_module\n"
+            << "  command = $cxx -x c++-module -std=c++20 -fmodules-ts -c $in -o $out -fmodule-output="
             << module_dir << " $cflags $profile_cflags\n"
             << "  description = Compiling C++ module $in\n\n";
     } else if (compiler_ == muuk::Compiler::GCC) {
         // GCC Compiler
-        out << "rule module_compile\n"
+        out << "rule compile_module\n"
             << "  command = $cxx -std=c++20 -fmodules-ts -c $in -o $out -fmodule-output="
             << module_dir << " $cflags\n"
             << "  description = Compiling C++ module $in\n\n";

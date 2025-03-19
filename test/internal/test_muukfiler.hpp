@@ -1,14 +1,13 @@
 #pragma once
 
-#include <gtest/gtest.h>
-#include "muukfiler.h"
-#include "logger.h"
-#include "muukvalidator.hpp"
-#include <tl/expected.hpp>
-#include <sstream>
 #include <memory>
 
+#include <tl/expected.hpp>
+
+#include <gtest/gtest.h>
+
 #include "./mocks/mockfileop.hpp"
+#include "muukfiler.h"
 
 // Helper function to create a default TOML content for testing
 std::string get_sample_toml() {
@@ -30,7 +29,7 @@ protected:
 
     void SetUp() override {
         mock_file_ops = std::make_shared<MockFileOperations>();
-        mock_file_ops->write_file(get_sample_toml()); // Set mock file content
+        // mock_file_ops->write_file(get_sample_toml()); // Set mock file content
         muuk_filer = std::make_unique<MuukFiler>(mock_file_ops);
     }
 };
@@ -74,25 +73,33 @@ TEST_F(MuukFilerTest, GetSectionOrder) {
     EXPECT_EQ(order[1], "dependencies");
 }
 
-// TEST_F(MuukFilerTest, WriteToFileAndVerifyContent) {
-//     std::string mock_config = R"(
-// [section2]
-// key1 = "value1"
-// key2 = 42
+TEST_F(MuukFilerTest, WriteToFileAndVerifyContent) {
+    std::string mock_config = R"(
+[package]
+name = "test_package"
+version = "0.0.1"
 
-// [section1]
-// keyA = "valueA"
-// key0 = "value0"
-//     )";
+[section2]
+key1 = "value1"
+key2 = 42
 
-//     mock_file_ops->write_file(mock_config);
-//     MuukFiler filer(mock_file_ops);
+[section1]
+keyA = "valueA"
+key0 = "value0"
+    )";
 
-//     EXPECT_TRUE(filer.has_section("section1"));
-//     EXPECT_TRUE(filer.has_section("section2"));
+    mock_file_ops->write_file(mock_config);
+    auto result = MuukFiler::create(mock_file_ops);
+    if (!result) {
+        FAIL() << "Failed to create MuukFiler: " << result.error();
+    }
+    auto filer = result.value();
 
-//     muuk_filer->write_to_file();
-//     std::string written_content = mock_file_ops->read_file();
+    EXPECT_TRUE(filer.has_section("section1"));
+    EXPECT_TRUE(filer.has_section("section2"));
 
-//     EXPECT_EQ(written_content, mock_config);
-// }
+    muuk_filer->write_to_file();
+    std::string written_content = mock_file_ops->read_file();
+
+    EXPECT_EQ(written_content, mock_config);
+}

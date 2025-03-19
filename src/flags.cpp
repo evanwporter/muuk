@@ -4,7 +4,9 @@
 
 #include <ctre.hpp>
 
+#include "logger.h"
 #include "muuk.h"
+#include "muukvalidator.hpp"
 
 namespace muuk {
     std::string normalize_flag(const std::string& flag, const Compiler compiler) {
@@ -124,15 +126,30 @@ namespace muuk {
     std::string normalize_flags(const std::vector<std::string>& flags, const Compiler compiler) {
         std::string normalized;
         for (const auto& flag : flags) {
-            normalized += " " + normalize_flag(flag, compiler);
+            std::string normal_flag = normalize_flag(flag, compiler);
+            auto validation_result = validate_flag(compiler, normal_flag);
+            if (!validation_result) {
+                muuk::logger::warn("Skipping invalid flag `{}` for compiler `{}`: {}", flag, compiler.to_string(), validation_result.error());
+                continue;
+            }
+            normalized += " " + normal_flag;
         }
         return normalized;
     }
 
     // Normalize a vector of flags in-place
     void normalize_flags_inplace(std::vector<std::string>& flags, const Compiler compiler) {
+        std::vector<std::string> valid_flags;
         for (auto& flag : flags) {
             flag = normalize_flag(flag, compiler);
+            auto validation_result = validate_flag(compiler, flag);
+            if (!validation_result) {
+                muuk::logger::warn("Skipping invalid flag `{}` for compiler `{}`: {}", flag, compiler.to_string(), validation_result.error());
+                continue;
+            }
+            valid_flags.push_back(flag);
         }
+        flags = std::move(valid_flags);
     }
+
 }

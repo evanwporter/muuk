@@ -7,8 +7,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include <magic_enum/magic_enum.hpp>
-
+#include "compiler.hpp"
 #include "muukfiler.h"
 #include "rustify.hpp"
 
@@ -49,8 +48,11 @@ public:
 
     // Convert string to PackageType
     static PackageType from_string(const std::string& typeStr) {
-        auto result = magic_enum::enum_cast<Type>(typeStr);
-        return PackageType(result.value_or(Type::LIBRARY)); // Default to LIBRARY if not found
+        if (typeStr == "build") {
+            return PackageType(Type::BUILD);
+        } else {
+            return PackageType(Type::LIBRARY);
+        }
     }
 
     bool operator==(const PackageType& other) const { return type_ == other.type_; }
@@ -175,6 +177,8 @@ public:
     void generate_lockfile(const std::string& output_path);
 
 private:
+    muuk::Edition edition_;
+
     std::string base_path_;
 
     DependencyMap resolved_packages;

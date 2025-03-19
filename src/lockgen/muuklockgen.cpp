@@ -10,6 +10,7 @@
 #include <toml++/toml.h>
 
 #include "buildconfig.h"
+#include "compiler.hpp"
 #include "logger.h"
 #include "muuk.h"
 #include "muukfiler.h"
@@ -80,7 +81,7 @@ void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
     resolved_packages[package_name][package_version] = package;
 
     if (is_base) {
-
+        edition_ = muuk::Edition::from_string(std::to_string(data["package"]["edition"].value_or(0))).value_or(muuk::Edition::Unknown);
         parse_profile(data);
         parse_builds(data, package_version, path);
         base_package_ = package;
