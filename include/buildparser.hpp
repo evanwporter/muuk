@@ -39,10 +39,19 @@ private:
     void parse_libraries();
     void parse_executables();
 
-    /** Extract platform-specific CFLAGS */
+    void parse_compilation_unit(
+        const toml::array& unit_array,
+        const std::string& name,
+        const std::filesystem::path& pkg_dir,
+        const std::vector<std::string>& base_cflags,
+        const std::vector<std::string>& platform_cflags,
+        const std::vector<std::string>& compiler_cflags,
+        const std::vector<std::string>& iflags);
+
+    // Extract platform-specific FLAGS
     std::vector<std::string> extract_platform_flags(const toml::table& package_table);
 
-    /** Extract compiler-specific CFLAGS */
+    // Extract compiler-specific FLAGS */
     std::vector<std::string> extract_compiler_flags(const toml::table& package_table);
 };
 

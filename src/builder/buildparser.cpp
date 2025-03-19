@@ -32,152 +32,96 @@ void BuildParser::parse() {
     parse_executables();
 }
 
+void BuildParser::parse_compilation_unit(
+    const toml::array& unit_array,
+    const std::string& name,
+    const fs::path& pkg_dir,
+    const std::vector<std::string>& base_cflags,
+    const std::vector<std::string>& platform_cflags,
+    const std::vector<std::string>& compiler_cflags,
+    const std::vector<std::string>& iflags) {
+
+    for (const auto& unit_entry : unit_array) {
+        if (!unit_entry.is_table())
+            continue;
+
+        auto unit_table = unit_entry.as_table();
+        if (!unit_table || !unit_table->contains("path"))
+            continue;
+
+        std::string src_path = util::to_linux_path(
+            std::filesystem::absolute(
+                std::filesystem::path(*unit_table->at("path").value<std::string>()))
+                .string(),
+            "../../");
+
+        std::string obj_path = util::to_linux_path(
+            (pkg_dir / std::filesystem::path(src_path).stem()).string() + OBJ_EXT,
+            "../../");
+
+        // Merge flags
+        std::vector<std::string> unit_cflags = MuukFiler::parse_array_as_vec(*unit_table, "cflags");
+        unit_cflags.insert(unit_cflags.end(), base_cflags.begin(), base_cflags.end());
+        unit_cflags.insert(unit_cflags.end(), platform_cflags.begin(), platform_cflags.end());
+        unit_cflags.insert(unit_cflags.end(), compiler_cflags.begin(), compiler_cflags.end());
+
+        muuk::normalize_flags_inplace(unit_cflags, compiler);
+
+        // Register in build manager
+        build_manager->add_compilation_target(src_path, obj_path, unit_cflags, iflags);
+
+        // Logging
+        muuk::logger::info("Added {} compilation target: {} -> {}", name, src_path, obj_path);
+        muuk::logger::trace("  - {} CFLAGS: {}", name, fmt::join(unit_cflags, ", "));
+        muuk::logger::trace("  - {} Include Flags: {}", name, fmt::join(iflags, ", "));
+    }
+}
+
 void BuildParser::parse_compilation_targets() {
     const auto& config_sections = muuk_filer->get_array_section();
 
-    // const auto& build_sections = muuk_filer->get_build_section();
-    // const auto& library_sections = muuk_filer->get_library_section();
+    for (const std::string& name : { "build", "library" }) {
+        if (!config_sections.contains(name))
+            continue;
 
-    // if (build_sections.empty()) {
-    //     muuk::logger::error("No build sections found.");
-    //     return;
-    // }
-
-    if (config_sections.empty()) {
-        muuk::logger::error("No configuration sections found.");
-        return;
-    }
-
-    if (config_sections.find("build") == config_sections.end()) {
-        muuk::logger::error("No 'build' section found in `lockfile`.");
-        return;
-    }
-
-    if (config_sections.find("library") == config_sections.end()) {
-        muuk::logger::warn("No 'library' section found in `lockfile`.");
-        return;
-    }
-
-    for (std::string name : { "build", "library" }) {
         auto section = config_sections.at(name);
-
         for (const auto& package_table : section) {
+            std::string package_name = package_table.at("name").value<std::string>().value();
+            std::string package_version = package_table.at("version").value<std::string>().value();
 
-            // This can be removed eventually
-            // Once my validator gurantees that these keys exist
-            if (!package_table.contains("name") || !package_table.at("name").is_string()) {
-                muuk::logger::error("Package name not found in section: {}", name);
-                continue;
-            }
+            fs::path pkg_dir = (name == "build")
+                ? build_dir / package_name
+                : build_dir / package_name / package_version;
 
-            if (!package_table.contains("version") || !package_table.at("version").is_string()) {
-                muuk::logger::error("Package version not found in section: {}", name);
-                continue;
-            }
-
-            const auto package_name = package_table.at("name").value<std::string>().value();
-            const auto package_version = package_table.at("version").value<std::string>().value();
-            // const fs::path pkg_dir = build_dir / package_name / package_version;
-
-            fs::path pkg_dir;
-            if (std::string(name) == "build") {
-                pkg_dir = build_dir / package_name;
-            } else {
-                pkg_dir = build_dir / package_name / package_version;
-            }
-
-            // Ninja creates this I believe
-            // TODO: only create if theres anything that will be put there
             std::filesystem::create_directories(pkg_dir);
 
-            std::vector<std::string> cflags = MuukFiler::parse_array_as_vec(package_table, "cflags");
-            std::vector<std::string> iflags = MuukFiler::parse_array_as_vec(package_table, "include", "-I../../");
-            std::vector<std::string> defines = MuukFiler::parse_array_as_vec(package_table, "defines", "-D");
+            // Common flags
+            auto cflags = MuukFiler::parse_array_as_vec(package_table, "cflags");
+            auto iflags = MuukFiler::parse_array_as_vec(package_table, "include", "-I../../");
+            auto defines = MuukFiler::parse_array_as_vec(package_table, "defines", "-D");
 
-            // Extract platform and compiler-specific flags
-            std::vector<std::string> platform_cflags = extract_platform_flags(package_table);
-            std::vector<std::string> compiler_cflags = extract_compiler_flags(package_table);
+            auto platform_cflags = extract_platform_flags(package_table);
+            auto compiler_cflags = extract_compiler_flags(package_table);
 
             muuk::normalize_flags_inplace(cflags, compiler);
             muuk::normalize_flags_inplace(iflags, compiler);
+            muuk::normalize_flags_inplace(defines, compiler);
             muuk::normalize_flags_inplace(platform_cflags, compiler);
             muuk::normalize_flags_inplace(compiler_cflags, compiler);
 
+            // Parse Modules
             if (package_table.contains("modules")) {
                 auto modules = package_table.at("modules").as_array();
                 if (modules) {
-                    for (const auto& mod_entry : *modules) {
-                        if (!mod_entry.is_table())
-                            continue;
-
-                        auto module_table = mod_entry.as_table();
-                        if (!module_table->contains("path"))
-                            continue;
-
-                        std::string mod_path = util::to_linux_path(
-                            std::filesystem::absolute(
-                                std::filesystem::path(*module_table->at("path").value<std::string>()))
-                                .string(),
-                            "../../");
-
-                        std::string mod_obj_path = util::to_linux_path(
-                            (pkg_dir / "modules" / std::filesystem::path(mod_path).stem()).string() + OBJ_EXT,
-                            "../../");
-
-                        std::vector<std::string> mod_cflags = MuukFiler::parse_array_as_vec(*module_table, "cflags");
-                        mod_cflags.insert(mod_cflags.end(), cflags.begin(), cflags.end());
-                        mod_cflags.insert(mod_cflags.end(), platform_cflags.begin(), platform_cflags.end());
-                        mod_cflags.insert(mod_cflags.end(), compiler_cflags.begin(), compiler_cflags.end());
-
-                        muuk::normalize_flags_inplace(mod_cflags, compiler);
-
-                        // Add module as a compilation target
-                        build_manager->add_compilation_target(mod_path, mod_obj_path, mod_cflags, iflags);
-
-                        muuk::logger::info("Added module compilation target: {} -> {}", mod_path, mod_obj_path);
-                        muuk::logger::trace("  - Module CFLAGS: {}", fmt::join(mod_cflags, ", "));
-                        muuk::logger::trace("  - Module Include Flags: {}", fmt::join(iflags, ", "));
-                    }
+                    parse_compilation_unit(*modules, "module", pkg_dir, cflags, platform_cflags, compiler_cflags, iflags);
                 }
             }
 
+            // Parse Sources
             if (package_table.contains("sources")) {
                 auto sources = package_table.at("sources").as_array();
                 if (sources) {
-                    for (const auto& src_entry : *sources) {
-                        if (!src_entry.is_table())
-                            continue;
-                        auto source_table = src_entry.as_table();
-                        if (!source_table->contains("path"))
-                            continue;
-
-                        std::string src_path = util::to_linux_path(
-                            std::filesystem::absolute(
-                                std::filesystem::path(
-                                    *source_table->at("path").value<std::string>()))
-                                .string(),
-                            "../../");
-
-                        std::string obj_path = util::to_linux_path(
-                            (pkg_dir / std::filesystem::path(src_path).stem()).string()
-                                + OBJ_EXT,
-                            "../../");
-
-                        std::vector<std::string> src_cflags = MuukFiler::parse_array_as_vec(*source_table, "cflags");
-                        src_cflags.insert(src_cflags.end(), cflags.begin(), cflags.end());
-
-                        // Add platform and compiler-specific flags
-                        src_cflags.insert(src_cflags.end(), platform_cflags.begin(), platform_cflags.end());
-                        src_cflags.insert(src_cflags.end(), compiler_cflags.begin(), compiler_cflags.end());
-
-                        muuk::normalize_flags_inplace(src_cflags, compiler);
-
-                        build_manager->add_compilation_target(src_path, obj_path, src_cflags, iflags);
-
-                        muuk::logger::info("Added compilation target: {} -> {}", src_path, obj_path);
-                        muuk::logger::trace("  - CFLAGS: {}", fmt::join(src_cflags, ", "));
-                        muuk::logger::trace("  - Include Flags: {}", fmt::join(iflags, ", "));
-                    }
+                    parse_compilation_unit(*sources, "source", pkg_dir, cflags, platform_cflags, compiler_cflags, iflags);
                 }
             }
         }
@@ -254,9 +198,8 @@ void BuildParser::parse_executables() {
 
         muuk::logger::info(fmt::format("Parsing executable '{}'", executable_name));
 
-        // TODO: Once the validator work the array checks won't be needed
         // Collect all source files -> Convert to object files
-        if (build_table.contains("sources") && build_table.at("sources").is_array()) {
+        if (build_table.contains("sources")) {
             auto sources = build_table.at("sources").as_array();
             if (sources) {
                 for (const auto& src_entry : *sources) {
@@ -286,7 +229,7 @@ void BuildParser::parse_executables() {
         // EXES REQUIRE MERGED DEPENDENCIES
         // MODULES ONLY REQUIRE DIRECT DEPENDENCIES
         // Collect all dependencies (libraries & header-only includes)
-        if (build_table.contains("dependencies2") && build_table.at("dependencies2").is_array()) {
+        if (build_table.contains("dependencies2")) {
             auto dependencies = build_table.at("dependencies2").as_array();
             if (dependencies) {
                 for (const auto& dep : *dependencies) {
