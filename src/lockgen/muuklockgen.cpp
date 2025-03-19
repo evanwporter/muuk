@@ -47,7 +47,7 @@ void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
         return;
     }
 
-    std::string package_name = data["package"]["name"].value_or<std::string>("unknown");
+    const std::string package_name = data["package"]["name"].value_or<std::string>("unknown");
 
     const auto package_version_result = data["package"]["version"].value<std::string>();
     if (!package_version_result) {
@@ -331,14 +331,14 @@ void MuukLockGenerator::generate_lockfile(const std::string& output_path) {
     }
 
     for (const auto& [package_name, version] : resolved_order_) {
-        auto package_opt = find_package(package_name, version);
+        const auto package_opt = find_package(package_name, version);
         if (!package_opt)
             continue;
 
-        auto package = package_opt.value();
-        std::string package_type = package->package_type;
+        const auto package = package_opt.value();
+        const std::string package_type = package->package_type;
 
-        std::string package_table = package->serialize();
+        const std::string package_table = package->serialize();
 
         lockfile << "[[" << package_type << "]]\nname = \"" << package_name << "\"\n";
         lockfile << package_table << "\n";
@@ -491,7 +491,7 @@ std::string MuukLockGenerator::format_dependencies(
                 continue;
             }
 
-            toml::table dep_table = dep_ptr->to_toml(); // Convert Dependency to TOML table
+            const toml::table dep_table = dep_ptr->to_toml(); // Convert Dependency to TOML table
 
             oss << dep_name << " = { ";
 
@@ -531,7 +531,7 @@ void MuukLockGenerator::parse_and_store_flag_categories(
             continue;
         }
 
-        std::string category_name_str = std::string(category_name.str());
+        const std::string category_name_str = std::string(category_name.str());
 
         for (const auto& flag_type : flag_categories) {
             target[category_name_str][flag_type] = MuukFiler::parse_array_as_set(

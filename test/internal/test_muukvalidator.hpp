@@ -105,6 +105,101 @@ TEST(ValidateMuukTomlTest, InvalidDateTimeType) {
     EXPECT_FALSE(result.has_value());
 }
 
+class ValidateMuukLockTomlTest : public ::testing::Test { };
+
+// TEST_F(ValidateMuukLockTomlTest, ValidMuukLockToml) {
+//     toml::table valid_lock_toml = toml::parse(R"(
+//         [[library]]
+//         name = "an_example"
+//         version = "1.2.3"
+//         source = "https://example.com/source"
+//         include = ["include"]
+//         cflags = ["-O2"]
+//         system_include = ["system/include"]
+
+//         [[library]]
+//         name = "another_example"
+//         version = "3.2.1"
+//         source = "https://example2.com/source"
+//         include = ["include2"]
+//         cflags = ["-O6"]
+//         system_include = ["system/include"]
+//     )");
+
+//     auto result = muuk::validate_muuk_lock_toml(valid_lock_toml);
+//     EXPECT_TRUE(result.has_value());
+// }
+
+TEST_F(ValidateMuukLockTomlTest, MissingRequiredField) {
+    toml::table invalid_lock_toml = toml::parse(R"(
+        [[library]]
+        version = "1.2.3"
+    )");
+
+    auto result = muuk::validate_muuk_lock_toml(invalid_lock_toml);
+    EXPECT_FALSE(result.has_value());
+}
+
+TEST_F(ValidateMuukLockTomlTest, TypeMismatch) {
+    toml::table invalid_lock_toml = toml::parse(R"(
+        [[library]]
+        name = "example_lib"
+        version = 1.2
+    )");
+
+    auto result = muuk::validate_muuk_lock_toml(invalid_lock_toml);
+    EXPECT_FALSE(result.has_value());
+}
+
+TEST_F(ValidateMuukLockTomlTest, InvalidArrayType) {
+    toml::table invalid_lock_toml = toml::parse(R"(
+        [[library]]
+        name = "example_lib"
+        version = "1.2.3"
+        dependencies = "invalid_string"
+    )");
+
+    auto result = muuk::validate_muuk_lock_toml(invalid_lock_toml);
+    EXPECT_FALSE(result.has_value());
+}
+
+TEST_F(ValidateMuukLockTomlTest, ValidBuildSection) {
+    toml::table valid_lock_toml = toml::parse(R"(
+        [[build]]
+        name = "example_build"
+        version = "1.0.0"
+        include = ["include"]
+        cflags = ["-Wall"]
+        system_include = ["system/include"]
+    )");
+
+    EXPECT_TRUE(muuk::validate_muuk_lock_toml(valid_lock_toml).has_value());
+}
+
+TEST_F(ValidateMuukLockTomlTest, InvalidBuildDependenciesType) {
+    toml::table invalid_lock_toml = toml::parse(R"(
+        [[build]]
+        name = "example_build"
+        version = "1.0.0"
+        dependencies = "not_an_array"
+    )");
+
+    auto result = muuk::validate_muuk_lock_toml(invalid_lock_toml);
+    EXPECT_FALSE(result.has_value());
+}
+
+TEST_F(ValidateMuukLockTomlTest, InvalidNestedDependencies) {
+    toml::table invalid_lock_toml = toml::parse(R"(
+        [[library]]
+        name = "example_lib"
+        version = "1.2.3"
+        dependencies = "should_be_array"
+    )");
+
+    auto result = muuk::validate_muuk_lock_toml(invalid_lock_toml);
+    EXPECT_FALSE(result.has_value());
+}
+
 class DependencyNameTest : public ::testing::Test { };
 
 TEST_F(DependencyNameTest, ValidNames) {

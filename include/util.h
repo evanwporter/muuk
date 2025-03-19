@@ -45,9 +45,6 @@ namespace util {
     std::string normalize_path(const std::string& path);
     std::vector<std::string> to_linux_path(const std::vector<std::string>& paths, const std::string& prefix = "");
 
-    // std::string normalize_flag(const std::string& flag);
-    // std::string normalize_flags(const std::vector<std::string>& flags);
-
     // template <Streamable T>
     template <Streamable T>
     std::string vectorToString(const std::vector<T>& vec, const std::string& delimiter) {

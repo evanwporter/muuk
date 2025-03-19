@@ -38,6 +38,7 @@ namespace muuk {
             element_type(TomlType::Table), table_schema(std::make_shared<SchemaMap>(schema)) { }
     };
 
+    using TomlTypeVariantOneType = std::variant<TomlType, TomlArray>;
     using TomlTypeVariant = std::variant<TomlType, TomlArray, std::vector<TomlType>>;
 
     // Helper to represent multiple possible types
@@ -113,7 +114,7 @@ namespace muuk {
         {"profile", {false, TomlType::Table, {
             {"*", {false, TomlType::Table, {
                 {"default", {false, TomlType::Boolean}},
-                // {"inherits", {false, TomlArray{TomlType::String}}},
+                {"inherits", {false, TomlArray{TomlType::String}}},
                 {"include", {false, TomlArray{TomlType::String}}},
                 {"cflags", {false, TomlArray{TomlType::String}}}
             }}}
