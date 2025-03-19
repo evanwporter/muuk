@@ -188,11 +188,16 @@ Result<void> MuukLockGenerator::parse_builds(const toml::table& data, const std:
             parse_library(*build_info.as_table(), build_package);
             parse_dependencies(*build_info.as_table(), build_package);
 
+            // build_package->cflags.insert(edition_.to_flag());
+
             if (build_info.is_table() && build_info.as_table()->contains("profile")) {
                 const auto& profile_array = *build_info.as_table()->at("profile").as_array();
                 for (const auto& profile : profile_array) {
                     build_package->inherited_profiles.insert(*profile.value<std::string>());
-                    muuk::logger::info(fmt::format("  → Build '{}' inherits profile '{}'", build_name.str(), *profile.value<std::string>()));
+                    muuk::logger::info(
+                        "  → Build '{}' inherits profile '{}'",
+                        build_name.str(),
+                        *profile.value<std::string>());
                 }
             }
 

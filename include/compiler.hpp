@@ -65,12 +65,16 @@ namespace muuk {
             Unknown = 0
         };
 
+        Edition() :
+            year_(Year::Unknown) { }
+
         explicit Edition(Year year) :
             year_(year) { }
 
-        static std::optional<Year> from_string(const std::string& str);
+        static std::optional<Edition> from_string(const std::string& str);
         std::string to_string() const;
         std::string to_flag(const Compiler& compiler) const;
+        std::string to_flag() const;
 
         static const Edition Cpp98;
         static const Edition Cpp03;

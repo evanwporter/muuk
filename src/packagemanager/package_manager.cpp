@@ -1,19 +1,20 @@
-#include "logger.h"
-#include "buildconfig.h"
-#include "util.h"
-#include "package_manager.h"
-#include "muukfiler.h"
-#include "muuk.h"
-
-#include <string>
-#include <format>
-#include <nlohmann/json.hpp>
 #include <filesystem>
+#include <string>
+
+#include <nlohmann/json.hpp>
 #include <toml++/toml.hpp>
 
 extern "C" {
 #include "zip.h"
 }
+#include "buildconfig.h"
+#include "logger.h"
+#include "muuk.h"
+#include "muuk_toml_handler.hpp"
+#include "muukfiler.h"
+#include "package_manager.h"
+#include "rustify.hpp"
+#include "util.h"
 
 constexpr const char* MUUK_PATCH_UTL = "https://raw.githubusercontent.com/evanwporter/muuk/main/muuk-patches/";
 
@@ -42,8 +43,7 @@ namespace muuk {
                         (void)arg;
                         return 0;
                     },
-                    nullptr
-                );
+                    nullptr);
 
                 if (result < 0) {
                     muuk::logger::error("Failed to extract zip archive '{}'. Error code: {}", archive, result);
@@ -51,12 +51,10 @@ namespace muuk {
                 }
 
                 muuk::logger::info("Extraction completed successfully for: {}", archive);
-            }
-            catch (const std::exception& ex) {
+            } catch (const std::exception& ex) {
                 muuk::logger::error("Exception during zip extraction: {}", ex.what());
                 throw;
-            }
-            catch (...) {
+            } catch (...) {
                 muuk::logger::error("Unknown error occurred during zip extraction.");
                 throw;
             }
@@ -66,13 +64,10 @@ namespace muuk {
             std::string command;
 
             if (util::command_line::command_exists("wget")) {
-                command = "wget --quiet --output-document=" + output_path +
-                    " --no-check-certificate " + url;
-            }
-            else if (util::command_line::command_exists("curl")) {
+                command = "wget --quiet --output-document=" + output_path + " --no-check-certificate " + url;
+            } else if (util::command_line::command_exists("curl")) {
                 command = "curl -L -o " + output_path + " " + url;
-            }
-            else {
+            } else {
                 muuk::logger::error("Neither wget nor curl is available on the system.");
                 throw std::runtime_error("No suitable downloader found. Install wget or curl.");
             }
@@ -110,8 +105,7 @@ namespace muuk {
                 "Adding dependency to '{}': {} (version: {})",
                 toml_path,
                 repo,
-                version
-            );
+                version);
 
             try {
                 if (!fs::exists(toml_path)) {
@@ -123,12 +117,13 @@ namespace muuk {
                     return tl::unexpected("Failed to create MuukFiler for: " + toml_path);
                 }
 
-                toml::table package_section = muukFiler->get_section("package");
-                if (!package_section.contains("name") || !package_section["name"].is_string()) {
-                    return tl::unexpected("Invalid muuk.toml: missing package.name");
+                auto handler = MuukTomlHandler::parse_file(toml_path);
+                if (!handler) {
+                    return Err(handler.error());
                 }
 
-                std::string package_name = *package_section["name"].value<std::string>();
+                toml::table package_section = muukFiler->get_section("package");
+                const std::string package_name = *package_section["name"].value<std::string>();
 
                 std::string dependencies_section = target_section.empty()
                     ? "dependencies"
@@ -137,27 +132,31 @@ namespace muuk {
                 toml::table& dependencies = muukFiler->get_section(dependencies_section);
 
                 auto [author, repo_name] = split_author_repo(repo);
-                if (repo_name.empty()) {
-                    return tl::unexpected("Invalid repository format. Expected <author>/<repo>");
-                }
+                if (repo_name.empty())
+                    return Err(
+                        "Invalid repository format. Expected <author>/<repo>");
 
-                if (dependencies.contains(repo_name)) {
-                    return tl::unexpected("Dependency '" + repo_name + "' already exists in '" + toml_path + "'.");
-                }
+                if (dependencies.contains(repo_name))
+                    return Err(
+                        "Dependency '{}' already exists in '{}'.",
+                        repo_name,
+                        toml_path);
 
+                // Determine Git URL and version
                 if (!is_system) {
                     if (git_url.empty()) {
                         git_url = "https://github.com/" + repo + ".git";
                     }
 
                     muuk::logger::info("No tag, version, or revision provided. Fetching latest commit hash...");
-
                     if (version.empty()) {
                         version = util::git::get_latest_revision(git_url);
                     }
                 }
 
-                std::string final_git_url = git_url.empty() ? "https://github.com/" + author + "/" + repo_name + ".git" : git_url;
+                std::string final_git_url = git_url.empty()
+                    ? "https://github.com/" + author + "/" + repo_name + ".git"
+                    : git_url;
                 std::string target_dir = std::string(DEPENDENCY_FOLDER) + "/" + repo_name;
 
                 // Ensure dependency folder exists
@@ -169,10 +168,10 @@ namespace muuk {
                     std::string muuk_toml_url = "https://raw.githubusercontent.com/" + author + "/" + repo_name + "/" + version + "/muuk.toml";
 
                     if (!download_file(muuk_toml_url, muuk_path)) {
-                        muuk::logger::warn("Failed to download muuk.toml from repo, attempting patch.");
+                        muuk::logger::warn("Failed to download muuk.toml from repo, checking patch...");
                         std::string patch_muuk_toml_url = MUUK_PATCH_UTL + repo_name + "/muuk.toml";
                         if (!download_file(patch_muuk_toml_url, muuk_path)) {
-                            muuk::logger::warn("No valid muuk.toml found. Generating a default one.");
+                            muuk::logger::warn("No valid patch found. Generating a default `muuk.toml`.");
                             if (!qinit_library(author, repo_name, version)) {
                                 return tl::unexpected("Failed to generate default muuk.toml.");
                             }
@@ -180,43 +179,28 @@ namespace muuk {
                     }
                 }
 
-                std::ostringstream new_entry;
-                new_entry << repo_name << " = { ";
-                bool has_previous = false;
+                // Construct the new dependency entry
+                toml::table new_entry;
+                new_entry.insert("version", version);
+                new_entry.insert("git", final_git_url);
 
-                // Modify the base `muuk.toml` adding to new dependency to the dependencies section
-                auto add_field = [&](const std::string& key, const std::string& value) {
-                    if (!value.empty()) {
-                        if (has_previous) new_entry << ", ";
-                        new_entry << key << " = \"" << value << "\"";
-                        has_previous = true;
-                    }
-                    };
+                auto deps = handler->get_section("dependencies");
+                if (!deps) {
+                    return tl::unexpected("Failed to get dependencies section: " + deps.error());
+                }
+                deps->get().as_table().insert(repo_name, new_entry);
 
-                // add_field("version", version);
-                add_field("version", version);
-                add_field("git", final_git_url);
+                std::ofstream file_out(toml_path, std::ios::trunc);
+                if (!file_out.is_open()) {
+                    return tl::unexpected("Failed to open TOML file for writing: " + toml_path);
+                }
 
-                // add_field("branch", branch);
-                // add_field("muuk_path", muuk_path);
-
-                new_entry << " }";
-
-                std::ostringstream toml_string;
-                toml_string << dependencies << "\n" << new_entry.str() << "\n";
-
-                muuk::logger::info("Updated TOML dependencies:\n{}", toml_string.str());
-
-                std::istringstream new_table_stream(toml_string.str());
-                toml::table new_dependencies = toml::parse(new_table_stream);
-
-                muukFiler->modify_section(dependencies_section, new_dependencies);
-                muukFiler->write_to_file();
+                file_out << handler->serialize();
+                file_out.close();
 
                 muuk::logger::info("Added dependency '{}' to '{}'", repo_name, toml_path);
                 return {};
-            }
-            catch (const std::exception& e) {
+            } catch (const std::exception& e) {
                 return tl::unexpected("Error adding dependency: " + std::string(e.what()));
             }
         }

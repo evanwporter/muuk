@@ -275,8 +275,6 @@ namespace util {
         return (is_absolute ? "" : prefix) + new_path;
     }
 
-    template std::string vectorToString<std::string>(const std::vector<std::string>&, const std::string&);
-
     std::string trim_whitespace(const std::string& str) {
         auto start = str.begin();
         while (start != str.end() && std::isspace(*start)) {
@@ -289,19 +287,6 @@ namespace util {
         } while (end > start && std::isspace(*end));
 
         return std::string(start, end + 1);
-    }
-
-    std::string join_strings(const std::vector<std::string>& strings, const std::string& delimiter) {
-        if (strings.empty())
-            return "";
-
-        std::ostringstream result;
-        for (size_t i = 0; i < strings.size(); ++i) {
-            if (i > 0)
-                result << delimiter;
-            result << strings[i];
-        }
-        return result.str();
     }
 
     // ==========================

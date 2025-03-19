@@ -66,15 +66,16 @@ namespace muuk {
         fs::path include_dir;
         fs::path source_dir;
 
-        std::string license = util::git::get_license_of_github_repo(author, repo).value_or("");
+        muuk::logger::info("Fetching license from GitHub for '{}/{}'...", author, repo);
+        std::string license = util::git::get_license_of_github_repo(author, repo).value_or("Unknown");
+        muuk::logger::info("Detected license: {}", license);
 
         muuk::logger::info("Fetching top-level directories from GitHub repo '{}/{}'", author, repo);
 
         // Get remote directories
         auto remote_dirs = util::git::get_top_level_dirs_of_github(author, repo);
         if (!remote_dirs) {
-            logger::warn(remote_dirs.error());
-
+            logger::warn("Failed to fetch remote directories: {}", remote_dirs.error());
             source_dir = "";
             include_dir = "";
         } else {
@@ -107,21 +108,33 @@ namespace muuk {
 
         util::ensure_directory_exists((root / version).string());
 
-        std::ofstream config_file(root / version / "muuk.toml", std::ios::out | std::ios::trunc);
+        // Construct the TOML file content
+        std::stringstream toml_content;
+        toml_content << "[package]\n"
+                     << "name = '" << repo << "'\n"
+                     << "author = '" << author << "'\n"
+                     << "license = '" << license << "'\n"
+                     << "version = '" << version << "'\n"
+                     << "git = 'https://github.com/" << author << "/" << repo << ".git'\n\n";
+
+        toml_content << "[library]\n"
+                     << "include = ['" << include_dir.string() << "']\n"
+                     << "sources = '" << source_dir.string() << "'\n";
+
+        // Print the TOML content to stdout
+        std::cout << "Generated muuk.toml content:\n";
+        std::cout << toml_content.str() << std::endl;
+
+        // Save the TOML content to a file
+        fs::path toml_path = root / version / "muuk.toml";
+        std::ofstream config_file(toml_path, std::ios::out | std::ios::trunc);
         if (!config_file.is_open()) {
-            return tl::unexpected(fmt::format("Failed to create muuk.toml in {}", root.string()));
+            muuk::logger::error("Failed to create muuk.toml in {}", root.string());
+            return Err("");
         }
 
-        config_file << "[package]\n"
-                    << "name = '" << repo << "'\n"
-                    << "author = '" << author << "'\n"
-                    << "license = '" << license << "'\n"
-                    << "version = '" << version << "'\n"
-                    << "git = '" << "https://github.com/" << author << "/" << repo << ".git" << "'\n\n";
-
-        config_file << "[library]\n"
-                    << "include = ['" << include_dir.string() << "']\n"
-                    << "sources = '" << source_dir.string() << "'\n";
+        muuk::logger::info("Writing muuk.toml to '{}'", toml_path.string());
+        config_file << toml_content.str();
         config_file.close();
 
         muuk::logger::info("Successfully initialized '{}' with muuk.toml", repo);
