@@ -117,7 +117,7 @@ namespace muuk {
                     return tl::unexpected("Failed to create MuukFiler for: " + toml_path);
                 }
 
-                auto handler = MuukTomlHandler::parse_file(toml_path);
+                auto handler = TomlHandler::parse_file(toml_path);
                 if (!handler) {
                     return Err(handler.error());
                 }
