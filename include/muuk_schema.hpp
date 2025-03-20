@@ -74,7 +74,8 @@ namespace muuk {
 
     const SchemaMap base_package_schema = {
         { "include", { false, TomlArray { TomlType::String } } },
-        { "source", { false, TomlArray { TomlType::String } } },
+        { "sources", { false, TomlArray { TomlType::String } } },
+        { "libs", { false, TomlArray { TomlType::String } } },
         { "cflags", { false, TomlArray { TomlType::String } } },
         { "libflags", { false, TomlArray { TomlType::String } } },
         { "lflags", { false, TomlArray { TomlType::String } } },
