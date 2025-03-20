@@ -23,11 +23,11 @@ version = "1.8.5"
 // Test fixture class
 class MuukTomlHandlerTest : public ::testing::Test {
 protected:
-    MuukTomlHandler handler;
+    muuk::TomlHandler handler;
 
     void SetUp() override {
         // Parse sample TOML content before each test
-        auto result = MuukTomlHandler::parse(sample_toml);
+        auto result = muuk::TomlHandler::parse(sample_toml);
         if (result) {
             handler = result.value();
         }
