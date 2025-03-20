@@ -122,14 +122,15 @@ namespace muuk {
                      << "sources = '" << source_dir.string() << "'\n";
 
         // Print the TOML content to stdout
-        muuk::logger::info("Generated muuk.toml content:");
-        std::cout << toml_content.str();
+        std::cout << "Generated muuk.toml content:\n";
+        std::cout << toml_content.str() << std::endl;
 
         // Save the TOML content to a file
         fs::path toml_path = root / version / "muuk.toml";
         std::ofstream config_file(toml_path, std::ios::out | std::ios::trunc);
         if (!config_file.is_open()) {
-            return tl::unexpected(fmt::format("Failed to create muuk.toml in {}", root.string()));
+            muuk::logger::error("Failed to create muuk.toml in {}", root.string());
+            return Err("");
         }
 
         muuk::logger::info("Writing muuk.toml to '{}'", toml_path.string());

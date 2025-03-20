@@ -240,6 +240,12 @@ private:
             } else if (value.is_boolean()) {
                 output << indent << key << " = " << (*value.as_boolean() ? "true" : "false") << "\n";
             } else if (value.is_array()) {
+                const auto& arr = *value.as_array();
+                if (arr.empty()) {
+                    output << indent << key << " = []\n";
+                    continue;
+                }
+
                 output << indent << key << " = [ ";
                 for (const auto& item : *value.as_array()) {
                     if (item.is_string())
@@ -251,24 +257,51 @@ private:
                     else if (item.is_boolean())
                         output << (*item.as_boolean() ? "true" : "false") << ", ";
                 }
-                output.seekp(-2, std::ios_base::end); // Remove trailing comma and space
+                // output.seekp(-2, std::ios_base::end); // Remove trailing comma and space
                 output << " ]\n";
-            } else if (value.is_table()) {
+            } else if (value.is_table()) { // Handle inline table `{ ... }`
                 output << indent << key << " = { ";
                 bool first = true;
                 for (const auto& [nested_key, nested_value] : *value.as_table()) {
                     if (!first)
                         output << ", ";
+                    first = false;
+
                     output << nested_key << " = ";
+
                     if (nested_value.is_string())
-                        output << "" << *nested_value.as_string() << "";
+                        output << *nested_value.as_string();
                     else if (nested_value.is_integer())
                         output << *nested_value.as_integer();
                     else if (nested_value.is_floating_point())
                         output << *nested_value.as_floating_point();
                     else if (nested_value.is_boolean())
                         output << (*nested_value.as_boolean() ? "true" : "false");
-                    first = false;
+                    else if (nested_value.is_array()) {
+                        const auto& nested_arr = *nested_value.as_array();
+                        if (nested_arr.empty()) {
+                            output << "[]";
+                            continue;
+                        }
+
+                        output << "[ ";
+                        bool first_array = true;
+                        for (const auto& array_item : nested_arr) {
+                            if (!first_array)
+                                output << ", ";
+                            first_array = false;
+
+                            if (array_item.is_string())
+                                output << "" << *array_item.as_string() << "";
+                            else if (array_item.is_integer())
+                                output << *array_item.as_integer();
+                            else if (array_item.is_floating_point())
+                                output << *array_item.as_floating_point();
+                            else if (array_item.is_boolean())
+                                output << (*array_item.as_boolean() ? "true" : "false");
+                        }
+                        output << " ]";
+                    }
                 }
                 output << " }\n";
             }

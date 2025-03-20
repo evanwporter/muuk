@@ -203,10 +203,10 @@ void MuukFiler::write_to_file() {
 
 // TODO: Make it not dependent on config_file_
 toml::table MuukFiler::get_config() const {
-    if (!std::filesystem::exists(config_file_)) {
-        throw std::runtime_error("Error: Config file not found: " + config_file_);
-    }
-    return toml::parse_file(config_file_);
+    // if (!std::filesystem::exists(config_file_)) {
+    //     throw std::runtime_error("Error: Config file not found: " + config_file_);
+    // }
+    return toml::parse(file_ops_->read_file());
 }
 
 bool MuukFiler::has_section(const std::string& section) const {

@@ -45,24 +45,7 @@ namespace util {
     std::string normalize_path(const std::string& path);
     std::vector<std::string> to_linux_path(const std::vector<std::string>& paths, const std::string& prefix = "");
 
-    // template <Streamable T>
-    template <Streamable T>
-    std::string vectorToString(const std::vector<T>& vec, const std::string& delimiter) {
-        std::ostringstream oss;
-        if (!vec.empty()) {
-            for (size_t i = 0; i < vec.size(); ++i) {
-                oss << vec[i];
-                if (i < vec.size() - 1) {
-                    oss << delimiter;
-                }
-            }
-        }
-        return oss.str();
-    }
-
     std::string trim_whitespace(const std::string& str);
-
-    std::string join_strings(const std::vector<std::string>& strings, const std::string& delimiter);
 
     namespace git {
         std::string get_latest_revision(const std::string& git_url);
