@@ -29,6 +29,7 @@ sources = [
     'src/quickinitializer.cpp',
     'src/muukterminal.cpp',
     'src/compiler.cpp',
+    'src/muuk_toml_handler.cpp',
 ]
 
 [dependencies]
