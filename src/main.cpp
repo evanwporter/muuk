@@ -8,6 +8,7 @@
 #include <nlohmann/json.hpp>
 #include <tl/expected.hpp>
 
+#include "buildconfig.h"
 #include "logger.h"
 #include "muuk.h"
 #include "muuker.hpp"
@@ -191,13 +192,13 @@ int main(int argc, char* argv[]) {
 
         if (program.is_subcommand_used("install")) {
             muuk::logger::info("Installing dependencies from muuk.toml...");
-            CHECK_CALL(muuk::package_manager::install("muuk.lock.toml"));
+            CHECK_CALL(muuk::package_manager::install(MUUK_CACHE_FILE));
         }
 
         if (program.is_subcommand_used("remove")) {
             const auto package_name = remove_command.get<std::string>("package_name");
             muuk::logger::info("Removing dependency: {}", package_name);
-            muuk::package_manager::remove_package(package_name, "muuk.toml", "muuk.lock.toml");
+            muuk::package_manager::remove_package(package_name, "muuk.toml", MUUK_CACHE_FILE);
             return 0;
         }
 

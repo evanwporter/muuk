@@ -2,6 +2,7 @@
 
 #include <tl/expected.hpp>
 
+#include "buildconfig.h"
 #include "logger.h"
 #include "muukbuilder.h"
 #include "muukfiler.h"
@@ -14,7 +15,7 @@ MuukBuilder::MuukBuilder(MuukFiler& config_manager) :
 
 Result<void> MuukBuilder::build(std::string& target_build, const std::string& compiler, const std::string& profile) {
     lock_generator_ = std::make_unique<MuukLockGenerator>("./");
-    lock_generator_->generate_lockfile("muuk.lock.toml");
+    lock_generator_->generate_lockfile(MUUK_CACHE_FILE);
     spdlog::default_logger()->flush();
 
     auto compiler_result = compiler.empty() ? detect_default_compiler() : muuk::Compiler::from_string(compiler);
@@ -35,13 +36,13 @@ Result<void> MuukBuilder::build(std::string& target_build, const std::string& co
         *compiler_result,
         selected_archiver,
         selected_linker,
-        "muuk.lock.toml");
+        MUUK_CACHE_FILE);
 
     compdb_backend_ = std::make_unique<CompileCommandsBackend>(
         *compiler_result,
         selected_archiver,
         selected_linker,
-        "muuk.lock.toml");
+        MUUK_CACHE_FILE);
 
     muuk::logger::info("Generating Ninja file for '{}'", selected_profile);
     spdlog::default_logger()->flush();

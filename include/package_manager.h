@@ -6,7 +6,7 @@
 #include <spdlog/spdlog.h>
 #include <tl/expected.hpp>
 
-#include "logger.h"
+#include "buildconfig.h"
 #include "rustify.hpp"
 
 namespace muuk {
@@ -24,11 +24,11 @@ namespace muuk {
             const std::string& target_section);
 
         tl::expected<void, std::string> install(
-            const std::string& lockfile_path_string = "muuk.lock.toml");
+            const std::string& lockfile_path_string = MUUK_CACHE_FILE);
 
         Result<void> remove_package(
             const std::string& package_name,
             const std::string& toml_path = "muuk.toml",
-            const std::string& lockfile_path = "muuk.lock.toml");
+            const std::string& lockfile_path = MUUK_CACHE_FILE);
     }
 }
