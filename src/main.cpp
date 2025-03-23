@@ -245,7 +245,6 @@ int main(int argc, char* argv[]) {
         }
 
         MuukFiler muuk_filer = result_muuk.value();
-        MuukBuilder muukBuilder(muuk_filer);
 
         if (program.is_subcommand_used("clean")) {
             muuk::clean(muuk_filer);
@@ -267,7 +266,7 @@ int main(int argc, char* argv[]) {
             std::string target_build = build_command.get<std::string>("--target-build");
             std::string compiler = build_command.get<std::string>("--compiler");
             std::string profile = build_command.get<std::string>("--profile");
-            CHECK_CALL(muukBuilder.build(target_build, compiler, profile));
+            CHECK_CALL(muuk::build(target_build, compiler, profile, muuk_filer));
 
             return 0;
         }
