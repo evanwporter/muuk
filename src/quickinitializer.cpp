@@ -55,7 +55,39 @@ namespace muuk {
         return found;
     }
 
-    tl::expected<void, std::string> qinit_library(const std::string& author, const std::string& repo, const std::string& version) {
+    std::vector<std::string> get_source_files_in_dir_from_github(
+        const std::string& author,
+        const std::string& repo,
+        const std::string& branch,
+        const std::string& source_dir) {
+        std::vector<std::string> source_files;
+
+        auto tree_result = util::git::fetch_repo_tree(author, repo, branch);
+        if (!tree_result) {
+            muuk::logger::warn("Could not fetch repo tree: {}", tree_result.error());
+            return source_files;
+        }
+
+        const auto& tree_json = tree_result.value();
+
+        for (const auto& entry : tree_json["tree"]) {
+            if (!entry.contains("path") || !entry.contains("type") || entry["type"] != "blob")
+                continue;
+
+            std::string path = entry["path"];
+            if (path.rfind(source_dir + "/", 0) == 0) {
+                fs::path filepath = path;
+                std::string ext = filepath.extension().string();
+                if (SOURCE_FILE_EXTS.contains(ext)) {
+                    source_files.push_back(path);
+                }
+            }
+        }
+
+        return source_files;
+    }
+
+    Result<void> qinit_library(const std::string& author, const std::string& repo, const std::string& version) {
         fs::path root = fs::absolute(DEPENDENCY_FOLDER) / repo;
 
         muuk::logger::info("Initializing library '{}/{}' at '{}'", author, repo, root.string());
@@ -86,7 +118,6 @@ namespace muuk {
             // Ask user to select include and source directories
             std::vector<fs::path> remote_include_dirs, remote_source_dirs;
             for (const auto& dir : remote_dirs.value()) {
-                fs::path p = root / dir;
                 if (std::find(common_include_paths.begin(), common_include_paths.end(), dir) != common_include_paths.end()) {
                     remote_include_dirs.push_back(dir);
                 }
@@ -106,6 +137,18 @@ namespace muuk {
             source_dir = source_dir_result.value_or("src");
         }
 
+        // Get default branch
+        auto branch_result = util::git::get_default_branch(author, repo);
+        if (!branch_result) {
+            return tl::unexpected("Failed to get default branch: " + branch_result.error());
+        }
+        std::string branch = branch_result.value();
+
+        // Fetch remote source files
+        std::vector<std::string> source_files = get_source_files_in_dir_from_github(author, repo, branch, source_dir.string());
+
+        muuk::logger::info("Found {} source file(s) in '{}'", source_files.size(), source_dir.string());
+
         util::ensure_directory_exists((root / version).string());
 
         // Construct the TOML file content
@@ -117,11 +160,17 @@ namespace muuk {
                      << "version = '" << version << "'\n"
                      << "git = 'https://github.com/" << author << "/" << repo << ".git'\n\n";
 
-        toml_content << "[library]\n"
-                     << "include = ['" << include_dir.string() << "']\n"
-                     << "sources = '" << source_dir.string() << "'\n";
+        toml_content << "[library]\n";
+        toml_content << "include = ['" << include_dir.string() << "']\n";
+        toml_content << "sources = [\n";
+        for (size_t i = 0; i < source_files.size(); ++i) {
+            toml_content << "  '" << source_files[i] << "'";
+            if (i != source_files.size() - 1)
+                toml_content << ",";
+            toml_content << "\n";
+        }
+        toml_content << "]\n";
 
-        // Print the TOML content to stdout
         std::cout << "Generated muuk.toml content:\n";
         std::cout << toml_content.str() << std::endl;
 
@@ -130,7 +179,7 @@ namespace muuk {
         std::ofstream config_file(toml_path, std::ios::out | std::ios::trunc);
         if (!config_file.is_open()) {
             muuk::logger::error("Failed to create muuk.toml in {}", root.string());
-            return Err("");
+            return Err("Failed to write muuk.toml");
         }
 
         muuk::logger::info("Writing muuk.toml to '{}'", toml_path.string());
