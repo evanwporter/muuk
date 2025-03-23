@@ -14,35 +14,31 @@ MuukBuilder::MuukBuilder(MuukFiler& config_manager) :
 }
 
 Result<void> MuukBuilder::build(std::string& target_build, const std::string& compiler, const std::string& profile) {
-    lock_generator_ = std::make_unique<MuukLockGenerator>("./");
+    auto lock_generator_ = MuukLockGenerator::create("./");
+    if (!lock_generator_)
+        return Err(lock_generator_.error());
 
-    auto result = lock_generator_->load();
-    if (!result) {
-        muuk::logger::error(result.error());
-        return Err(result.error());
-    }
-
-    auto res_lock_file = lock_generator_->generate_cache(MUUK_CACHE_FILE);
-    if (!res_lock_file) {
-        muuk::logger::error("Failed to generate cache file: {}", res_lock_file.error());
-        return Err(res_lock_file.error());
-    }
+    auto lock_file_result = lock_generator_->generate_cache(MUUK_CACHE_FILE);
+    if (!lock_file_result)
+        return Err(lock_file_result.error());
 
     spdlog::default_logger()->flush();
 
-    auto compiler_result = compiler.empty() ? detect_default_compiler() : muuk::Compiler::from_string(compiler);
-    if (!compiler_result)
-        return tl::unexpected("Error selecting compiler: " + compiler_result.error());
-    auto selected_compiler = compiler_result.value();
+    auto compiler_result = compiler.empty()
+        ? detect_default_compiler()
+        : muuk::Compiler::from_string(compiler);
 
-    std::string selected_archiver = selected_compiler.detect_archiver();
-    std::string selected_linker = selected_compiler.detect_linker();
+    if (!compiler_result)
+        return Err("Error selecting compiler: " + compiler_result.error());
+
+    std::string selected_archiver = compiler_result->detect_archiver();
+    std::string selected_linker = compiler_result->detect_linker();
 
     auto profile_result = select_profile(profile);
     if (!profile_result)
         return tl::unexpected(profile_result.error());
 
-    std::string selected_profile = *profile_result;
+    std::string selected_profile = profile_result.value();
 
     ninja_backend_ = std::make_unique<NinjaBackend>(
         *compiler_result,

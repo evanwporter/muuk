@@ -27,6 +27,18 @@ MuukLockGenerator::MuukLockGenerator(const std::string& base_path) :
     resolved_packages = {};
 }
 
+Result<MuukLockGenerator> MuukLockGenerator::create(const std::string& base_path) {
+    auto lockgen = MuukLockGenerator(base_path);
+
+    auto result = lockgen.load();
+    if (!result) {
+        muuk::logger::error("Failed to load muuk.lock.toml: {}", result.error());
+        return Err("");
+    }
+
+    return lockgen;
+}
+
 // Parse a single muuk.toml file representing a package
 void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
     muuk::logger::trace("Attempting to parse muuk.toml: {}", path);
