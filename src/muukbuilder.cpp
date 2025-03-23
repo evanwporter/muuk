@@ -1,7 +1,5 @@
 #include <string>
 
-#include <tl/expected.hpp>
-
 #include "buildconfig.h"
 #include "logger.h"
 #include "muukbuilder.h"
@@ -62,7 +60,7 @@ Result<void> MuukBuilder::build(std::string& target_build, const std::string& co
     return {};
 }
 
-tl::expected<void, std::string> MuukBuilder::execute_build(const std::string& profile) const {
+Result<void> MuukBuilder::execute_build(const std::string& profile) const {
     muuk::logger::info("Starting build for profile: {}", profile);
 
     std::string build_dir = "build/" + profile;
@@ -79,7 +77,7 @@ tl::expected<void, std::string> MuukBuilder::execute_build(const std::string& pr
     return {};
 }
 
-tl::expected<bool, std::string> MuukBuilder::is_compiler_available() const {
+Result<bool> MuukBuilder::is_compiler_available() const {
     const char* compilers[] = { "cl", "gcc", "c++", "g++", "clang++" };
 
     for (const char* compiler : compilers) {
@@ -92,7 +90,7 @@ tl::expected<bool, std::string> MuukBuilder::is_compiler_available() const {
     return tl::unexpected("No compatible C++ compiler found on PATH. Install MSVC, GCC, or Clang.");
 }
 
-tl::expected<muuk::Compiler, std::string> MuukBuilder::detect_default_compiler() const {
+Result<muuk::Compiler> MuukBuilder::detect_default_compiler() const {
     const char* compilers[] = { "g++", "clang++", "cl" };
 
     for (const char* compiler : compilers) {
@@ -105,7 +103,7 @@ tl::expected<muuk::Compiler, std::string> MuukBuilder::detect_default_compiler()
     return tl::unexpected("No suitable C++ compiler found. Install GCC, Clang, or MSVC.");
 }
 
-tl::expected<std::string, std::string> MuukBuilder::select_profile(const std::string& profile) {
+Result<std::string> MuukBuilder::select_profile(const std::string& profile) {
     if (!profile.empty())
         return profile;
 
@@ -132,7 +130,7 @@ tl::expected<std::string, std::string> MuukBuilder::select_profile(const std::st
     return tl::unexpected("No valid profiles found.");
 }
 
-tl::expected<void, std::string> MuukBuilder::add_script(const std::string& profile, const std::string& build_name) {
+Result<void> MuukBuilder::add_script(const std::string& profile, const std::string& build_name) {
     (void)build_name;
     try {
         MuukFiler muuk_filer("muuk.toml");
