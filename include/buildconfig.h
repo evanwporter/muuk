@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <unordered_set>
 
 #ifdef _WIN32
 #ifdef _M_X64 // Ensure we are building for 64-bit
@@ -35,3 +36,12 @@ constexpr std::string_view BUILD_FOLDER = "build";
 
 const std::string MUUK_CACHE_FILE = "build/muuk.lock.toml";
 const std::string MUUK_TOML_FILE = "muuk.toml";
+
+// Credit to Ken Matsui @ Cabin for this snippet
+// https://github.com/cabinpkg/cabin/blob/4c1eb8549ff3b0532ae1bc78ed38f07436450e3e/src/BuildConfig.hpp#L22C1-L27C3
+inline const std::unordered_set<std::string> SOURCE_FILE_EXTS {
+    ".c", ".c++", ".cc", ".cpp", ".cxx"
+};
+inline const std::unordered_set<std::string> HEADER_FILE_EXTS {
+    ".h", ".h++", ".hh", ".hpp", ".hxx"
+};
