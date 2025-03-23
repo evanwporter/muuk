@@ -91,7 +91,7 @@ void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
 
 tl::expected<void, std::string> MuukLockGenerator::resolve_dependencies(const std::string& package_name, std::optional<std::string> version, std::optional<std::string> search_path) {
     if (visited.count(package_name)) {
-        muuk::logger::warn("Circular dependency detected for '{}'. Skipping resolution.", package_name);
+        muuk::logger::trace("Dependency '{}' already processed. Skipping resolution.", package_name);
         return {};
     }
 

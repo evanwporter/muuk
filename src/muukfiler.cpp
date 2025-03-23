@@ -35,12 +35,13 @@ Result<MuukFiler> MuukFiler::create(std::shared_ptr<IFileOperations> file_ops, b
 
     MuukFiler filer(file_ops, is_lock_file);
 
+    Result<void> result;
     if (is_lock_file) {
-        auto result = muuk::validate_muuk_lock_toml(filer.get_config());
+        result = muuk::validate_muuk_lock_toml(filer.get_config());
     } else {
-        auto result = muuk::validate_muuk_toml(filer.get_config());
+        result = muuk::validate_muuk_toml(filer.get_config());
     }
-    auto result = muuk::validate_muuk_toml(filer.get_config());
+
     if (!result) {
         muuk::logger::error("Issue with {}: {}", file_ops->get_file_path(), result.error());
         return Err("");
