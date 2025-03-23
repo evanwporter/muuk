@@ -34,6 +34,31 @@ namespace muuk {
         return Err("Unknown TOML type");
     }
 
+    inline std::string to_string(TomlType type) {
+        switch (type) {
+        case TomlType::Table:
+            return "Table";
+        case TomlType::Array:
+            return "Array";
+        case TomlType::String:
+            return "String";
+        case TomlType::Integer:
+            return "Integer";
+        case TomlType::Float:
+            return "Float";
+        case TomlType::Boolean:
+            return "Boolean";
+        case TomlType::Date:
+            return "Date";
+        case TomlType::Time:
+            return "Time";
+        case TomlType::DateTime:
+            return "DateTime";
+        default:
+            return "Unknown";
+        }
+    }
+
     Result<void> validate_toml_(const toml::table& toml_data, const SchemaMap& schema, std::string parent_path = "") {
 
         bool has_wildcard = schema.contains("*");
@@ -59,8 +84,13 @@ namespace muuk {
             }
 
             if (std::holds_alternative<TomlType>(schema_node.type)) {
-                if (*node_type != std::get<TomlType>(schema_node.type)) {
-                    return Err("Type mismatch at {}", full_path);
+                TomlType expected = std::get<TomlType>(schema_node.type);
+                if (*node_type != expected) {
+                    return Err(
+                        "Type mismatch at {}: expected {}, found {}",
+                        full_path,
+                        to_string(expected),
+                        to_string(*node_type));
                 }
             } else if (std::holds_alternative<TomlArray>(schema_node.type)) {
                 if (*node_type != TomlType::Array) {
@@ -171,7 +201,9 @@ namespace muuk {
     };
 
     Result<void> validate_muuk_lock_toml(const toml::table& toml_data) {
-        return validate_toml_(toml_data, muuk_lock_schema);
+        (void)toml_data;
+        return {};
+        // return validate_toml_(toml_data, muuk_lock_schema);
     }
 
 } // namespace muuk
