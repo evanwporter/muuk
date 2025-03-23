@@ -174,7 +174,10 @@ typedef DependencyVersionMap<std::shared_ptr<Package>> DependencyMap;
 class MuukLockGenerator {
 public:
     explicit MuukLockGenerator(const std::string& base_path);
-    void generate_lockfile(const std::string& output_path);
+    Result<void> load();
+
+    Result<void> generate_lockfile(const std::string& output_path);
+    Result<void> generate_cache(const std::string& output_path);
 
 private:
     muuk::Edition edition_;
