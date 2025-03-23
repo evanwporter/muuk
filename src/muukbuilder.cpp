@@ -15,7 +15,19 @@ MuukBuilder::MuukBuilder(MuukFiler& config_manager) :
 
 Result<void> MuukBuilder::build(std::string& target_build, const std::string& compiler, const std::string& profile) {
     lock_generator_ = std::make_unique<MuukLockGenerator>("./");
-    lock_generator_->generate_lockfile(MUUK_CACHE_FILE);
+
+    auto result = lock_generator_->load();
+    if (!result) {
+        muuk::logger::error(result.error());
+        return Err(result.error());
+    }
+
+    auto res_lock_file = lock_generator_->generate_cache(MUUK_CACHE_FILE);
+    if (!res_lock_file) {
+        muuk::logger::error("Failed to generate cache file: {}", res_lock_file.error());
+        return Err(res_lock_file.error());
+    }
+
     spdlog::default_logger()->flush();
 
     auto compiler_result = compiler.empty() ? detect_default_compiler() : muuk::Compiler::from_string(compiler);

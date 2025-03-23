@@ -145,22 +145,25 @@ namespace muuk {
             std::cout << CYAN << BOLD << "muuk install" << RESET << "\n";
 
             MuukLockGenerator lockgen("./");
-            lockgen.generate_lockfile(lockfile_path.string());
+            auto res_lockgen = lockgen.load();
+            if (!res_lockgen) {
+                return Err("Failed to load muuk.lock.toml: {}", res_lockgen.error());
+            }
+
+            auto res_lockfile = lockgen.generate_lockfile(lockfile_path.string());
+            if (!res_lockfile) {
+                return Err("Failed to generate lockfile: {}", res_lockfile.error());
+            }
 
             std::cout << CYAN << "Reading lockfile: " << lockfile_path << RESET << "\n";
 
-            if (!fs::exists(lockfile_path)) {
-                std::cout << RED << "muuk.lock.toml file not found." << RESET << "\n";
-                return Err("muuk.lock.toml file not found.");
-            }
-
-            auto result = MuukFiler::create(lockfile_path.string(), true);
-            if (!result) {
+            auto res_muukfiler = MuukFiler::create(lockfile_path.string(), true);
+            if (!res_muukfiler) {
                 std::cout << RED << "Failed to read lockfile." << RESET << "\n";
-                return Err("Failed to read lockfile: {}", result.error());
+                return Err("Failed to read lockfile: {}", res_muukfiler.error());
             }
 
-            MuukFiler muuk_filer = result.value();
+            MuukFiler muuk_filer = res_muukfiler.value();
             toml::table lockfile_data = muuk_filer.get_config();
 
             if (!lockfile_data.contains("dependencies") || !lockfile_data["dependencies"].is_table()) {
