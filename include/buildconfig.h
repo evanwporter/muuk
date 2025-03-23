@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 
 #ifdef _WIN32
 #ifdef _M_X64 // Ensure we are building for 64-bit
@@ -30,3 +31,7 @@ constexpr const char* EXE_EXT = "";
 #endif
 
 constexpr const char* DEPENDENCY_FOLDER = "deps";
+constexpr std::string_view BUILD_FOLDER = "build";
+
+const std::string MUUK_CACHE_FILE = "build/muuk.lock.toml";
+const std::string MUUK_TOML_FILE = "muuk.toml";

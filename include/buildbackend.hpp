@@ -7,6 +7,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include "buildconfig.h"
 #include "buildmanager.h"
 #include "buildparser.hpp"
 #include "buildtargets.h"
@@ -52,7 +53,7 @@ public:
         muuk::Compiler compiler,
         const std::string& archiver,
         const std::string& linker,
-        const std::string& lockfile_path = "muuk.lock.toml");
+        const std::string& lockfile_path = MUUK_CACHE_FILE);
 
     void generate_build_file(
         const std::string& target_build,
@@ -78,7 +79,7 @@ public:
         muuk::Compiler compiler,
         const std::string& archiver,
         const std::string& linker,
-        const std::string& lockfile_path = "muuk.lock.toml");
+        const std::string& lockfile_path = MUUK_CACHE_FILE);
 
     void generate_build_file(
         const std::string& target_build,
