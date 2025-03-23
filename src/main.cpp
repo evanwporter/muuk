@@ -192,7 +192,7 @@ int main(int argc, char* argv[]) {
 
         if (program.is_subcommand_used("install")) {
             muuk::logger::info("Installing dependencies from muuk.toml...");
-            CHECK_CALL(muuk::package_manager::install(MUUK_CACHE_FILE));
+            CHECK_CALL(muuk::package_manager::install("muuk.lock"));
         }
 
         if (program.is_subcommand_used("remove")) {
