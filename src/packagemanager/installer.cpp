@@ -2,6 +2,9 @@
 #include <fstream>
 #include <string>
 
+#define TOML_EXCEPTIONS 0
+#include <toml++/toml.hpp>
+
 #include "logger.h"
 #include "muukfiler.h"
 #include "muuklockgen.h"
@@ -144,54 +147,72 @@ namespace muuk {
 
             std::cout << CYAN << BOLD << "muuk install" << RESET << "\n";
 
-            MuukLockGenerator lockgen("./");
-            auto res_lockgen = lockgen.load();
-            if (!res_lockgen) {
-                return Err("Failed to load muuk.lock.toml: {}", res_lockgen.error());
+            auto lockgen = MuukLockGenerator::create("./");
+            if (!lockgen) {
+                return Err("Failed to load muuk.lock.toml: {}", lockgen.error());
             }
 
-            auto res_lockfile = lockgen.generate_lockfile(lockfile_path.string());
-            if (!res_lockfile) {
-                return Err("Failed to generate lockfile: {}", res_lockfile.error());
+            auto lock_file_result = lockgen->generate_lockfile(lockfile_path.string());
+            if (!lock_file_result) {
+                return Err("Failed to generate lockfile: {}", lock_file_result.error());
             }
 
             std::cout << CYAN << "Reading lockfile: " << lockfile_path << RESET << "\n";
 
-            auto res_muukfiler = MuukFiler::create(lockfile_path.string(), true);
-            if (!res_muukfiler) {
-                std::cout << RED << "Failed to read lockfile." << RESET << "\n";
-                return Err("Failed to read lockfile: {}", res_muukfiler.error());
+            std::ifstream file(lockfile_path);
+            if (!file) {
+                return Err("Failed to open lockfile '{}'", lockfile_path_string);
             }
 
-            MuukFiler muuk_filer = res_muukfiler.value();
-            toml::table lockfile_data = muuk_filer.get_config();
-
-            if (!lockfile_data.contains("dependencies") || !lockfile_data["dependencies"].is_table()) {
-                std::cout << RED << "No 'dependencies' section found in lockfile." << RESET << "\n";
-                return tl::unexpected("No 'dependencies' section found in lockfile");
+            toml::parse_result parsed = toml::parse(file);
+            if (!parsed) {
+                return Err("Failed to parse TOML lockfile: {}", parsed.error().description());
             }
 
-            toml::table dependencies = *lockfile_data["dependencies"].as_table();
-
-            std::cout << "\nFound " << BOLD << dependencies.size() << RESET << " dependencies:\n";
-            for (const auto& [dep_name_, dep_table] : dependencies) {
-                std::string repo_name = std::string(dep_name_.str());
-                auto dep_info = *dep_table.as_table();
-                std::string ref = dep_info.contains("version") ? *dep_info["version"].value<std::string>() : "main";
-
-                std::cout << "  - " << MAGENTA << repo_name << RESET << " @ " << ref.substr(0, 8) << "\n";
+            toml::table lockfile_data = parsed.table();
+            auto packages = lockfile_data["package"].as_array();
+            if (!packages) {
+                std::cout << RED << "No [[package]] entries found in lockfile." << RESET << "\n";
+                return Err("No packages found in lockfile.");
             }
+
+            std::cout << "\nFound " << BOLD << packages->size() << RESET << " dependencies:\n";
+            for (const auto& item : *packages) {
+                const auto* pkg = item.as_table();
+                if (!pkg || !pkg->contains("name") || !pkg->contains("version") || !pkg->contains("source"))
+                    continue;
+
+                const std::string name = *pkg->at("name").value<std::string>();
+                const std::string version = *pkg->at("version").value<std::string>();
+                const std::string source = *pkg->at("source").value<std::string>();
+
+                std::string short_hash = version.substr(0, 8);
+                std::cout << "  - " << MAGENTA << name << RESET << " @ " << short_hash << "\n";
+            }
+
             std::cout << "\n";
 
-            for (const auto& [dep_name_, dep_table] : dependencies) {
-                std::string repo_name = std::string(dep_name_.str());
-                auto dep_info = *dep_table.as_table();
-                std::string git_url = dep_info.contains("git") ? *dep_info["git"].value<std::string>() : "";
-                std::string ref = dep_info.contains("version") ? *dep_info["version"].value<std::string>() : "main";
+            for (const auto& item : *packages) {
+                const auto* pkg = item.as_table();
+                if (!pkg || !pkg->contains("name") || !pkg->contains("version") || !pkg->contains("source"))
+                    continue;
 
-                std::string target_dir = std::string(DEPENDENCY_FOLDER) + "/" + repo_name + '/' + ref;
+                const std::string name = *pkg->at("name").value<std::string>();
+                const std::string version = *pkg->at("version").value<std::string>();
+                const std::string source = *pkg->at("source").value<std::string>();
+                const std::string short_hash = version.substr(0, 8);
 
-                std::cout << CYAN << "Installing: " << repo_name << " @ " << ref.substr(0, 8) << RESET << "\n";
+                std::cout << CYAN << "Installing: " << name << " @ " << short_hash << RESET << "\n";
+
+                std::string git_url;
+                if (source.rfind("git+", 0) == 0) {
+                    git_url = source.substr(4); // remove "git+"
+                } else {
+                    std::cout << RED << "Unsupported source format: " << source << RESET << "\n";
+                    continue;
+                }
+
+                std::string target_dir = std::string(DEPENDENCY_FOLDER) + "/" + name + "/" + version;
 
                 if (fs::exists(target_dir) && is_package_installed(target_dir)) {
                     std::cout << YELLOW << "Already installed - skipping.\n"
@@ -200,12 +221,12 @@ namespace muuk {
                 }
 
                 std::cout << MAGENTA << "Cloning from " << git_url << RESET << "\n";
-                clone_shallow_repo(git_url, target_dir, ref);
+                clone_shallow_repo(git_url, target_dir, version);
 
                 if (fs::exists(target_dir)) {
-                    std::cout << GREEN << "Installed " << repo_name << " @ " << ref.substr(0, 8) << RESET << "\n\n";
+                    std::cout << GREEN << "Installed " << name << " @ " << short_hash << RESET << "\n\n";
                 } else {
-                    std::cout << RED << "Failed to install " << repo_name << RESET << "\n\n";
+                    std::cout << RED << "Failed to install " << name << RESET << "\n\n";
                 }
             }
 
