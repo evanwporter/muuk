@@ -2,14 +2,12 @@
 #define MUUK_BUILDER_H
 
 #include <memory>
-#include <vector>
+#include <string>
 
 #include <spdlog/spdlog.h>
 #include <tl/expected.hpp>
 
 #include "buildbackend.hpp"
-#include "logger.h"
-#include "muuk.h"
 #include "muukfiler.h"
 #include "muuklockgen.h"
 
@@ -22,7 +20,6 @@ public:
 
 private:
     MuukFiler& config_manager_;
-    std::unique_ptr<MuukLockGenerator> lock_generator_;
     std::unique_ptr<NinjaBackend> ninja_backend_;
     std::unique_ptr<CompileCommandsBackend> compdb_backend_;
 
