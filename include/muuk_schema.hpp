@@ -67,9 +67,12 @@ namespace muuk {
     }
 
     const SchemaMap dependency_schema = {
+        { "version", { true, TomlType::String } },
         { "git", { false, TomlType::String } },
-        { "muuk_path", { false, TomlType::String } },
-        { "version", { true, TomlType::String } }
+        { "path", { false, TomlType::String } },
+        { "features", { false, TomlArray { TomlType::String } } },
+        { "system", { false, TomlType::Boolean } },
+        { "libs", { false, TomlArray { TomlType::String } } }
     };
 
     const SchemaMap base_package_schema = {
