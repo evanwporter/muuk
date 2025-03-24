@@ -11,10 +11,10 @@
 #include <fmt/core.h>
 #include <spdlog/spdlog.h>
 
+#include "muukterminal.hpp"
+
 namespace muuk {
 
-    constexpr const char* WARN_PREFIX = "\033[1;33mwarning:\033[0m "; // Yellow
-    constexpr const char* ERROR_PREFIX = "\033[1;31merror:\033[0m "; // Red
     constexpr const char* CRITICAL_PREFIX = "\033[1;41mcritical:\033[0m "; // Red background
 
     class logger {
@@ -45,16 +45,16 @@ namespace muuk {
         template <typename... Args>
         static void warn(const std::string& format_str, Args&&... args) {
             initialize();
-            std::string formatted_message = fmt::vformat(format_str, fmt::make_format_args(args...));
-            std::cerr << WARN_PREFIX << formatted_message << "\n";
+            const std::string formatted_message = fmt::vformat(format_str, fmt::make_format_args(args...));
+            muuk::terminal::warn(formatted_message);
             spdlog::warn(formatted_message);
         }
 
         template <typename... Args>
         static void error(const std::string& format_str, Args&&... args) {
             initialize();
-            std::string formatted_message = fmt::vformat(format_str, fmt::make_format_args(args...));
-            std::cerr << ERROR_PREFIX << formatted_message << "\n";
+            const std::string formatted_message = fmt::vformat(format_str, fmt::make_format_args(args...));
+            muuk::terminal::error(formatted_message);
             std::cerr.flush();
             spdlog::error(formatted_message);
         }

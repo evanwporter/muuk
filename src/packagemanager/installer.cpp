@@ -8,6 +8,7 @@
 #include "logger.h"
 #include "muukfiler.h"
 #include "muuklockgen.h"
+#include "muukterminal.hpp"
 #include "package_manager.h"
 #include "rustify.hpp"
 #include "util.h"
@@ -134,18 +135,9 @@ namespace muuk {
         }
 
         Result<void> install(const std::string& lockfile_path_string) {
-            const std::string RESET = "\033[0m";
-            const std::string BOLD = "\033[1m";
-            const std::string GREEN = "\033[32m";
-            const std::string YELLOW = "\033[33m";
-            const std::string RED = "\033[31m";
-            const std::string CYAN = "\033[36m";
-            const std::string WHITE = "\033[37m";
-            const std::string MAGENTA = "\033[95m";
+            using namespace muuk::terminal;
 
             fs::path lockfile_path = fs::path(lockfile_path_string);
-
-            std::cout << CYAN << BOLD << "muuk install" << RESET << "\n";
 
             auto lockgen = MuukLockGenerator::create("./");
             if (!lockgen) {
@@ -157,7 +149,7 @@ namespace muuk {
                 return Err("Failed to generate lockfile: {}", lock_file_result.error());
             }
 
-            std::cout << CYAN << "Reading lockfile: " << lockfile_path << RESET << "\n";
+            std::cout << muuk::terminal::style::CYAN << "Reading lockfile: " << lockfile_path << muuk::terminal::style::RESET << "\n";
 
             std::ifstream file(lockfile_path);
             if (!file) {
@@ -172,11 +164,11 @@ namespace muuk {
             toml::table lockfile_data = parsed.table();
             auto packages = lockfile_data["package"].as_array();
             if (!packages) {
-                std::cout << RED << "No [[package]] entries found in lockfile." << RESET << "\n";
+                muuk::logger::error("No [[package]] entries found in lockfile.");
                 return Err("No packages found in lockfile.");
             }
 
-            std::cout << "\nFound " << BOLD << packages->size() << RESET << " dependencies:\n";
+            muuk::terminal::info("Found {}{}{} dependencies:", muuk::terminal::style::BOLD, packages->size(), muuk::terminal::style::RESET);
             for (const auto& item : *packages) {
                 const auto* pkg = item.as_table();
                 if (!pkg || !pkg->contains("name") || !pkg->contains("version") || !pkg->contains("source"))
@@ -187,7 +179,7 @@ namespace muuk {
                 const std::string source = *pkg->at("source").value<std::string>();
 
                 std::string short_hash = version.substr(0, 8);
-                std::cout << "  - " << MAGENTA << name << RESET << " @ " << short_hash << "\n";
+                muuk::logger::info("  - {}{}{} @ {}", muuk::terminal::style::MAGENTA, name, muuk::terminal::style::RESET, short_hash);
             }
 
             std::cout << "\n";
@@ -202,35 +194,35 @@ namespace muuk {
                 const std::string source = *pkg->at("source").value<std::string>();
                 const std::string short_hash = version.substr(0, 8);
 
-                std::cout << CYAN << "Installing: " << name << " @ " << short_hash << RESET << "\n";
+                muuk::terminal::info("Installing: {}{}{} @ {}{}", muuk::terminal::style::CYAN, name, muuk::terminal::style::RESET, short_hash, muuk::terminal::style::RESET);
 
                 std::string git_url;
                 if (source.rfind("git+", 0) == 0) {
                     git_url = source.substr(4); // remove "git+"
                 } else {
-                    std::cout << RED << "Unsupported source format: " << source << RESET << "\n";
+                    muuk::logger::warn("Unsupported source format: {}", source);
                     continue;
                 }
 
                 std::string target_dir = std::string(DEPENDENCY_FOLDER) + "/" + name + "/" + version;
 
                 if (fs::exists(target_dir) && is_package_installed(target_dir)) {
-                    std::cout << YELLOW << "Already installed - skipping.\n"
-                              << RESET << "\n";
+                    std::cout << muuk::terminal::style::YELLOW << "Already installed - skipping.\n"
+                              << muuk::terminal::style::RESET << "\n";
                     continue;
                 }
 
-                std::cout << MAGENTA << "Cloning from " << git_url << RESET << "\n";
+                std::cout << muuk::terminal::style::MAGENTA << "Cloning from " << git_url << muuk::terminal::style::RESET << "\n";
                 clone_shallow_repo(git_url, target_dir, version);
 
                 if (fs::exists(target_dir)) {
-                    std::cout << GREEN << "Installed " << name << " @ " << short_hash << RESET << "\n\n";
+                    std::cout << muuk::terminal::style::GREEN << "Installed " << name << " @ " << short_hash << muuk::terminal::style::RESET << "\n\n";
                 } else {
-                    std::cout << RED << "Failed to install " << name << RESET << "\n\n";
+                    std::cout << muuk::terminal::style::RED << "Failed to install " << name << muuk::terminal::style::RESET << "\n\n";
                 }
             }
 
-            std::cout << GREEN << BOLD << "All dependencies are installed!" << RESET << "\n";
+            std::cout << muuk::terminal::style::GREEN << muuk::terminal::style::BOLD << "All dependencies are installed!" << muuk::terminal::style::RESET << "\n";
             return {};
         }
 

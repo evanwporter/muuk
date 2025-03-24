@@ -1,7 +1,17 @@
+#include <conio.h>
+#include <iostream>
+#include <string>
+
 #include "muukterminal.hpp"
 
 namespace muuk {
     namespace terminal {
+
+        std::string get_indent() {
+            return std::string(
+                current_indent_level,
+                ' ');
+        }
 
         void move_cursor_up(int lines) {
             for (int i = 0; i < lines; i++) {

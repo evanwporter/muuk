@@ -1,6 +1,5 @@
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 
-#include <iostream>
 #include <string>
 #include <vector>
 
@@ -13,6 +12,7 @@
 #include "muuk.h"
 #include "muuker.hpp"
 #include "muukfiler.h"
+#include "muukterminal.hpp"
 #include "package_manager.h"
 
 // Define a macro to handle tl::expected, if the unexpected happens it will log the error and return 1, otherwise it will return 0
@@ -166,7 +166,7 @@ int main(int argc, char* argv[]) {
     program.add_subparser(add_command);
 
     if (argc < 2) {
-        std::cerr << muuk::ERROR_PREFIX << "Usage: " << std::string(argv[0]) << " <command> [--muuk-path <path>] [other options]\n";
+        muuk::terminal::error("Usage: {} <command> [--muuk-path <path>] [other options]", std::string(argv[0]));
         return 1;
     }
 
