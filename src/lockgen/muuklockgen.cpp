@@ -339,9 +339,8 @@ Result<void> MuukLockGenerator::load() {
 Result<void> MuukLockGenerator::generate_cache(const std::string& output_path) {
 
     // ─────────────────────────────────────────────
-    // 1. Write to cache file
+    //   Write to cache file
     // ─────────────────────────────────────────────
-
     std::ofstream lockfile(output_path);
     if (!lockfile) {
         muuk::logger::error("Failed to open lockfile: {}", output_path);
@@ -390,7 +389,7 @@ Result<void> MuukLockGenerator::generate_cache(const std::string& output_path) {
 Result<void> MuukLockGenerator::generate_lockfile(const std::string& output_path) {
 
     // ─────────────────────────────────────────────
-    // 2. Write to cargo-style muuk.lock
+    //   Write to cargo-style muuk.lock
     // ─────────────────────────────────────────────
     std::ofstream cargo_style_lock(output_path);
     if (!cargo_style_lock) {
@@ -452,6 +451,7 @@ Result<void> MuukLockGenerator::generate_lockfile(const std::string& output_path
     return {};
 }
 
+// TODO: Replace std::shared_ptr<Package> with unique_ptr and Package*
 // Finds and returns a package by its name from the resolved packages.
 std::shared_ptr<Package> MuukLockGenerator::find_package(const std::string& package_name, std::optional<std::string> version) {
     if (resolved_packages.count(package_name) && version.has_value()) {

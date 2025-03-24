@@ -7,6 +7,10 @@
 namespace muuk {
     namespace terminal {
 
+        // TODO: Replace colors with this
+        // constexpr const char* WARN_PREFIX = "\033[1;33mwarning:\033[0m "; // Yellow
+        // constexpr const char* ERROR_PREFIX = "\033[1;31merror:\033[0m "; // Red
+
         std::string get_indent() {
             return std::string(
                 current_indent_level,

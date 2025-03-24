@@ -15,7 +15,9 @@
 #include "muukterminal.hpp"
 #include "package_manager.h"
 
-// Define a macro to handle tl::expected, if the unexpected happens it will log the error and return 1, otherwise it will return 0
+// Define a macro to handle tl::expected, if the unexpected
+// happens it will log the error and return 1, otherwise
+// it will return 0
 #define CHECK_CALL(call)      \
     do {                      \
         auto result = (call); \

@@ -171,12 +171,6 @@ namespace muuk {
                     }
                 }
 
-                // // Construct the new dependency entry
-                // toml::value new_entry = toml::table {
-                //     { "version", toml::value(version) },
-                //     { "git", toml::value(final_git_url) }
-                // };
-
                 dependencies.emplace_back(repo_name, toml::value(version));
 
                 std::ofstream file_out(toml_path, std::ios::trunc);

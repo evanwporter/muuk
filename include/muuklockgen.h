@@ -221,22 +221,29 @@ private:
         const toml::table& profile_data,
         const std::string& profile_name,
         const std::string& flag_type);
+
     static Result<void> parse_library(
         const toml::table& data,
         std::shared_ptr<Package> package);
+
     static Result<void> parse_platform(
         const toml::table& data,
         std::shared_ptr<Package> package);
+
     static Result<void> parse_compiler(
         const toml::table& data,
         std::shared_ptr<Package> package);
+
     static Result<void> parse_features(
         const toml::table& data,
         std::shared_ptr<Package> package);
+
     Result<void> parse_dependencies(
         const toml::table& data,
         std::shared_ptr<Package> package);
+
     Result<void> parse_profile(const toml::table& data);
+
     Result<void> parse_builds(
         const toml::table& data,
         const std::string& package_version,
@@ -250,7 +257,6 @@ private:
         const std::string& package_name,
         std::optional<std::string> version = std::nullopt);
 
-    // TODO: Use or Remove
     void resolve_system_dependency(
         const std::string& package_name,
         std::shared_ptr<Package> package);

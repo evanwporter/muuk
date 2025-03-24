@@ -25,7 +25,7 @@ class NinjaGenerator:
         os.makedirs(self.build_dir, exist_ok=True)
 
         with open(self.ninja_file, "w") as out:
-            print("Generating Ninja build rules...")
+            print("Generating build rules...")
             self.write_ninja_header(out)
 
             objects, libraries = self.compile_objects(out)
@@ -35,10 +35,9 @@ class NinjaGenerator:
             for build_name in self.data.get("build", {}).keys():
                 self.link_executable(out, objects, libraries, build_name)
 
-        print(f"Ninja build file '{self.ninja_file}' generated successfully!")
+        print(f"Ninja build file '{self.ninja_file}' has ben generated!")
 
     def write_ninja_header(self, out):
-        """Writes the initial build rules to the Ninja file."""
         out.write(
             f"""# Auto-generated Ninja build file
 
@@ -59,7 +58,6 @@ rule link
         )
 
     def compile_objects(self, out):
-        """Generates compile rules for object files."""
         objects, libraries = {}, []
 
         for pkg_type, packages in self.data.items():
@@ -97,7 +95,6 @@ rule link
         return objects, libraries
 
     def archive_libraries(self, out, objects, libraries):
-        """Generates archive rules for static libraries."""
         for pkg_name, obj_files in objects.items():
             if not obj_files:  # Skip if no object files exist
                 continue
@@ -108,7 +105,6 @@ rule link
             libraries.append(lib_name)
 
     def link_executable(self, out, objects, libraries, build_name):
-        """Generates the link rule for each build target."""
         exe_output = os.path.join(self.build_dir, f"{build_name}.exe")
 
         # Include all object files for this build target

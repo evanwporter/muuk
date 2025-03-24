@@ -100,7 +100,6 @@ class MuukParser:
             package_name
         ) or self.resolved_packages["build"].get(package_name)
 
-        # Search for package in modules/
         if not package:
             self._search_and_parse_dependency(package_name)
             package = self.resolved_packages["library"].get(package_name)

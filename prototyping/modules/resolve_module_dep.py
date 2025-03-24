@@ -81,7 +81,6 @@ class ModuleParser:
                 print(f"Detected module: {module_name}")
 
     def resolve_module_order(self, module_name):
-        """Recursively resolves module dependencies in a DFS-based approach."""
         if module_name in self.resolved_modules:
             return  # Already resolved
 
@@ -102,7 +101,6 @@ class ModuleParser:
         self.resolved_modules.append(module_name)
 
     def resolve_all_modules(self):
-        """Resolves the compilation order for all modules."""
         print("\nResolving module compilation order...")
 
         for module_name in self.modules_dict.keys():
