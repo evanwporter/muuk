@@ -61,8 +61,10 @@ void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
     }
 
     const auto package_name = data["package"]["name"].as_string();
-
     const auto package_version = data["package"]["version"].as_string();
+    const auto package_source = data.at("package").contains("git")
+        ? data.at("package").at("git").as_string()
+        : std::string();
 
     muuk::logger::info("Parsing muuk.toml for package: {} ({})", package_name, package_version);
 
@@ -86,6 +88,8 @@ void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
     parse_platform(data, package);
     parse_compiler(data, package);
     parse_features(data, package);
+
+    package->source = package_source;
 
     resolved_packages[package_name][package_version] = package;
 
@@ -402,13 +406,24 @@ Result<void> MuukLockGenerator::generate_lockfile(const std::string& output_path
                 continue;
             }
 
+            const auto pkg = find_package(dep_name, dep_version);
+            if (!pkg) {
+                continue;
+            }
+
+            const auto& source = !pkg->source.empty()
+                ? pkg->source
+                : dep_ptr->git_url;
+
             cargo_style_lock << "[[package]]\n";
             cargo_style_lock << "name = \"" << dep_name << "\"\n";
             cargo_style_lock << "version = \"" << dep_version << "\"\n";
 
-            if (!dep_ptr->git_url.empty()) {
-                cargo_style_lock << "source = \"git+" << dep_ptr->git_url << "\"\n";
-            } else if (!dep_ptr->path.empty()) {
+            // TODO: better way of differentiating between source and path
+            // if (!dep_ptr->git_url.empty()) {
+            cargo_style_lock << "source = \"git+" << source << "\"\n";
+            // }
+            if (!dep_ptr->path.empty()) {
                 cargo_style_lock << "source = \"path+" << dep_ptr->path << "\"\n";
             }
 

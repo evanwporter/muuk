@@ -224,6 +224,7 @@ namespace muuk {
             return {};
         }
 
+        // TODO: Remove MuukFiler dependency
         Result<void> remove_package(const std::string& package_name, const std::string& toml_path, const std::string& lockfile_path) {
             muuk::logger::info("Removing package: {}", package_name);
 

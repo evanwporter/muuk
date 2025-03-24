@@ -83,6 +83,11 @@ struct Dependency {
     static Dependency from_toml(const toml::value& data) {
         Dependency dep;
 
+        if (data.is_string()) {
+            dep.version = data.as_string();
+            return dep;
+        }
+
         if (data.contains("git"))
             dep.git_url = data.at("git").as_string();
 
@@ -154,6 +159,8 @@ public:
     std::string version;
     std::string base_path;
     PackageType package_type; // "library" or "build"
+
+    std::string source;
 
     std::unordered_set<std::string> include;
     std::unordered_set<std::string> system_include;

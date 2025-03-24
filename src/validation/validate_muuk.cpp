@@ -155,7 +155,6 @@ namespace muuk {
                     } else if constexpr (std::is_same_v<T, std::vector<TomlType>>) {
                         return std::find(expected.begin(), expected.end(), *node_type) != expected.end();
                     }
-                    return false;
                     // clang-format off
                 }, wildcard_schema->type);
 

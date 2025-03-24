@@ -101,7 +101,7 @@ namespace muuk {
         }}},
 
         {"dependencies", {false, std::vector<TomlType>{TomlType::String, TomlType::Table}, {
-            {"*", {false, TomlType::Table, dependency_schema}}
+            {"*", {false, std::vector<TomlType>{TomlType::Table, TomlType::String}, dependency_schema}}
         }}},
 
         {"library", {false, TomlType::Table, base_package_schema}},
