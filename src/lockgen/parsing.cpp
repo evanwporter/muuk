@@ -3,42 +3,41 @@
 #include <string>
 
 #include <fmt/ranges.h>
-#include <toml++/toml.h>
+#include <toml.hpp>
 
 #include "logger.h"
-#include "muukfiler.h"
 #include "muuklockgen.h"
 #include "rustify.hpp"
 
 namespace fs = std::filesystem;
 
-void MuukLockGenerator::parse_flags(const toml::table& profile_data, const std::string& profile_name, const std::string& flag_type) {
+void MuukLockGenerator::parse_flags(const toml::value& profile_data, const std::string& profile_name, const std::string& flag_type) {
     if (profile_data.contains(flag_type) && profile_data.at(flag_type).is_array()) {
-        const auto& flag_array = *profile_data.at(flag_type).as_array();
+        const auto& flag_array = profile_data.at(flag_type).as_array();
         std::unordered_set<std::string> flags;
         for (const auto& flag : flag_array) {
-            flags.insert(*flag.value<std::string>());
+            flags.insert(flag.as_string());
         }
         profiles_[profile_name][flag_type] = flags;
         muuk::logger::info("Profile '{}' loaded with {} {}.", profile_name, flags.size(), flag_type);
     }
 };
 
-Result<void> MuukLockGenerator::parse_dependencies(const toml::table& data, std::shared_ptr<Package> package) {
+Result<void> MuukLockGenerator::parse_dependencies(const toml::value& data, std::shared_ptr<Package> package) {
 
-    if (data.contains("dependencies") && data["dependencies"].is_table()) {
-        for (const auto& [dep_name, dep_value] : *data["dependencies"].as_table()) {
+    if (data.contains("dependencies") && data.at("dependencies").is_table()) {
+        for (const auto& [dep_name, dep_value] : data.at("dependencies").as_table()) {
             Dependency dependency_info;
-            auto dep_name_str = std::string(dep_name.str());
+            auto dep_name_str = dep_name; // TODO: Remove this line
 
             package->deps.insert(dep_name_str);
 
             if (dep_value.is_table()) {
-                dependency_info = Dependency::from_toml(*dep_value.as_table());
+                dependency_info = Dependency::from_toml(dep_value.as_table());
             } else if (dep_value.is_string()) {
-                dependency_info.version = *dep_value.value<std::string>(); // If just a version string
+                dependency_info.version = dep_value.as_string(); // If just a version string
             } else {
-                muuk::logger::error("Invalid dependency format for '{}'", dep_name.str());
+                muuk::logger::error("Invalid dependency format for '{}'", dep_name);
                 return Err("");
             }
 
@@ -46,10 +45,10 @@ Result<void> MuukLockGenerator::parse_dependencies(const toml::table& data, std:
             if (!dep_entry) {
                 // Parse dependency details if it doesn't exist yet
                 if (dep_value.is_table()) {
-                    dep_entry = std::make_shared<Dependency>(Dependency::from_toml(*dep_value.as_table()));
+                    dep_entry = std::make_shared<Dependency>(Dependency::from_toml(dep_value.as_table()));
                 } else if (dep_value.is_string()) {
                     dep_entry = std::make_shared<Dependency>();
-                    dep_entry->version = *dep_value.value<std::string>(); // Store version
+                    dep_entry->version = dep_value.as_string(); // Store version
                 } else {
                     muuk::logger::error("Invalid dependency format for '{}'", dep_name_str);
                     return Err("");
@@ -70,19 +69,19 @@ Result<void> MuukLockGenerator::parse_dependencies(const toml::table& data, std:
     return {};
 };
 
-Result<void> MuukLockGenerator::parse_library(const toml::table& section, std::shared_ptr<Package> package) {
+Result<void> MuukLockGenerator::parse_library(const toml::value& section, std::shared_ptr<Package> package) {
     muuk::logger::trace("Parsing section for package: {}", package->name);
 
     if (section.contains("include")) {
-        for (const auto& inc : *section["include"].as_array()) {
-            package->add_include_path(*inc.value<std::string>());
-            muuk::logger::debug(" Added include path: {}", *inc.value<std::string>());
+        for (const auto& inc : section.at("include").as_array()) {
+            package->add_include_path(inc.as_string());
+            muuk::logger::debug(" Added include path: {}", inc.as_string());
         }
     }
 
     if (section.contains("sources")) {
-        for (const auto& src : *section["sources"].as_array()) {
-            std::string source_entry = *src.value<std::string>();
+        for (const auto& src : section.at("sources").as_array()) {
+            std::string source_entry = src.as_string();
 
             std::vector<std::string> extracted_cflags;
             std::string file_path;
@@ -108,63 +107,63 @@ Result<void> MuukLockGenerator::parse_library(const toml::table& section, std::s
     }
 
     if (section.contains("cflags")) {
-        for (const auto& flag : *section["cflags"].as_array()) {
-            package->cflags.insert(*flag.value<std::string>());
+        for (const auto& flag : section.at("cflags").as_array()) {
+            package->cflags.insert(flag.as_string());
         }
     }
 
     if (section.contains("libs")) {
-        for (const auto& lib : *section["libs"].as_array()) {
-            package->libs.push_back(*lib.value<std::string>());
-            muuk::logger::debug(" Added library: {}", *lib.value<std::string>());
+        for (const auto& lib : section.at("libs").as_array()) {
+            package->libs.push_back(lib.as_string());
+            muuk::logger::debug(" Added library: {}", lib.as_string());
         }
     }
 
     std::vector<std::string> module_paths;
     if (section.contains("modules")) {
-        for (const auto& mod : *section["modules"].as_array()) {
-            module_paths.push_back(*mod.value<std::string>());
-            muuk::logger::info("  Found module source: {}", *mod.value<std::string>());
+        for (const auto& mod : section.at("modules").as_array()) {
+            module_paths.push_back(mod.as_string());
+            muuk::logger::info("  Found module source: {}", mod.as_string());
         }
     }
 
     return {};
 }
 
-Result<void> MuukLockGenerator::parse_profile(const toml::table& data) {
+Result<void> MuukLockGenerator::parse_profile(const toml::value& data) {
 
     // Two pass parsing for profiles
     // First pass: Load all profiles into profiles_ variable
-    if (data.contains("profile") && data["profile"].is_table()) {
+    if (data.contains("profile") && data.at("profile").is_table()) {
         parse_and_store_flag_categories(
-            *data["profile"].as_table(),
+            data.at("profile").as_table(),
             profiles_,
             { "cflags", "lflags", "defines" });
     }
 
     // Second pass: Process inheritance
-    if (data.contains("profile") && data["profile"].is_table()) {
-        for (const auto& [profile_name, profile_data] : *data["profile"].as_table()) {
+    if (data.contains("profile") && data.at("profile").is_table()) {
+        for (const auto& [profile_name, profile_data] : data.at("profile").as_table()) {
             if (profile_data.is_table()) {
-                muuk::logger::trace("Parsing profile '{}'", profile_name.str());
-                if (profile_data.as_table()->contains("inherits")) {
-                    if (profile_data.as_table()->at("inherits").is_array()) {
-                        const auto& inherits_array = *profile_data.as_table()->at("inherits").as_array();
+                muuk::logger::trace("Parsing profile '{}'", profile_name);
+                if (profile_data.contains("inherits")) {
+                    if (profile_data.at("inherits").is_array()) {
+                        const auto& inherits_array = profile_data.at("inherits").as_array();
                         for (const auto& inherits : inherits_array) {
-                            std::string inherited_profile = *inherits.value<std::string>();
+                            std::string inherited_profile = inherits.as_string();
                             if (profiles_.find(inherited_profile) == profiles_.end()) {
                                 muuk::logger::error("Inherited profile '" + inherited_profile + "' not found.");
                                 return Err("");
                             }
-                            merge_profiles(std::string(profile_name.str()), inherited_profile);
+                            merge_profiles(profile_name, inherited_profile);
                         }
-                    } else if (profile_data.as_table()->at("inherits").is_string()) {
-                        std::string inherited_profile = *profile_data.as_table()->at("inherits").value<std::string>();
+                    } else if (profile_data.as_table().at("inherits").is_string()) {
+                        std::string inherited_profile = profile_data.as_table().at("inherits").as_string();
                         if (profiles_.find(inherited_profile) == profiles_.end()) {
                             muuk::logger::error("Inherited profile '" + inherited_profile + "' not found.");
                             return Err("");
                         }
-                        merge_profiles(std::string(profile_name.str()), inherited_profile);
+                        merge_profiles(profile_name, inherited_profile);
                     }
                 }
             }
@@ -173,73 +172,73 @@ Result<void> MuukLockGenerator::parse_profile(const toml::table& data) {
     return {};
 }
 
-Result<void> MuukLockGenerator::parse_builds(const toml::table& data, const std::string& package_version, const std::string& path) {
+Result<void> MuukLockGenerator::parse_builds(const toml::value& data, const std::string& package_version, const std::string& path) {
 
-    if (data.contains("build") && data["build"].is_table()) {
-        for (const auto& [build_name, build_info] : *data["build"].as_table()) {
-            muuk::logger::info("Found build target: {}", build_name.str());
+    if (data.contains("build") && data.at("build").is_table()) {
+        for (const auto& [build_name, build_info] : data.at("build").as_table()) {
+            muuk::logger::info("Found build target: {}", build_name);
 
             auto build_package = std::make_shared<Package>(
-                std::string(build_name.str()),
+                std::string(build_name),
                 std::string(package_version),
                 fs::path(path).parent_path().string(),
                 PackageType::BUILD);
 
-            parse_library(*build_info.as_table(), build_package);
-            parse_dependencies(*build_info.as_table(), build_package);
+            parse_library(build_info.as_table(), build_package);
+            parse_dependencies(build_info.as_table(), build_package);
 
             // build_package->cflags.insert(edition_.to_flag());
 
-            if (build_info.is_table() && build_info.as_table()->contains("profile")) {
-                const auto& profile_array = *build_info.as_table()->at("profile").as_array();
+            if (build_info.is_table() && build_info.contains("profile")) {
+                const auto& profile_array = build_info.at("profile").as_array();
                 for (const auto& profile : profile_array) {
-                    build_package->inherited_profiles.insert(*profile.value<std::string>());
+                    build_package->inherited_profiles.insert(profile.as_string());
                     muuk::logger::info(
                         "  → Build '{}' inherits profile '{}'",
-                        build_name.str(),
-                        *profile.value<std::string>());
+                        build_name,
+                        profile.as_string());
                 }
             }
 
-            builds[std::string(build_name.str())] = build_package;
+            builds[std::string(build_name)] = build_package;
         }
     }
     return {};
 }
 
-Result<void> MuukLockGenerator::parse_platform(const toml::table& data, std::shared_ptr<Package> package) {
-    if (data.contains("platform") && data["platform"].is_table()) {
+Result<void> MuukLockGenerator::parse_platform(const toml::value& data, std::shared_ptr<Package> package) {
+    if (data.contains("platform") && data.at("platform").is_table()) {
         parse_and_store_flag_categories(
-            *data["platform"].as_table(),
+            data.at("platform").as_table(),
             package->platform_,
             { "cflags", "lflags", "defines" });
     }
     return {};
 }
 
-Result<void> MuukLockGenerator::parse_compiler(const toml::table& data, std::shared_ptr<Package> package) {
-    if (data.contains("compiler") && data["compiler"].is_table()) {
+Result<void> MuukLockGenerator::parse_compiler(const toml::value& data, std::shared_ptr<Package> package) {
+    if (data.contains("compiler") && data.at("compiler").is_table()) {
         parse_and_store_flag_categories(
-            *data["compiler"].as_table(),
+            data.at("compiler").as_table(),
             package->compiler_,
             { "cflags", "lflags", "defines" });
     }
     return {};
 }
 
-Result<void> MuukLockGenerator::parse_features(const toml::table& data, std::shared_ptr<Package> package) {
-    if (!data.contains("features") || !data["features"].is_table()) {
+Result<void> MuukLockGenerator::parse_features(const toml::value& data, std::shared_ptr<Package> package) {
+    if (!data.contains("features") || !data.at("features").is_table()) {
         muuk::logger::info("No 'features' section found in TOML.");
         return {};
     }
 
-    for (const auto& [feature_name, feature_value] : *data["features"].as_table()) {
+    for (const auto& [feature_name, feature_value] : data.at("features").as_table()) {
         Feature feature_data;
 
         if (feature_value.is_array()) { // List Syntax
-            for (const auto& item : *feature_value.as_array()) {
+            for (const auto& item : feature_value.as_array()) {
                 if (item.is_string()) {
-                    std::string value = *item.value<std::string>();
+                    std::string value = item.as_string();
 
                     if (value.rfind("D:", 0) == 0) {
                         feature_data.defines.insert(value.substr(2)); // Remove "D:"
@@ -251,30 +250,29 @@ Result<void> MuukLockGenerator::parse_features(const toml::table& data, std::sha
                 }
             }
         } else if (feature_value.is_table()) { // Table Syntax
-            const auto& feature_table = *feature_value.as_table();
 
-            if (feature_table.contains("define") && feature_table["define"].is_array()) {
-                for (const auto& def : *feature_table["define"].as_array()) {
+            if (feature_value.contains("define") && feature_value.at("define").is_array()) {
+                for (const auto& def : feature_value.at("define").as_array()) {
                     if (def.is_string()) {
-                        feature_data.defines.insert(*def.value<std::string>());
+                        feature_data.defines.insert(def.as_string());
                     }
                 }
             }
 
-            if (feature_table.contains("dependencies") && feature_table["dependencies"].is_array()) {
-                for (const auto& dep : *feature_table["dependencies"].as_array()) {
+            if (feature_value.contains("dependencies") && feature_value.at("dependencies").is_array()) {
+                for (const auto& dep : feature_value.at("dependencies").as_array()) {
                     if (dep.is_string()) {
-                        feature_data.dependencies.insert(*dep.value<std::string>());
+                        feature_data.dependencies.insert(dep.as_string());
                     }
                 }
             }
         } else {
             // TODO: This eventually will be unnecessary
-            muuk::logger::warn("Invalid format for feature '{}'. Must be either a table or a array", std::string(feature_name.str()));
+            muuk::logger::warn("Invalid format for feature '{}'. Must be either a table or a array", std::string(feature_name));
             continue;
         }
 
-        package->features[std::string(feature_name.str())] = feature_data;
+        package->features[std::string(feature_name)] = feature_data;
     }
     return {};
 }

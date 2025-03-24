@@ -37,7 +37,7 @@ void NinjaBackend::generate_build_file(
 
     spdlog::default_logger()->flush();
 
-    build_parser = std::make_shared<BuildParser>(build_manager, muuk_filer, compiler_, build_dir_, profile);
+    build_parser = std::make_shared<BuildParser>(build_manager, compiler_, build_dir_, profile);
 
     const std::string ninja_file_ = (build_dir_ / "build.ninja").string();
 

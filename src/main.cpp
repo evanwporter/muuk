@@ -10,6 +10,7 @@
 #include "buildconfig.h"
 #include "logger.h"
 #include "muuk.h"
+#include "muukbuilder.h"
 #include "muuker.hpp"
 #include "muukfiler.h"
 #include "muukterminal.hpp"

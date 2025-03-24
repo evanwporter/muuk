@@ -7,7 +7,7 @@
 #include <stdexcept>
 #include <string>
 
-#include <toml++/toml.h>
+#include <toml.hpp>
 
 #include "compiler.hpp"
 #include "rustify.hpp"
@@ -20,8 +20,8 @@ namespace muuk {
             std::runtime_error(message) { }
     };
 
-    Result<void> validate_muuk_toml(const toml::table& toml_data);
-    Result<void> validate_muuk_lock_toml(const toml::table& toml_data);
+    Result<void> validate_muuk_toml(const toml::value& toml_data);
+    Result<void> validate_muuk_lock_toml(const toml::value& toml_data);
 
     bool is_valid_dependency_name(std::string_view name);
 

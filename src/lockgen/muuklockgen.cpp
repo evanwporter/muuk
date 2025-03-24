@@ -7,13 +7,13 @@
 #include <fmt/ranges.h>
 #include <glob/glob.h>
 #include <tl/expected.hpp>
-#include <toml++/toml.h>
+#include <toml.hpp>
 
 #include "buildconfig.h"
 #include "compiler.hpp"
 #include "logger.h"
 #include "muuk.h"
-#include "muukfiler.h"
+#include "muuk_parser.hpp"
 #include "muuklockgen.h"
 #include "rustify.hpp"
 #include "util.h"
@@ -47,27 +47,22 @@ void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
         return;
     }
 
-    auto muuk_filer = MuukFiler::create(path);
-    if (!muuk_filer) {
-        muuk::logger::error("Failed to create MuukFiler for '{}'", path);
+    auto result_muuk = muuk::parse_muuk_file(path);
+    if (!result_muuk) {
+        muuk::logger::error("Failed to parse muuk.toml: {}", result_muuk.error());
         return;
     }
 
-    auto data = muuk_filer->get_config();
+    auto data = result_muuk.value();
 
     if (!data.contains("package") || !data["package"].is_table()) {
         muuk::logger::error("Missing 'package' section in TOML file.");
         return;
     }
 
-    const std::string package_name = data["package"]["name"].value_or<std::string>("unknown");
+    const auto package_name = data["package"]["name"].as_string();
 
-    const auto package_version_result = data["package"]["version"].value<std::string>();
-    if (!package_version_result) {
-        muuk::logger::warn("Version not specified for base package '{}'.", package_name);
-        return;
-    }
-    const auto& package_version = package_version_result.value_or("0.0.0");
+    const auto package_version = data["package"]["version"].as_string();
 
     muuk::logger::info("Parsing muuk.toml for package: {} ({})", package_name, package_version);
 
@@ -83,9 +78,11 @@ void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
         fs::path(path).parent_path().string(),
         PackageType::LIBRARY);
 
-    Try(parse_dependencies(data, package));
+    auto deps_result = parse_dependencies(data, package);
+
     if (data.contains("library") && data["library"].is_table())
-        Try(parse_library(*data["library"].as_table(), package));
+        Try(parse_library(data["library"].as_table(), package));
+
     parse_platform(data, package);
     parse_compiler(data, package);
     parse_features(data, package);
@@ -93,7 +90,7 @@ void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
     resolved_packages[package_name][package_version] = package;
 
     if (is_base) {
-        edition_ = muuk::Edition::from_string(std::to_string(data["package"]["edition"].value_or(0))).value_or(muuk::Edition::Unknown);
+        edition_ = muuk::Edition::from_string(data["package"]["edition"].as_string()).value_or(muuk::Edition::Unknown);
         parse_profile(data);
         parse_builds(data, package_version, path);
         base_package_ = package;
@@ -266,23 +263,22 @@ Result<void> MuukLockGenerator::load() {
 
     parse_muuk_toml(base_path_ + "muuk.toml", true);
 
-    // TODO Take directly from `parse_muuk_toml`
+    // TODO: Make it be base_path + "/" <= check for file
     // Extract the package name and version from the base muuk.toml
-    auto base_muuk_filer = MuukFiler::create(base_path_ + "muuk.toml");
-    if (!base_muuk_filer) {
+    auto base_muuk_result = muuk::parse_muuk_file(base_path_ + "muuk.toml");
+    if (!base_muuk_result) {
         muuk::logger::error("Failed to create MuukFiler for base muuk.toml");
         return Err("");
     }
 
-    auto base_data = base_muuk_filer->get_config();
+    auto base_data = base_muuk_result.value();
     if (!base_data.contains("package") || !base_data["package"].is_table()) {
         muuk::logger::error("Missing 'package' section in base muuk.toml file.");
         return Err("");
     }
 
-    // TODO: Return Err if unknown
-    const std::string base_package_name = base_data["package"]["name"].value_or<std::string>("unknown");
-    const std::string base_package_version = base_data["package"]["version"].value_or<std::string>("0.0.0");
+    const std::string base_package_name = base_data["package"]["name"].as_string();
+    const std::string base_package_version = base_data["package"]["version"].as_string();
     muuk::logger::info("Base package name extracted: {}, version: {}", base_package_name, base_package_version);
 
     const auto& base_package_dep = Dependency::from_toml(base_data);
@@ -373,7 +369,7 @@ Result<void> MuukLockGenerator::generate_cache(const std::string& output_path) {
                 for (const auto& value : values) {
                     value_array.push_back(value);
                 }
-                lockfile << setting_name << " = " << value_array << "\n";
+                lockfile << setting_name << " = " << toml::format(toml::value(value_array)) << "\n";
             }
 
             lockfile << "\n";
@@ -570,7 +566,7 @@ std::string MuukLockGenerator::format_dependencies(const DependencyVersionMap<to
             for (const auto& [key, val] : dep_info) {
                 if (!first)
                     dep_entries += ", ";
-                dep_entries += fmt::format("{} = '{}'", std::string(key.str()), *val.value<std::string>());
+                dep_entries += fmt::format("{} = '{}'", key, val.as_string());
                 first = false;
             }
 
@@ -595,26 +591,25 @@ std::string MuukLockGenerator::format_dependencies(
                 continue;
             }
 
-            const toml::table dep_table = dep_ptr->to_toml(); // Convert Dependency to TOML table
+            const toml::table dep_table = dep_ptr->to_toml().as_table(); // Convert Dependency to TOML table
 
             oss << dep_name << " = { ";
 
             std::vector<std::string> dep_entries;
             for (const auto& [key, val] : dep_table) {
-                std::string key_str = std::string(key.str());
 
                 if (val.is_string()) {
-                    dep_entries.push_back(fmt::format("{} = '{}'", key_str, *val.value<std::string>()));
+                    dep_entries.push_back(fmt::format("{} = '{}'", key, val.as_string()));
                 } else if (val.is_array()) {
                     std::vector<std::string> array_values;
-                    for (const auto& item : *val.as_array()) {
+                    for (const auto& item : val.as_array()) {
                         if (item.is_string()) {
-                            array_values.push_back(fmt::format("'{}'", *item.value<std::string>()));
+                            array_values.push_back(fmt::format("'{}'", item.as_string()));
                         }
                     }
-                    dep_entries.push_back(fmt::format("{} = [{}]", key_str, fmt::join(array_values, ", ")));
+                    dep_entries.push_back(fmt::format("{} = [{}]", key, fmt::join(array_values, ", ")));
                 } else {
-                    muuk::logger::warn("Skipping unsupported TOML type for key '{}'", key_str);
+                    muuk::logger::warn("Skipping unsupported TOML type for key '{}'", key);
                 }
             }
 
@@ -627,19 +622,19 @@ std::string MuukLockGenerator::format_dependencies(
 }
 
 void MuukLockGenerator::parse_and_store_flag_categories(
-    const toml::table& data,
+    const toml::value& data,
     std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_set<std::string>>>& target,
     const std::vector<std::string>& flag_categories) {
-    for (const auto& [category_name, category_data] : data) {
+    for (const auto& [category_name, category_data] : data.as_table()) {
         if (!category_data.is_table()) {
             continue;
         }
 
-        const std::string category_name_str = std::string(category_name.str());
+        const std::string category_name_str = category_name;
 
         for (const auto& flag_type : flag_categories) {
-            target[category_name_str][flag_type] = MuukFiler::parse_array_as_set(
-                *category_data.as_table(), flag_type);
+            target[category_name_str][flag_type] = muuk::parse_array_as_set(
+                category_data, flag_type);
         }
     }
 }

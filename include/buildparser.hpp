@@ -7,17 +7,15 @@
 #include <string>
 #include <vector>
 
-#include <toml++/toml.hpp>
+#include <toml.hpp>
 
 #include "buildmanager.h"
 #include "compiler.hpp"
-#include "muukfiler.h"
 
 class BuildParser {
 private:
     std::shared_ptr<BuildManager> build_manager;
-    std::shared_ptr<MuukFiler> muuk_filer;
-    toml::table config_;
+    const toml::value muuk_file;
     const std::filesystem::path& build_dir;
     muuk::Compiler compiler;
     std::string profile_;
@@ -25,7 +23,6 @@ private:
 public:
     BuildParser(
         std::shared_ptr<BuildManager> manager,
-        std::shared_ptr<MuukFiler> muuk_filer,
         muuk::Compiler compiler,
         const std::filesystem::path& build_dir,
         std::string profile);

@@ -12,14 +12,12 @@
 #include "buildparser.hpp"
 #include "buildtargets.h"
 #include "compiler.hpp"
-#include "muukfiler.h"
 
 class BuildBackend {
 protected:
     muuk::Compiler compiler_;
     const std::string archiver_;
     const std::string linker_;
-    std::shared_ptr<MuukFiler> muuk_filer;
 
 public:
     virtual ~BuildBackend() = default;
@@ -31,8 +29,7 @@ public:
         const std::string& lockfile_path) :
         compiler_(compiler),
         archiver_(std::move(archiver)),
-        linker_(std::move(linker)),
-        muuk_filer(std::make_shared<MuukFiler>(lockfile_path)) {
+        linker_(std::move(linker)) {
     }
 
     virtual void generate_build_file(

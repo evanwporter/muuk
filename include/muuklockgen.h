@@ -7,8 +7,10 @@
 #include <unordered_set>
 #include <vector>
 
+#include <toml.hpp>
+
 #include "compiler.hpp"
-#include "muukfiler.h"
+#include "muuk.h"
 #include "rustify.hpp"
 
 enum class LinkType {
@@ -78,51 +80,54 @@ struct Dependency {
     bool system = false;
     std::unordered_set<std::string> libs;
 
-    static Dependency from_toml(const toml::table& data) {
+    static Dependency from_toml(const toml::value& data) {
         Dependency dep;
 
-        if (data.contains("git") && data["git"].is_string()) {
-            dep.git_url = *data["git"].value<std::string>();
-        }
-        if (data.contains("path") && data["path"].is_string()) {
-            dep.path = *data["path"].value<std::string>();
-        }
-        if (data.contains("version") && data["version"].is_string()) {
-            dep.version = *data["version"].value<std::string>();
-        }
-        if (data.contains("features") && data["features"].is_array()) {
-            for (const auto& feature : *data["features"].as_array()) {
-                if (feature.is_string()) {
-                    dep.enabled_features.insert(*feature.value<std::string>());
-                }
+        if (data.contains("git"))
+            dep.git_url = data.at("git").as_string();
+
+        if (data.contains("path"))
+            dep.path = data.at("path").as_string();
+
+        if (data.contains("version"))
+            dep.version = data.at("version").as_string();
+
+        if (data.contains("features"))
+            for (const auto& feature : data.at("features").as_array())
+                dep.enabled_features.insert(feature.as_string());
+
+        if (data.contains("libs"))
+            for (const auto& lib : data.at("libs").as_array()) {
+                dep.libs.insert(lib.as_string());
             }
-        }
-        if (data.contains("libs") && data["libs"].is_array()) {
-            for (const auto& lib : *data["libs"].as_array()) {
-                if (lib.is_string()) {
-                    dep.libs.insert(*lib.value<std::string>());
-                }
-            }
-        }
 
         return dep;
     }
 
-    toml::table to_toml() const {
-        toml::table dep_table;
+    toml::value to_toml() const {
+        toml::value dep_table = toml::table {};
+
         if (!git_url.empty())
-            dep_table.insert("git", git_url);
+            dep_table["git"] = git_url;
         if (!path.empty())
-            dep_table.insert("path", path);
+            dep_table["path"] = path;
         if (!version.empty())
-            dep_table.insert("version", version);
+            dep_table["version"] = version;
+
         if (!enabled_features.empty()) {
-            toml::array feature_array;
-            for (const auto& feat : enabled_features) {
-                feature_array.push_back(feat);
-            }
-            dep_table.insert("features", feature_array);
+            toml::array features;
+            for (const auto& feat : enabled_features)
+                features.push_back(feat);
+            dep_table["features"] = features;
         }
+
+        if (!libs.empty()) {
+            toml::array lib_array;
+            for (const auto& lib : libs)
+                lib_array.push_back(lib);
+            dep_table["libs"] = lib_array;
+        }
+
         return dep_table;
     }
 };
@@ -202,8 +207,6 @@ private:
 
     std::shared_ptr<Package> base_package_;
 
-    std::shared_ptr<spdlog::logger> logger_;
-
     // Meant to be a general reference for packages to refer to
     DependencyVersionMap<std::shared_ptr<Dependency>> dependencies_;
 
@@ -218,34 +221,35 @@ private:
     Profiles profiles_;
 
     void parse_flags(
-        const toml::table& profile_data,
+        const toml::value& profile_data,
         const std::string& profile_name,
         const std::string& flag_type);
 
     static Result<void> parse_library(
-        const toml::table& data,
+        const toml::value& data,
         std::shared_ptr<Package> package);
 
     static Result<void> parse_platform(
-        const toml::table& data,
+        const toml::value& data,
         std::shared_ptr<Package> package);
 
     static Result<void> parse_compiler(
-        const toml::table& data,
+        const toml::value& data,
         std::shared_ptr<Package> package);
 
     static Result<void> parse_features(
-        const toml::table& data,
+        const toml::value& data,
         std::shared_ptr<Package> package);
 
     Result<void> parse_dependencies(
-        const toml::table& data,
+        const toml::value& data,
         std::shared_ptr<Package> package);
 
-    Result<void> parse_profile(const toml::table& data);
+    Result<void> parse_profile(
+        const toml::value& data);
 
     Result<void> parse_builds(
-        const toml::table& data,
+        const toml::value& data,
         const std::string& package_version,
         const std::string& path);
 
@@ -285,7 +289,7 @@ private:
         const std::string& section_name = "dependencies");
 
     static void parse_and_store_flag_categories(
-        const toml::table& data,
+        const toml::value& data,
         std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_set<std::string>>>& target,
         const std::vector<std::string>& flag_categories);
 };
