@@ -90,6 +90,8 @@ namespace muuk {
         {"package", {true, TomlType::Table, {
             {"name", {true, TomlType::String}},
             {"version", {true, TomlType::String}},
+            {"edition", {false, TomlType::String}},
+            {"git", {false, TomlType::String}},
             {"description", {false, TomlType::String}},
             {"license", {false, TomlType::String}},
             {"authors", {false, TomlArray{TomlType::String}}},
