@@ -1,7 +1,7 @@
 [package]
 name = 'muuk'
 version = '1.0.0'
-edition = "20"
+edition = '20'
 
 [scripts]
 hello = 'echo Hello!'
@@ -39,6 +39,7 @@ fmt = { git = 'https://github.com/fmtlib/fmt.git', version = '577fd3be883accf862
 glob = { git = 'https://github.com/p-ranav/glob.git', version = 'd025092c0e1eb1a8b226d3a799fd32680d2fd13f' }
 json = { git = 'https://github.com/nlohmann/json.git', version = '0b6881a95f8aaf60bd2324ecdf2258a65bf33baf' }
 spdlog = { git = 'https://github.com/gabime/spdlog.git', version = '3335c380a08c5e0f5117a66622df6afdb3d74959' }
+toml11 = { git = 'https://github.com/ToruNiina/toml11.git', version = 'be08ba2be2a964edcdb3d3e3ea8d100abc26f286' }
 unordered_dense = { git = 'https://github.com/martinus/unordered_dense.git', version = '73f3cbb237e84d483afafc743f1f14ec53e12314' }
 zip = { git = 'https://github.com/kuba--/zip.git', version = 'd7a2252a537926cbdef8512741a322a183fcfd09' }
 

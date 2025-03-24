@@ -8,7 +8,6 @@
 #include <tl/expected.hpp>
 
 #include "compiler.hpp"
-#include "muukfiler.h"
 #include "rustify.hpp"
 
 // { Dependency { Versioning { T }}}
@@ -26,13 +25,6 @@ namespace muuk {
     std::string normalize_flag(const std::string& flag, const Compiler compiler);
     std::string normalize_flags(const std::vector<std::string>& flags, const Compiler compiler);
     void normalize_flags_inplace(std::vector<std::string>& flags, const Compiler compiler);
-
-    // void clean(MuukFiler& config_manager);
-    // void run_script(
-    //     const MuukFiler& config_manager,
-    //     const std::string& script,
-    //     const std::vector<std::string>& args
-    // );
 }
 
 #endif // MUUK_H

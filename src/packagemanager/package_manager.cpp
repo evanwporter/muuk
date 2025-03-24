@@ -1,8 +1,9 @@
 #include <filesystem>
+#include <fstream>
 #include <string>
 
 #include <nlohmann/json.hpp>
-#include <toml++/toml.hpp>
+#include <toml.hpp>
 
 extern "C" {
 #include "zip.h"
@@ -10,8 +11,6 @@ extern "C" {
 #include "buildconfig.h"
 #include "logger.h"
 #include "muuk.h"
-#include "muuk_toml_handler.hpp"
-#include "muukfiler.h"
 #include "package_manager.h"
 #include "rustify.hpp"
 #include "util.h"
@@ -109,27 +108,23 @@ namespace muuk {
 
             try {
                 if (!fs::exists(toml_path)) {
-                    return tl::unexpected("muuk.toml file not found: " + toml_path);
+                    return Err("muuk.toml file not found: {}", toml_path);
                 }
 
-                auto muukFiler = MuukFiler::create(toml_path);
-                if (!muukFiler) {
-                    return tl::unexpected("Failed to create MuukFiler for: " + toml_path);
-                }
+                auto root = toml::parse<toml::ordered_type_config>(toml_path);
 
-                auto handler = TomlHandler::parse_file(toml_path);
-                if (!handler) {
-                    return Err(handler.error());
-                }
+                // Get the package name
+                if (!root.contains("package") || !root.at("package").is_table())
+                    return Err("Missing or invalid 'package' section.");
+                const auto& package_table = root.at("package").as_table();
 
-                toml::table package_section = muukFiler->get_section("package");
-                const std::string package_name = *package_section["name"].value<std::string>();
+                if (!package_table.contains("name") || !package_table.at("name").is_string())
+                    return Err("Missing 'name' field in 'package' section.");
+                const std::string package_name = package_table.at("name").as_string();
 
-                std::string dependencies_section = target_section.empty()
-                    ? "dependencies"
-                    : target_section + ".dependencies";
-
-                toml::table& dependencies = muukFiler->get_section(dependencies_section);
+                if (!root.contains("dependencies") || !root.at("dependencies").is_table())
+                    return Err("Missing or invalid 'dependencies' section.");
+                auto& dependencies = root.at("dependencies").as_table();
 
                 auto [author, repo_name] = split_author_repo(repo);
                 if (repo_name.empty())
@@ -144,14 +139,12 @@ namespace muuk {
 
                 // Determine Git URL and version
                 if (!is_system) {
-                    if (git_url.empty()) {
+                    if (git_url.empty())
                         git_url = "https://github.com/" + repo + ".git";
-                    }
 
                     muuk::logger::info("No tag, version, or revision provided. Fetching latest commit hash...");
-                    if (version.empty()) {
+                    if (version.empty())
                         version = util::git::get_latest_revision(git_url);
-                    }
                 }
 
                 std::string final_git_url = git_url.empty()
@@ -172,30 +165,26 @@ namespace muuk {
                         std::string patch_muuk_toml_url = MUUK_PATCH_UTL + repo_name + "/muuk.toml";
                         if (!download_file(patch_muuk_toml_url, muuk_path)) {
                             muuk::logger::warn("No valid patch found. Generating a default `muuk.toml`.");
-                            if (!qinit_library(author, repo_name, version)) {
-                                return tl::unexpected("Failed to generate default muuk.toml.");
-                            }
+                            if (!qinit_library(author, repo_name, version))
+                                return Err("Failed to generate default muuk.toml.");
                         }
                     }
                 }
 
-                // Construct the new dependency entry
-                toml::table new_entry;
-                new_entry.insert("version", version);
-                new_entry.insert("git", final_git_url);
+                // // Construct the new dependency entry
+                // toml::value new_entry = toml::table {
+                //     { "version", toml::value(version) },
+                //     { "git", toml::value(final_git_url) }
+                // };
 
-                auto deps = handler->get_section("dependencies");
-                if (!deps) {
-                    return tl::unexpected("Failed to get dependencies section: " + deps.error());
-                }
-                deps->get().as_table().insert(repo_name, new_entry);
+                dependencies.emplace_back(repo_name, toml::value(version));
 
                 std::ofstream file_out(toml_path, std::ios::trunc);
                 if (!file_out.is_open()) {
                     return tl::unexpected("Failed to open TOML file for writing: " + toml_path);
                 }
 
-                file_out << handler->serialize();
+                file_out << toml::format(root);
                 file_out.close();
 
                 muuk::logger::info("Added dependency '{}' to '{}'", repo_name, toml_path);
