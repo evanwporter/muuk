@@ -97,6 +97,13 @@ struct Dependency {
                 }
             }
         }
+        if (data.contains("libs") && data["libs"].is_array()) {
+            for (const auto& lib : *data["libs"].as_array()) {
+                if (lib.is_string()) {
+                    dep.libs.insert(*lib.value<std::string>());
+                }
+            }
+        }
 
         return dep;
     }
@@ -166,7 +173,10 @@ public:
     LinkType link_type = LinkType::STATIC;
 
 private:
-    static void serialize_dependencies(std::ostringstream& toml_stream, const DependencyVersionMap<std::shared_ptr<Dependency>> dependencies_, const std::string section_name);
+    static void serialize_dependencies(
+        std::ostringstream& toml_stream,
+        const DependencyVersionMap<std::shared_ptr<Dependency>> dependencies_,
+        const std::string section_name);
 };
 
 // { Dependency { Versioning { Package } } }
