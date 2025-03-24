@@ -1,11 +1,10 @@
 #include <sstream>
+#include <stdexcept>
 #include <string>
-#include <unordered_set>
 
 #include "fileops.hpp"
 #include "logger.h"
 #include "muukfiler.h"
-#include "muukvalidator.hpp"
 #include "types.h"
 #include "util.h"
 
@@ -36,16 +35,16 @@ Result<MuukFiler> MuukFiler::create(std::shared_ptr<IFileOperations> file_ops, b
     MuukFiler filer(file_ops, is_lock_file);
 
     Result<void> result;
-    if (is_lock_file) {
-        result = muuk::validate_muuk_lock_toml(filer.get_config());
-    } else {
-        result = muuk::validate_muuk_toml(filer.get_config());
-    }
+    // if (is_lock_file) {
+    //     result = muuk::validate_muuk_lock_toml(filer.get_config());
+    // } else {
+    //     result = muuk::validate_muuk_toml(filer.get_config());
+    // }
 
-    if (!result) {
-        muuk::logger::error("Issue with {}: {}", file_ops->get_file_path(), result.error());
-        return Err("");
-    }
+    // if (!result) {
+    //     muuk::logger::error("Issue with {}: {}", file_ops->get_file_path(), result.error());
+    //     return Err("");
+    // }
 
     return filer;
 }
@@ -65,12 +64,13 @@ void MuukFiler::parse() {
     // TODO: don't do this since its unnecessary parsing
     // slows down the process
     try {
-        config_ = toml::parse(content);
-    } catch (const toml::parse_error& e) {
+        config_ = toml::parse(file);
+    } catch (std::runtime_error& e) {
         muuk::fmt_rt_err("TOML Parsing Error for {}: {}", config_file_, e.what());
-    } catch (const muuk::invalid_toml& e) {
-        muuk::fmt_rt_err("TOML Validation Error for {}: {}", config_file_, e.what());
     }
+    // catch (const muuk::invalid_toml& e) {
+    //     muuk::fmt_rt_err("TOML Validation Error for {}: {}", config_file_, e.what());
+    // }
 
     std::string line, current_section;
     std::stringstream section_data;
@@ -88,15 +88,15 @@ void MuukFiler::parse() {
             if (current_section == "build") {
                 auto parsed_data = toml::parse(section_data.str());
                 if (parsed_data.contains("name")) {
-                    std::string build_name = parsed_data.at("name").value<std::string>().value_or("");
-                    build_sections_[build_name] = parsed_data;
+                    std::string build_name = parsed_data.at("name").as_string();
+                    build_sections_[build_name] = parsed_data.as_table();
                 }
             } else if (current_section == "library") {
                 auto parsed_data = toml::parse(section_data.str());
                 if (parsed_data.contains("name") && parsed_data.contains("version")) {
-                    std::string library_name = parsed_data.at("name").value<std::string>().value_or("");
-                    std::string version = parsed_data.at("version").value<std::string>().value_or("");
-                    library_sections_[library_name][version] = parsed_data;
+                    std::string library_name = parsed_data.at("name").as_string();
+                    std::string version = parsed_data.at("version").as_string();
+                    library_sections_[library_name][version] = parsed_data.as_table();
                 }
             }
             if (!current_section.empty()) {
@@ -118,15 +118,15 @@ void MuukFiler::parse() {
                 if (current_section == "build") {
                     auto parsed_data = toml::parse(section_data.str());
                     if (parsed_data.contains("name")) {
-                        std::string build_name = parsed_data.at("name").value<std::string>().value_or("");
-                        build_sections_[build_name] = parsed_data;
+                        std::string build_name = parsed_data.at("name").as_string();
+                        build_sections_[build_name] = parsed_data.as_table();
                     }
                 } else if (current_section == "library") {
                     auto parsed_data = toml::parse(section_data.str());
                     if (parsed_data.contains("name") && parsed_data.contains("version")) {
-                        std::string library_name = parsed_data.at("name").value<std::string>().value_or("");
-                        std::string version = parsed_data.at("version").value<std::string>().value_or("");
-                        library_sections_[library_name][version] = parsed_data;
+                        std::string library_name = parsed_data.at("name").as_string();
+                        std::string version = parsed_data.at("version").as_string();
+                        library_sections_[library_name][version] = parsed_data.as_table();
                     }
                 } else {
                     sections_[current_section] = toml::parse(section_data.str());
@@ -155,15 +155,15 @@ void MuukFiler::parse() {
         if (current_section == "build") {
             auto parsed_data = toml::parse(section_data.str());
             if (parsed_data.contains("name")) {
-                std::string build_name = parsed_data.at("name").value<std::string>().value_or("");
-                build_sections_[build_name] = parsed_data;
+                std::string build_name = parsed_data.at("name").as_string();
+                build_sections_[build_name] = parsed_data.as_table();
             }
         } else if (current_section == "library") {
             auto parsed_data = toml::parse(section_data.str());
             if (parsed_data.contains("name") && parsed_data.contains("version")) {
-                std::string library_name = parsed_data.at("name").value<std::string>().value_or("");
-                std::string version = parsed_data.at("version").value<std::string>().value_or("");
-                library_sections_[library_name][version] = parsed_data;
+                std::string library_name = parsed_data.at("name").as_string();
+                std::string version = parsed_data.at("version").as_string();
+                library_sections_[library_name][version] = parsed_data.as_table();
             }
         } else {
             sections_[current_section] = toml::parse(section_data.str());
@@ -182,7 +182,7 @@ toml::table& MuukFiler::get_section(const std::string& section) {
         sections_[section] = toml::table {};
         section_order_.push_back(section);
     }
-    return sections_.at(section);
+    return sections_.at(section).as_table();
 }
 
 void MuukFiler::modify_section(const std::string& section, const toml::table& data) {
@@ -207,25 +207,21 @@ toml::table MuukFiler::get_config() const {
     // if (!std::filesystem::exists(config_file_)) {
     //     throw std::runtime_error("Error: Config file not found: " + config_file_);
     // }
-    return toml::parse(file_ops_->read_file());
+    return toml::parse(file_ops_->read_file()).as_table();
 }
 
 bool MuukFiler::has_section(const std::string& section) const {
     return sections_.find(section) != sections_.end();
 }
 
-std::vector<std::string> MuukFiler::parse_array_as_vec(const toml::table& table, const std::string& key, const std::string& prefix) {
+std::vector<std::string> parse_array_as_vec(const toml::table& table, const std::string& key, const std::string& prefix = "") {
     std::vector<std::string> arr_;
     if (table.contains(key)) {
         auto toml_arr_ = table.at(key).as_array();
-        if (toml_arr_) {
-            for (const auto& value : *toml_arr_) {
-                if (value.is_string()) {
-                    arr_.push_back(prefix + *value.value<std::string>());
-                }
+        for (const auto& value : toml_arr_) {
+            if (value.is_string()) {
+                arr_.push_back(prefix + value.as_string());
             }
-        } else {
-            muuk::logger::warn("Invalid '{}' array in configuration.", key);
         }
     } else {
         // muuk::logger::warn("No '{}' section found in configuration.", key);
@@ -234,18 +230,14 @@ std::vector<std::string> MuukFiler::parse_array_as_vec(const toml::table& table,
     return arr_;
 }
 
-std::unordered_set<std::string> MuukFiler::parse_array_as_set(const toml::table& table, const std::string& key, const std::string& prefix) {
+std::unordered_set<std::string> parse_array_as_set(const toml::table& table, const std::string& key, const std::string& prefix = "") {
     std::unordered_set<std::string> arr_;
     if (table.contains(key)) {
         auto toml_arr_ = table.at(key).as_array();
-        if (toml_arr_) {
-            for (const auto& value : *toml_arr_) {
-                if (value.is_string()) {
-                    arr_.insert(prefix + *value.value<std::string>());
-                }
+        for (const auto& value : toml_arr_) {
+            if (value.is_string()) {
+                arr_.insert(prefix + value.as_string());
             }
-        } else {
-            muuk::logger::warn("Invalid '{}' array in configuration.", key);
         }
     } else {
         // muuk::logger::warn("No '{}' section found in configuration.", key);

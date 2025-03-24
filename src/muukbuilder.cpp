@@ -1,5 +1,7 @@
 #include <string>
 
+#include <toml.hpp>
+
 #include "buildbackend.hpp"
 #include "buildconfig.h"
 #include "compiler.hpp"
@@ -11,6 +13,7 @@
 #include "util.h"
 
 namespace muuk {
+
     Result<void> execute_build(const std::string& profile) {
         muuk::logger::info("Starting build for profile: {}", profile);
 
@@ -24,7 +27,6 @@ namespace muuk {
         }
 
         muuk::logger::info("Build for profile '{}' completed successfully.", profile);
-
         return {};
     }
 
@@ -58,23 +60,24 @@ namespace muuk {
         if (!profile.empty())
             return profile;
 
-        auto data = config.get_config();
-        if (!data.contains("profile") || !data["profile"].is_table())
+        toml::value data = config.get_config();
+
+        if (!data.contains("profile") || !data.at("profile").is_table())
             return Err("No profiles found in lockfile.");
 
-        auto profiles = data["profile"].as_table();
-        for (const auto& [name, val] : *profiles) {
+        const auto& profiles = toml::find<toml::table>(data, "profile");
+        for (const auto& [name, val] : profiles) {
             if (val.is_table()) {
-                auto tbl = val.as_table();
-                if (tbl->contains("default") && tbl->at("default").is_boolean() && tbl->at("default").value_or(false))
-                    return std::string(name.str());
+                const auto& tbl = val.as_table();
+                if (tbl.contains("default") && toml::get_or(tbl.at("default"), false))
+                    return name;
             }
         }
 
-        if (!profiles->empty()) {
-            auto fallback = std::string(profiles->begin()->first.str());
-            muuk::logger::info("No default profile. Using first available: '{}'", fallback);
-            return fallback;
+        if (!profiles.empty()) {
+            const auto& first = *profiles.begin();
+            muuk::logger::info("No default profile. Using first available: '{}'", first.first);
+            return first.first;
         }
 
         return Err("No valid profiles found in lockfile.");
@@ -82,6 +85,7 @@ namespace muuk {
 
     Result<void> add_script(const std::string& profile, const std::string& build_name) {
         (void)build_name;
+
         try {
             MuukFiler muuk_filer("muuk.toml");
 
@@ -92,8 +96,8 @@ namespace muuk {
             std::string executable_path = "./build/" + profile + "/" + executable_name;
 #endif
 
-            auto& scripts_section = muuk_filer.get_section("scripts");
-            scripts_section.insert_or_assign("run", toml::value(executable_path));
+            toml::value scripts_section = muuk_filer.get_section("scripts");
+            scripts_section.as_table()["run"] = toml::value(executable_path);
             muuk_filer.write_to_file();
 
             muuk::logger::info("Successfully added run script to 'muuk.toml': {}", executable_path);
@@ -130,8 +134,8 @@ namespace muuk {
             return Err("Error selecting compiler: " + compiler_result.error());
 
         const auto& selected_compiler = compiler_result.value();
-        const std::string selected_archiver = compiler_result->detect_archiver();
-        const std::string selected_linker = compiler_result->detect_linker();
+        const std::string selected_archiver = selected_compiler.detect_archiver();
+        const std::string selected_linker = selected_compiler.detect_linker();
 
         auto profile_result = select_profile(profile, config);
         if (!profile_result)
@@ -140,7 +144,7 @@ namespace muuk {
         std::string selected_profile = profile_result.value();
 
         NinjaBackend build_backend(
-            *compiler_result,
+            selected_compiler,
             selected_archiver,
             selected_linker,
             MUUK_CACHE_FILE);
@@ -149,12 +153,9 @@ namespace muuk {
         build_backend.generate_build_file(target_build, selected_profile);
 
         execute_build(selected_profile);
-        generate_compile_commands(
-            selected_profile,
-            selected_compiler,
-            selected_archiver,
-            selected_linker);
+        generate_compile_commands(selected_profile, selected_compiler, selected_archiver, selected_linker);
 
         return {};
     }
+
 } // namespace muuk

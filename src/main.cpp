@@ -10,21 +10,37 @@
 #include "buildconfig.h"
 #include "logger.h"
 #include "muuk.h"
+#include "muukbuilder.h"
 #include "muuker.hpp"
 #include "muukfiler.h"
 #include "muukterminal.hpp"
 #include "package_manager.h"
+#include "rustify.hpp"
 
 // Define a macro to handle tl::expected, if the unexpected
 // happens it will log the error and return 1, otherwise
 // it will return 0
-#define CHECK_CALL(call)      \
-    do {                      \
-        auto result = (call); \
-        if (!result) {        \
-            return 1;         \
-        }                     \
+#define CHECK_CALL(call)                               \
+    do {                                               \
+        auto _muuk_result = (call);                    \
+        if (!_muuk_result) {                           \
+            const auto& err = _muuk_result.error();    \
+            if (!err.empty()) {                        \
+                muuk::logger::error("Error: {}", err); \
+            }                                          \
+            return 1;                                  \
+        }                                              \
     } while (0)
+
+inline int check_and_report(const Result<void>& result) {
+    if (!result) {
+        if (!result.error().empty()) {
+            muuk::logger::error(result.error());
+        }
+        return 1;
+    }
+    return 0;
+}
 
 // using namespace Muuk;
 
@@ -178,8 +194,7 @@ int main(int argc, char* argv[]) {
 
         // Command execution logic
         if (program.is_subcommand_used("init")) {
-            CHECK_CALL(muuk::init_project());
-            return 0;
+            return check_and_report(muuk::init_project());
         }
 
         // if (program.is_subcommand_used("qinit")) {
@@ -194,7 +209,7 @@ int main(int argc, char* argv[]) {
 
         if (program.is_subcommand_used("install")) {
             muuk::logger::info("Installing dependencies from muuk.toml...");
-            CHECK_CALL(muuk::package_manager::install("muuk.lock"));
+            return check_and_report(muuk::package_manager::install("muuk.lock"));
         }
 
         if (program.is_subcommand_used("remove")) {
@@ -268,9 +283,7 @@ int main(int argc, char* argv[]) {
             std::string target_build = build_command.get<std::string>("--target-build");
             std::string compiler = build_command.get<std::string>("--compiler");
             std::string profile = build_command.get<std::string>("--profile");
-            CHECK_CALL(muuk::build(target_build, compiler, profile, muuk_filer));
-
-            return 0;
+            return check_and_report(muuk::build(target_build, compiler, profile, muuk_filer));
         }
 
 #ifdef DEBUG

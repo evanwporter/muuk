@@ -7,7 +7,8 @@
 
 #include <spdlog/spdlog.h>
 #include <tl/expected.hpp>
-#include <toml++/toml.hpp> // TODO: USE TOML11
+
+#include <toml.hpp> // TODO: USE TOML11
 
 #include "ifileops.hpp"
 #include "rustify.hpp"
@@ -17,12 +18,12 @@ class MuukFiler {
 private:
     std::shared_ptr<IFileOperations> file_ops_;
     std::string config_file_;
-    std::unordered_map<std::string, toml::table> sections_;
-    std::unordered_map<std::string, std::vector<toml::table>> array_sections_;
+    std::unordered_map<std::string, toml::value> sections_;
+    std::unordered_map<std::string, std::vector<toml::value>> array_sections_;
 
     std::vector<std::string> section_order_;
 
-    toml::table config_;
+    toml::value config_;
 
     bool is_lock_file;
 
@@ -43,12 +44,12 @@ public:
         return section_order_;
     }
 
-    const std::unordered_map<std::string, toml::table>&
+    const std::unordered_map<std::string, toml::value>&
     get_sections() const {
         return sections_;
     }
 
-    const std::unordered_map<std::string, std::vector<toml::table>>&
+    const std::unordered_map<std::string, std::vector<toml::value>>&
     get_array_section() const {
         return array_sections_;
     }

@@ -37,7 +37,7 @@ void CompileCommandsBackend::generate_build_file(const std::string& target_build
         muuk::logger::info("Created build directory: {}", build_dir_.string());
     }
 
-    build_parser = std::make_shared<BuildParser>(build_manager, muuk_filer, compiler_, build_dir_, profile);
+    build_parser = std::make_shared<BuildParser>(build_manager, compiler_, build_dir_, profile);
     build_parser->parse();
 
     auto [profile_cflags, profile_lflags] = build_parser->extract_profile_flags(profile);

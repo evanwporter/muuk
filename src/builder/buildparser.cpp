@@ -5,7 +5,7 @@
 
 #include <fmt/core.h>
 #include <fmt/ranges.h>
-#include <toml++/toml.hpp>
+#include <toml.hpp>
 
 #include "buildconfig.h"
 #include "buildmanager.h"
@@ -13,18 +13,24 @@
 #include "logger.h"
 #include "moduleresolver.hpp"
 #include "muuk.h"
-#include "muukfiler.h"
+#include "muuk_parser.hpp"
 #include "util.h"
 
 namespace fs = std::filesystem;
 
-BuildParser::BuildParser(std::shared_ptr<BuildManager> manager, std::shared_ptr<MuukFiler> muuk_filer, muuk::Compiler compiler, const fs::path& build_dir, std::string profile) :
+BuildParser::BuildParser(std::shared_ptr<BuildManager> manager, muuk::Compiler compiler, const fs::path& build_dir, std::string profile) :
     build_manager(std::move(manager)),
-    muuk_filer(std::move(muuk_filer)),
+    muuk_file([&]() -> toml::value {
+        auto result = muuk::parse_muuk_file("build/muuk.lock.toml", true);
+        if (!result) {
+            muuk::logger::error("Failed to parse muuk.lock.toml: {}", result.error());
+            throw std::runtime_error("Failed to parse muuk.lock.toml: " + result.error());
+        }
+        return result.value();
+    }()),
     build_dir(build_dir),
     compiler(compiler),
-    profile_(profile) {
-}
+    profile_(profile) { }
 
 void BuildParser::parse() {
     parse_compilation_targets();
@@ -45,13 +51,12 @@ void BuildParser::parse_compilation_unit(
         if (!unit_entry.is_table())
             continue;
 
-        auto unit_table = unit_entry.as_table();
-        if (!unit_table || !unit_table->contains("path"))
+        if (!unit_entry.contains("path"))
             continue;
 
         std::string src_path = util::to_linux_path(
             std::filesystem::absolute(
-                std::filesystem::path(*unit_table->at("path").value<std::string>()))
+                std::filesystem::path(unit_entry.at("path").as_string()))
                 .string(),
             "../../");
 
@@ -60,7 +65,7 @@ void BuildParser::parse_compilation_unit(
             "../../");
 
         // Merge flags
-        std::vector<std::string> unit_cflags = MuukFiler::parse_array_as_vec(*unit_table, "cflags");
+        std::vector<std::string> unit_cflags = muuk::parse_array_as_vec(unit_entry, "cflags");
         unit_cflags.insert(unit_cflags.end(), base_cflags.begin(), base_cflags.end());
         unit_cflags.insert(unit_cflags.end(), platform_cflags.begin(), platform_cflags.end());
         unit_cflags.insert(unit_cflags.end(), compiler_cflags.begin(), compiler_cflags.end());
@@ -78,16 +83,15 @@ void BuildParser::parse_compilation_unit(
 }
 
 void BuildParser::parse_compilation_targets() {
-    const auto& config_sections = muuk_filer->get_array_section();
-
     for (const std::string& name : { "build", "library" }) {
-        if (!config_sections.contains(name))
+        if (!muuk_file.contains(name))
             continue;
 
-        auto section = config_sections.at(name);
-        for (const auto& package_table : section) {
-            const auto package_name = package_table.at("name").value<std::string>().value();
-            const auto package_version = package_table.at("version").value<std::string>().value();
+        auto section = muuk_file.at(name).as_array();
+        for (const auto& package : section) {
+            const auto package_table = package.as_table();
+            const auto package_name = package_table.at("name").as_string();
+            const auto package_version = package_table.at("version").as_string();
 
             const fs::path pkg_dir = (name == "build")
                 ? build_dir / package_name
@@ -96,9 +100,9 @@ void BuildParser::parse_compilation_targets() {
             std::filesystem::create_directories(pkg_dir);
 
             // Common flags
-            auto cflags = MuukFiler::parse_array_as_vec(package_table, "cflags");
-            auto iflags = MuukFiler::parse_array_as_vec(package_table, "include", "-I../../");
-            auto defines = MuukFiler::parse_array_as_vec(package_table, "defines", "-D");
+            auto cflags = muuk::parse_array_as_vec(package_table, "cflags");
+            auto iflags = muuk::parse_array_as_vec(package_table, "include", "-I../../");
+            auto defines = muuk::parse_array_as_vec(package_table, "defines", "-D");
 
             auto platform_cflags = extract_platform_flags(package_table);
             auto compiler_cflags = extract_compiler_flags(package_table);
@@ -113,17 +117,13 @@ void BuildParser::parse_compilation_targets() {
             // Parse Modules
             if (package_table.contains("modules")) {
                 auto modules = package_table.at("modules").as_array();
-                if (modules) {
-                    parse_compilation_unit(*modules, "module", pkg_dir, cflags, platform_cflags, compiler_cflags, iflags);
-                }
+                parse_compilation_unit(modules, "module", pkg_dir, cflags, platform_cflags, compiler_cflags, iflags);
             }
 
             // Parse Sources
             if (package_table.contains("sources")) {
                 auto sources = package_table.at("sources").as_array();
-                if (sources) {
-                    parse_compilation_unit(*sources, "source", pkg_dir, cflags, platform_cflags, compiler_cflags, iflags);
-                }
+                parse_compilation_unit(sources, "source", pkg_dir, cflags, platform_cflags, compiler_cflags, iflags);
             }
         }
     }
@@ -132,139 +132,136 @@ void BuildParser::parse_compilation_targets() {
 }
 
 void BuildParser::parse_libraries() {
-    const auto& library_sections = muuk_filer->get_library_section();
 
-    for (const auto& [library_name, versions] : library_sections) {
-        for (const auto& [library_version, library_table] : versions) {
-            const auto lib_path = util::to_linux_path(
-                (build_dir / library_name / library_version / (library_name + LIB_EXT)).string(),
-                "../../");
+    for (const auto& library_table : muuk_file.at("library").as_array()) {
+        const auto library_name = library_table.at("name").as_string();
+        const auto library_version = library_table.at("version").as_string();
+        const auto lib_path = util::to_linux_path(
+            (build_dir / library_name / library_version / (library_name + LIB_EXT)).string(),
+            "../../");
 
-            std::vector<std::string> obj_files;
-            if (library_table.contains("sources")) {
-                auto sources = library_table.at("sources").as_array();
-                if (sources) {
-                    for (const auto& src_entry : *sources) {
-                        if (!src_entry.is_table())
-                            continue;
-                        auto source_table = src_entry.as_table();
-                        if (!source_table->contains("path"))
-                            continue;
+        std::vector<std::string> obj_files;
+        if (library_table.contains("sources")) {
+            auto sources = library_table.at("sources").as_array();
+            for (const auto& src_entry : sources) {
+                if (!src_entry.is_table())
+                    continue;
+                auto source_table = src_entry.as_table();
+                if (!source_table.contains("path"))
+                    continue;
 
-                        const auto obj_file = util::to_linux_path(
-                            (build_dir / library_name / library_version / std::filesystem::path(*source_table->at("path").value<std::string>()).stem()).string() + OBJ_EXT,
-                            "../../");
-                        obj_files.push_back(obj_file);
-                    }
-                }
+                const auto obj_file = util::to_linux_path(
+                    (build_dir / library_name / library_version / std::filesystem::path(source_table.at("path").as_string()).stem()).string() + OBJ_EXT,
+                    "../../");
+                obj_files.push_back(obj_file);
             }
-
-            auto aflags = MuukFiler::parse_array_as_vec(library_table, "aflags");
-            muuk::normalize_flags_inplace(aflags, compiler);
-            build_manager->add_archive_target(lib_path, obj_files, aflags);
-
-            muuk::logger::info("Added library target: {}", lib_path);
-            muuk::logger::trace("  - Object Files: {}", fmt::join(obj_files, ", "));
-            muuk::logger::trace("  - Archive Flags: {}", fmt::join(aflags, ", "));
         }
+
+        auto aflags = muuk::parse_array_as_vec(library_table.as_table(), "aflags");
+        muuk::normalize_flags_inplace(aflags, compiler);
+        build_manager->add_archive_target(lib_path, obj_files, aflags);
+
+        muuk::logger::info("Added library target: {}", lib_path);
+        muuk::logger::trace("  - Object Files: {}", fmt::join(obj_files, ", "));
+        muuk::logger::trace("  - Archive Flags: {}", fmt::join(aflags, ", "));
     }
 }
 
 void BuildParser::parse_executables() {
-    const auto& build_sections = muuk_filer->get_build_section();
-    const auto& library_sections = muuk_filer->get_library_section();
+    if (!muuk_file.contains("build") || !muuk_file.contains("library"))
+        return;
 
-    for (const auto& [executable_name, build_table] : build_sections) {
+    const auto& build_sections = muuk_file.at("build").as_array();
+    const auto& library_sections = muuk_file.at("library").as_array();
+
+    // Index libraries by name + version
+    std::unordered_map<std::string, std::unordered_map<std::string, toml::value>> lib_map;
+    for (const auto& lib : library_sections) {
+        const auto& lib_table = lib.as_table();
+        const auto& name = lib_table.at("name").as_string();
+        const auto& version = lib_table.at("version").as_string();
+        lib_map[name][version] = lib;
+    }
+
+    for (const auto& entry : build_sections) {
+        const auto& build_table = entry.as_table();
+        const std::string executable_name = build_table.at("name").as_string();
+
+        // Profile matching
         if (build_table.contains("profiles")) {
-            auto profiles = build_table.at("profiles").as_array();
-            if (profiles) {
-                bool profile_found = false;
-                for (const auto& profile : *profiles) {
-                    if (profile.is_string() && profile.value<std::string>() == profile_) {
-                        profile_found = true;
-                        break;
-                    }
+            bool matched = false;
+            for (const auto& profile : build_table.at("profiles").as_array()) {
+                if (profile.as_string() == profile_) {
+                    matched = true;
+                    break;
                 }
-                if (!profile_found)
-                    continue;
             }
+            if (!matched)
+                continue;
         }
 
+        // Prepare build paths
         const auto exe_path = util::to_linux_path(
-            (build_dir / executable_name / (executable_name + EXE_EXT)).string(),
-            "../../");
+            (build_dir / executable_name / (executable_name + EXE_EXT)).string(), "../../");
+
         std::vector<std::string> obj_files;
         std::vector<std::string> libs;
-        std::vector<std::string> iflags; // Include flags for header-only libraries
+        std::vector<std::string> iflags;
 
         muuk::logger::info(fmt::format("Parsing executable '{}'", executable_name));
 
-        // Collect all source files -> Convert to object files
+        // Source → Object files
         if (build_table.contains("sources")) {
-            auto sources = build_table.at("sources").as_array();
-            if (sources) {
-                for (const auto& src_entry : *sources) {
-                    if (!src_entry.is_table())
-                        continue;
+            for (const auto& src : build_table.at("sources").as_array()) {
+                if (!src.is_table())
+                    continue;
+                const auto& src_table = src.as_table();
+                if (!src_table.contains("path"))
+                    continue;
 
-                    auto source_table = src_entry.as_table();
-                    if (!source_table->contains("path"))
-                        continue;
+                std::string src_path = util::to_linux_path(
+                    std::filesystem::absolute(std::filesystem::path(src_table.at("path").as_string())).string(),
+                    "../../");
 
-                    std::string src_path = util::to_linux_path(
-                        std::filesystem::absolute(
-                            std::filesystem::path(*source_table->at("path").value<std::string>()))
-                            .string(),
-                        "../../");
+                std::string obj_path = util::to_linux_path(
+                    (build_dir / executable_name / std::filesystem::path(src_path).stem()).string() + OBJ_EXT,
+                    "../../");
 
-                    std::string obj_path = util::to_linux_path(
-                        (build_dir / executable_name / std::filesystem::path(src_path).stem()).string()
-                            + OBJ_EXT,
-                        "../../");
-
-                    obj_files.push_back(obj_path);
-                }
+                obj_files.push_back(obj_path);
             }
         }
 
-        // EXES REQUIRE MERGED DEPENDENCIES
-        // MODULES ONLY REQUIRE DIRECT DEPENDENCIES
-        // Collect all dependencies (libraries & header-only includes)
+        // Dependencies
         if (build_table.contains("dependencies2")) {
-            auto dependencies = build_table.at("dependencies2").as_array();
-            if (dependencies) {
-                for (const auto& dep : *dependencies) {
-                    std::string library_name = dep.as_table()->at("name").value<std::string>().value();
-                    std::string library_version = dep.as_table()->at("version").value<std::string>().value();
+            for (const auto& dep : build_table.at("dependencies2").as_array()) {
+                const auto& dep_table = dep.as_table();
+                const auto& lib_name = dep_table.at("name").as_string();
+                const auto& version = dep_table.at("version").as_string();
 
-                    // Check if the library has sources (meaning it's a compiled library)
-                    if (library_sections.contains(library_name) && library_sections.at(library_name).contains(library_version)) {
-                        const auto& lib_table = library_sections.at(library_name).at(library_version);
+                if (lib_map.contains(lib_name) && lib_map.at(lib_name).contains(version)) {
+                    const auto& lib_table = lib_map.at(lib_name).at(version).as_table();
 
-                        if (lib_table.contains("sources")) {
-                            // Library has sources, so we expect a .lib file
-                            const auto lib_path = util::to_linux_path(
-                                (build_dir / library_name / library_version / (library_name + LIB_EXT)).string(),
-                                "../../");
-                            libs.push_back(lib_path);
-                        }
+                    if (lib_table.contains("sources")) {
+                        std::string lib_path = util::to_linux_path(
+                            (build_dir / lib_name / version / (lib_name + LIB_EXT)).string(), "../../");
+                        libs.push_back(lib_path);
+                    }
 
-                        if (lib_table.contains("include")) {
-                            // Header-only library, add include directories
-                            auto include_flags = MuukFiler::parse_array_as_vec(lib_table, "include", "-I../../");
-                            iflags.insert(iflags.end(), include_flags.begin(), include_flags.end());
+                    if (lib_table.contains("include")) {
+                        for (const auto& inc : lib_table.at("include").as_array()) {
+                            iflags.push_back("-I../../" + inc.as_string());
                         }
                     }
                 }
             }
         }
 
-        // Collect linker flags
-        auto lflags = MuukFiler::parse_array_as_vec(build_table, "lflags");
+        // Linker flags
+        std::vector<std::string> lflags = muuk::parse_array_as_vec(build_table, "lflags");
 
         muuk::normalize_flags_inplace(lflags, compiler);
 
-        // Add to build manager
+        // Register build
         build_manager->add_link_target(exe_path, obj_files, libs, lflags);
 
         muuk::logger::info("Added link target: {}", exe_path);
@@ -282,8 +279,6 @@ std::vector<std::string> BuildParser::extract_platform_flags(const toml::table& 
         return flags;
 
     auto platform_table = package_table.at("platform").as_table();
-    if (!platform_table)
-        return flags;
 
     std::string detected_platform;
 
@@ -297,12 +292,10 @@ std::vector<std::string> BuildParser::extract_platform_flags(const toml::table& 
     detected_platform = "unknown";
 #endif
 
-    if (platform_table->contains(detected_platform)) {
-        auto platform_entry = platform_table->at(detected_platform).as_table();
-        if (!platform_entry)
-            return flags;
+    if (platform_table.contains(detected_platform)) {
+        auto platform_entry = platform_table.at(detected_platform).as_table();
 
-        flags = MuukFiler::parse_array_as_vec(*platform_entry, "cflags");
+        flags = muuk::parse_array_as_vec(platform_entry, "cflags");
     }
 
     return flags;
@@ -315,17 +308,13 @@ std::vector<std::string> BuildParser::extract_compiler_flags(const toml::table& 
         return flags;
 
     auto compiler_table = package_table.at("compiler").as_table();
-    if (!compiler_table)
-        return flags;
 
     auto compiler_ = compiler.to_string();
 
-    if (compiler_table->contains(compiler_)) {
-        auto compiler_entry = compiler_table->at(compiler_).as_table();
-        if (!compiler_entry)
-            return flags;
+    if (compiler_table.contains(compiler_)) {
+        auto compiler_entry = compiler_table.at(compiler_).as_table();
 
-        flags = MuukFiler::parse_array_as_vec(*compiler_entry, "cflags");
+        flags = muuk::parse_array_as_vec(compiler_entry, "cflags");
     }
 
     return flags;
@@ -336,42 +325,31 @@ std::pair<std::string, std::string> BuildParser::extract_profile_flags(const std
 
     std::string profile_cflags_str, profile_lflags_str;
 
-    // Fetch the parsed TOML configuration
-    const auto& config = muuk_filer->get_config();
-
-    if (!config.contains("profile")) {
+    if (!muuk_file.contains("profile")) {
         muuk::logger::warn("No 'profile' section found in configuration.");
         return { "", "" };
     }
 
-    auto profile_table = config.at("profile").as_table();
-    if (!profile_table) {
-        muuk::logger::warn("No valid 'profile' table found.");
-        return { "", "" };
-    }
+    auto profile_table = muuk_file.at("profile").as_table();
 
-    if (!profile_table->contains(profile)) {
+    if (!profile_table.contains(profile)) {
         muuk::logger::warn("Profile '{}' does not exist in the configuration.", profile);
         return { "", "" };
     }
 
-    auto profile_entry = profile_table->at(profile).as_table();
-    if (!profile_entry) {
-        muuk::logger::warn("Profile '{}' is not properly defined.", profile);
-        return { "", "" };
-    }
+    auto profile_entry = profile_table.at(profile).as_table();
 
     // Handle CFLAGS extraction safely
-    std::vector<std::string> profile_cflags = MuukFiler::parse_array_as_vec(*profile_entry, "cflags");
+    std::vector<std::string> profile_cflags = muuk::parse_array_as_vec(profile_entry, "cflags");
     profile_cflags_str = muuk::normalize_flags(profile_cflags, compiler);
     muuk::logger::info("Profile '{}' CFLAGS: {}", profile, profile_cflags_str);
 
     // Handle LFLAGS extraction safely
-    std::vector<std::string> profile_lflags = MuukFiler::parse_array_as_vec(*profile_entry, "lflags");
+    std::vector<std::string> profile_lflags = muuk::parse_array_as_vec(profile_entry, "lflags");
     profile_lflags_str = muuk::normalize_flags(profile_lflags, compiler);
     muuk::logger::info("Profile '{}' LFLAGS: {}", profile, profile_lflags_str);
 
-    std::vector<std::string> profile_defines = MuukFiler::parse_array_as_vec(*profile_entry, "defines", "-D");
+    std::vector<std::string> profile_defines = muuk::parse_array_as_vec(profile_entry, "defines", "-D");
     for (const auto& flag : profile_defines) {
         profile_cflags_str += muuk::normalize_flag(flag, compiler) + " ";
     }

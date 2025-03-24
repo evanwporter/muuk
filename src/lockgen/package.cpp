@@ -1,7 +1,7 @@
 #include <string>
 
 #include <glob/glob.h>
-#include <toml++/toml.hpp>
+#include <toml.hpp>
 
 #include "logger.h"
 #include "muuklockgen.h"
