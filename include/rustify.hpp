@@ -31,9 +31,25 @@ inline constexpr auto Err(const char* msg) {
     return tl::unexpected(std::string(msg));
 }
 
+template <typename T>
+inline constexpr auto Err(Result<T> result) {
+    return tl::unexpected(result.error());
+}
+
 template <typename... Args>
 inline constexpr auto Err(fmt::format_string<Args...> fmt_str, Args&&... args) {
     return tl::unexpected(fmt::format(fmt_str, std::forward<Args>(args)...));
+}
+
+struct PanicException : public std::exception {
+    std::string message;
+    explicit PanicException(std::string msg) :
+        message(std::move(msg)) { }
+    const char* what() const noexcept override { return message.c_str(); }
+};
+
+[[noreturn]] inline void panic(const std::string& msg) {
+    throw PanicException(msg);
 }
 
 template <typename T>

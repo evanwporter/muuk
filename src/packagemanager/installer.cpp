@@ -2,10 +2,10 @@
 #include <fstream>
 #include <string>
 
-#define TOML_EXCEPTIONS 0
-#include <toml++/toml.hpp>
+#include <toml.hpp>
 
 #include "logger.h"
+#include "muuk_parser.hpp"
 #include "muukfiler.h"
 #include "muuklockgen.h"
 #include "muukterminal.hpp"
@@ -141,7 +141,7 @@ namespace muuk {
 
             auto lockgen = MuukLockGenerator::create("./");
             if (!lockgen) {
-                return Err("Failed to load muuk.lock.toml: {}", lockgen.error());
+                return Err(lockgen.error());
             }
 
             auto lock_file_result = lockgen->generate_lockfile(lockfile_path.string());
@@ -156,27 +156,25 @@ namespace muuk {
                 return Err("Failed to open lockfile '{}'", lockfile_path_string);
             }
 
-            toml::parse_result parsed = toml::parse(file);
-            if (!parsed) {
-                return Err("Failed to parse TOML lockfile: {}", parsed.error().description());
-            }
+            auto parse_result = muuk::parse_muuk_file(lockfile_path_string, true);
+            if (!parse_result)
+                return Err("Failed to parse lockfile '{}': {}", lockfile_path_string, parse_result.error());
+            auto lockfile_data = parse_result.value();
 
-            toml::table lockfile_data = parsed.table();
-            auto packages = lockfile_data["package"].as_array();
-            if (!packages) {
-                muuk::logger::error("No [[package]] entries found in lockfile.");
-                return Err("No packages found in lockfile.");
+            if (!lockfile_data.contains("package")) {
+                return Err("Lockfile does not contain 'package' section");
             }
+            auto packages = lockfile_data.at("package").as_array();
 
-            muuk::terminal::info("Found {}{}{} dependencies:", muuk::terminal::style::BOLD, packages->size(), muuk::terminal::style::RESET);
-            for (const auto& item : *packages) {
-                const auto* pkg = item.as_table();
-                if (!pkg || !pkg->contains("name") || !pkg->contains("version") || !pkg->contains("source"))
+            muuk::terminal::info("Found {}{}{} dependencies:", muuk::terminal::style::BOLD, packages.size(), muuk::terminal::style::RESET);
+            for (const auto& item : packages) {
+                const auto pkg = item.as_table();
+                if (!pkg.contains("name") || !pkg.contains("version") || !pkg.contains("source"))
                     continue;
 
-                const std::string name = *pkg->at("name").value<std::string>();
-                const std::string version = *pkg->at("version").value<std::string>();
-                const std::string source = *pkg->at("source").value<std::string>();
+                const std::string name = pkg.at("name").as_string();
+                const std::string version = pkg.at("version").as_string();
+                const std::string source = pkg.at("source").as_string();
 
                 std::string short_hash = version.substr(0, 8);
                 muuk::logger::info("  - {}{}{} @ {}", muuk::terminal::style::MAGENTA, name, muuk::terminal::style::RESET, short_hash);
@@ -184,14 +182,14 @@ namespace muuk {
 
             std::cout << "\n";
 
-            for (const auto& item : *packages) {
-                const auto* pkg = item.as_table();
-                if (!pkg || !pkg->contains("name") || !pkg->contains("version") || !pkg->contains("source"))
+            for (const auto& item : packages) {
+                const auto pkg = item.as_table();
+                if (!pkg.contains("name") || !pkg.contains("version") || !pkg.contains("source"))
                     continue;
 
-                const std::string name = *pkg->at("name").value<std::string>();
-                const std::string version = *pkg->at("version").value<std::string>();
-                const std::string source = *pkg->at("source").value<std::string>();
+                const std::string name = pkg.at("name").as_string();
+                const std::string version = pkg.at("version").as_string();
+                const std::string source = pkg.at("source").as_string();
                 const std::string short_hash = version.substr(0, 8);
 
                 muuk::terminal::info("Installing: {}{}{} @ {}{}", muuk::terminal::style::CYAN, name, muuk::terminal::style::RESET, short_hash, muuk::terminal::style::RESET);
@@ -226,6 +224,7 @@ namespace muuk {
             return {};
         }
 
+        // TODO: Remove MuukFiler dependency
         Result<void> remove_package(const std::string& package_name, const std::string& toml_path, const std::string& lockfile_path) {
             muuk::logger::info("Removing package: {}", package_name);
 

@@ -38,11 +38,9 @@ public:
                 continue;
 
             auto packages_table = packages.as_table();
-            if (!packages_table)
-                continue;
 
-            for (const auto& [pkg_name, pkg_info] : *packages_table) {
-                process_package(std::string(pkg_name.str()), *pkg_info.as_table(), compile_commands);
+            for (const auto& [pkg_name, pkg_info] : packages_table) {
+                process_package(pkg_name, pkg_info.as_table(), compile_commands);
             }
         }
 
@@ -62,24 +60,24 @@ private:
         std::string base_path;
 
         if (package_data.contains("base_path")) {
-            base_path = package_data["base_path"].value_or("");
+            base_path = package_data.at("base_path").as_string();
         }
 
         if (package_data.contains("include")) {
-            for (const auto& inc : *package_data["include"].as_array()) {
-                includes.push_back(util::to_linux_path((fs::path(base_path) / *inc.value<std::string>()).string()));
+            for (const auto& inc : package_data.at("include").as_array()) {
+                includes.push_back(util::to_linux_path((fs::path(base_path) / inc.as_string()).string()));
             }
         }
 
         if (package_data.contains("cflags")) {
-            for (const auto& flag : *package_data["cflags"].as_array()) {
-                cflags.push_back(*flag.value<std::string>());
+            for (const auto& flag : package_data.at("cflags").as_array()) {
+                cflags.push_back(*flag.as_string());
             }
         }
 
         if (package_data.contains("sources")) {
-            for (const auto& src : *package_data["sources"].as_array()) {
-                sources.push_back(util::to_linux_path((fs::path(base_path) / *src.value<std::string>()).string()));
+            for (const auto& src : package_data.at("sources").as_array()) {
+                sources.push_back(util::to_linux_path((fs::path(base_path) / src.as_string()).string()));
             }
         }
 

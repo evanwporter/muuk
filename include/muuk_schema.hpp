@@ -6,7 +6,7 @@
 #include <variant>
 #include <vector>
 
-#include <toml++/toml.h>
+#include <toml.hpp>
 
 #include "rustify.hpp"
 
@@ -55,7 +55,7 @@ namespace muuk {
             required(required), type(std::move(type)), children(std::move(children)) { }
     };
 
-    Result<TomlType> get_toml_type(const toml::node& node);
+    Result<TomlType> get_toml_type(const toml::value& node);
 
     // Merge multiple SchemaMaps
     template <typename... Maps>
@@ -90,6 +90,8 @@ namespace muuk {
         {"package", {true, TomlType::Table, {
             {"name", {true, TomlType::String}},
             {"version", {true, TomlType::String}},
+            {"edition", {false, TomlType::String}},
+            {"git", {false, TomlType::String}},
             {"description", {false, TomlType::String}},
             {"license", {false, TomlType::String}},
             {"authors", {false, TomlArray{TomlType::String}}},
@@ -101,7 +103,7 @@ namespace muuk {
         }}},
 
         {"dependencies", {false, std::vector<TomlType>{TomlType::String, TomlType::Table}, {
-            {"*", {false, TomlType::Table, dependency_schema}}
+            {"*", {false, std::vector<TomlType>{TomlType::Table, TomlType::String}, dependency_schema}}
         }}},
 
         {"library", {false, TomlType::Table, base_package_schema}},

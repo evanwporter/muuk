@@ -3,7 +3,6 @@
 #include <iostream>
 
 #include <fmt/core.h>
-#include <toml++/toml.hpp>
 
 #include "logger.h"
 #include "muuk.h"
