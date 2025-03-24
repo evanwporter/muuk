@@ -451,6 +451,7 @@ Result<void> MuukLockGenerator::generate_lockfile(const std::string& output_path
     return {};
 }
 
+// TODO: Replace std::shared_ptr<Package> with unique_ptr and Package*
 // Finds and returns a package by its name from the resolved packages.
 std::shared_ptr<Package> MuukLockGenerator::find_package(const std::string& package_name, std::optional<std::string> version) {
     if (resolved_packages.count(package_name) && version.has_value()) {
