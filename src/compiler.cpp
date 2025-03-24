@@ -1,4 +1,3 @@
-#include <stdexcept>
 #include <string>
 #include <unordered_map>
 
@@ -171,29 +170,5 @@ namespace muuk {
 
     std::string Edition::to_flag() const {
         return to_flag(Compiler::GCC); // Default to GCC
-    }
-
-    namespace compiler {
-        std::string to_string(Compiler compiler) {
-            switch (compiler) {
-            case Compiler::GCC:
-                return "g++";
-            case Compiler::Clang:
-                return "clang++";
-            case Compiler::MSVC:
-                return "cl";
-            }
-            throw std::invalid_argument("Invalid compiler type");
-        }
-
-        Compiler from_string(const std::string& compiler_str) {
-            if (compiler_str == "g++" || compiler_str == "gcc")
-                return Compiler::GCC;
-            if (compiler_str == "clang++" || compiler_str == "clang")
-                return Compiler::Clang;
-            if (compiler_str == "cl" || compiler_str == "msvc")
-                return Compiler::MSVC;
-            throw std::invalid_argument("Unsupported compiler: " + compiler_str);
-        }
     }
 } // namespace muuk

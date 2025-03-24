@@ -250,7 +250,6 @@ private:
         const std::string& package_name,
         std::optional<std::string> version = std::nullopt);
 
-    // TODO: Use or Remove
     void resolve_system_dependency(
         const std::string& package_name,
         std::shared_ptr<Package> package);

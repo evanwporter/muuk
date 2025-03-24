@@ -7,7 +7,6 @@
 #include <fstream>
 #include <regex>
 #include <set>
-#include <sstream>
 #include <string>
 #include <vector>
 
@@ -15,14 +14,14 @@
 #include <windows.h>
 #endif
 
-extern "C" {
-#include "zip.h"
-}
-
 #include <tl/expected.hpp>
 
 #include "logger.h"
 #include "util.h"
+
+extern "C" {
+#include "zip.h"
+}
 
 namespace fs = std::filesystem;
 
@@ -143,12 +142,12 @@ namespace util {
     // ==========================
     namespace command_line {
         // TODO: Check if command exists
-        int command_line::execute_command(const std::string& command) {
+        int execute_command(const std::string& command) {
             muuk::logger::info("Executing command: {}", command);
             return system(command.c_str());
         }
 
-        std::string command_line::execute_command_get_out(const std::string& command) {
+        std::string execute_command_get_out(const std::string& command) {
             muuk::logger::info("Executing command: {}", command);
 
             std::array<char, 128> buffer;
