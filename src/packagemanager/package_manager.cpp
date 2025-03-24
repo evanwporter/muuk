@@ -60,7 +60,7 @@ namespace muuk {
             }
         }
 
-        tl::expected<void, std::string> download_file(const std::string& url, const std::string& output_path) {
+        Result<void> download_file(const std::string& url, const std::string& output_path) {
             std::string command;
 
             if (util::command_line::command_exists("wget")) {
@@ -100,7 +100,7 @@ namespace muuk {
             return { author, repo_name };
         }
 
-        tl::expected<void, std::string> add_dependency(const std::string& toml_path, const std::string& repo, std::string version, std::string& git_url, std::string& muuk_path, bool is_system, const std::string& target_section) {
+        Result<void> add_dependency(const std::string& toml_path, const std::string& repo, std::string version, std::string& git_url, std::string& muuk_path, bool is_system, const std::string& target_section) {
             muuk::logger::info(
                 "Adding dependency to '{}': {} (version: {})",
                 toml_path,
@@ -157,7 +157,7 @@ namespace muuk {
                 std::string final_git_url = git_url.empty()
                     ? "https://github.com/" + author + "/" + repo_name + ".git"
                     : git_url;
-                std::string target_dir = std::string(DEPENDENCY_FOLDER) + "/" + repo_name;
+                std::string target_dir = std::string(DEPENDENCY_FOLDER) + "/" + repo_name + "/" + version;
 
                 // Ensure dependency folder exists
                 util::ensure_directory_exists(DEPENDENCY_FOLDER, true);
