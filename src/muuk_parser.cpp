@@ -13,7 +13,7 @@
 
 namespace muuk {
 
-    Result<toml::value> parse_muuk_file(const std::string& path) {
+    Result<toml::value> parse_muuk_file(const std::string& path, bool is_lockfile) {
         namespace fs = std::filesystem;
 
         if (!fs::exists(path)) {
@@ -30,10 +30,12 @@ namespace muuk {
             }
 
             // Validate against schema
-            // auto validation = validate_muuk_toml(parsed);
-            // if (!validation) {
-            //     return Err("Validation failed for '{}': {}", path, validation.error());
-            // }
+            if (!is_lockfile) {
+                auto validation = validate_muuk_toml(parsed);
+                if (!validation) {
+                    return Err("Validation failed for '{}': {}", path, validation.error());
+                }
+            }
 
             muuk::logger::info("Successfully parsed and validated '{}'", path);
             return parsed;

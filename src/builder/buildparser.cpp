@@ -7,7 +7,6 @@
 #include <fmt/ranges.h>
 #include <toml.hpp>
 
-#include "buildbackend.hpp"
 #include "buildconfig.h"
 #include "buildmanager.h"
 #include "buildparser.hpp"
@@ -15,24 +14,23 @@
 #include "moduleresolver.hpp"
 #include "muuk.h"
 #include "muuk_parser.hpp"
-#include "muukfiler.h"
 #include "util.h"
 
 namespace fs = std::filesystem;
 
 BuildParser::BuildParser(std::shared_ptr<BuildManager> manager, muuk::Compiler compiler, const fs::path& build_dir, std::string profile) :
     build_manager(std::move(manager)),
-    build_dir(build_dir),
-    compiler(compiler),
-    profile_(profile),
     muuk_file([&]() -> toml::value {
-        auto result = muuk::parse_muuk_file("build/muuk.lock.toml");
+        auto result = muuk::parse_muuk_file("build/muuk.lock.toml", true);
         if (!result) {
             muuk::logger::error("Failed to parse muuk.lock.toml: {}", result.error());
             throw std::runtime_error("Failed to parse muuk.lock.toml: " + result.error());
         }
         return result.value();
-    }()) { }
+    }()),
+    build_dir(build_dir),
+    compiler(compiler),
+    profile_(profile) { }
 
 void BuildParser::parse() {
     parse_compilation_targets();

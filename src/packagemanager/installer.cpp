@@ -2,10 +2,10 @@
 #include <fstream>
 #include <string>
 
-// #define TOML_EXCEPTIONS 0
-// #include <toml++/toml.hpp>
+#include <toml.hpp>
 
 #include "logger.h"
+#include "muuk_parser.hpp"
 #include "muukfiler.h"
 #include "muuklockgen.h"
 #include "muukterminal.hpp"
@@ -135,147 +135,145 @@ namespace muuk {
         }
 
         Result<void> install(const std::string& lockfile_path_string) {
-            //     using namespace muuk::terminal;
+            using namespace muuk::terminal;
 
-            //     fs::path lockfile_path = fs::path(lockfile_path_string);
+            fs::path lockfile_path = fs::path(lockfile_path_string);
 
-            //     auto lockgen = MuukLockGenerator::create("./");
-            //     if (!lockgen) {
-            //         return Err("Failed to load muuk.lock.toml: {}", lockgen.error());
-            //     }
+            auto lockgen = MuukLockGenerator::create("./");
+            if (!lockgen) {
+                return Err("Failed to load muuk.lock.toml: {}", lockgen.error());
+            }
 
-            //     auto lock_file_result = lockgen->generate_lockfile(lockfile_path.string());
-            //     if (!lock_file_result) {
-            //         return Err("Failed to generate lockfile: {}", lock_file_result.error());
-            //     }
+            auto lock_file_result = lockgen->generate_lockfile(lockfile_path.string());
+            if (!lock_file_result) {
+                return Err("Failed to generate lockfile: {}", lock_file_result.error());
+            }
 
-            //     std::cout << muuk::terminal::style::CYAN << "Reading lockfile: " << lockfile_path << muuk::terminal::style::RESET << "\n";
+            std::cout << muuk::terminal::style::CYAN << "Reading lockfile: " << lockfile_path << muuk::terminal::style::RESET << "\n";
 
-            //     std::ifstream file(lockfile_path);
-            //     if (!file) {
-            //         return Err("Failed to open lockfile '{}'", lockfile_path_string);
-            //     }
+            std::ifstream file(lockfile_path);
+            if (!file) {
+                return Err("Failed to open lockfile '{}'", lockfile_path_string);
+            }
 
-            //     toml::parse_result parsed = toml::parse(file);
-            //     if (!parsed) {
-            //         return Err("Failed to parse TOML lockfile: {}", parsed.error().description());
-            //     }
+            auto parse_result = muuk::parse_muuk_file(lockfile_path_string, true);
+            if (!parse_result)
+                return Err("Failed to parse lockfile '{}': {}", lockfile_path_string, parse_result.error());
+            auto lockfile_data = parse_result.value();
 
-            //     toml::table lockfile_data = parsed.table();
-            //     auto packages = lockfile_data["package"].as_array();
-            //     if (!packages) {
-            //         muuk::logger::error("No [[package]] entries found in lockfile.");
-            //         return Err("No packages found in lockfile.");
-            //     }
+            if (!lockfile_data.contains("package")) {
+                return Err("Lockfile does not contain 'package' section");
+            }
+            auto packages = lockfile_data.at("package").as_array();
 
-            //     muuk::terminal::info("Found {}{}{} dependencies:", muuk::terminal::style::BOLD, packages->size(), muuk::terminal::style::RESET);
-            //     for (const auto& item : *packages) {
-            //         const auto* pkg = item.as_table();
-            //         if (!pkg || !pkg->contains("name") || !pkg->contains("version") || !pkg->contains("source"))
-            //             continue;
+            muuk::terminal::info("Found {}{}{} dependencies:", muuk::terminal::style::BOLD, packages.size(), muuk::terminal::style::RESET);
+            for (const auto& item : packages) {
+                const auto pkg = item.as_table();
+                if (!pkg.contains("name") || !pkg.contains("version") || !pkg.contains("source"))
+                    continue;
 
-            //         const std::string name = *pkg->at("name").value<std::string>();
-            //         const std::string version = *pkg->at("version").value<std::string>();
-            //         const std::string source = *pkg->at("source").value<std::string>();
+                const std::string name = pkg.at("name").as_string();
+                const std::string version = pkg.at("version").as_string();
+                const std::string source = pkg.at("source").as_string();
 
-            //         std::string short_hash = version.substr(0, 8);
-            //         muuk::logger::info("  - {}{}{} @ {}", muuk::terminal::style::MAGENTA, name, muuk::terminal::style::RESET, short_hash);
-            //     }
+                std::string short_hash = version.substr(0, 8);
+                muuk::logger::info("  - {}{}{} @ {}", muuk::terminal::style::MAGENTA, name, muuk::terminal::style::RESET, short_hash);
+            }
 
-            //     std::cout << "\n";
+            std::cout << "\n";
 
-            //     for (const auto& item : *packages) {
-            //         const auto* pkg = item.as_table();
-            //         if (!pkg || !pkg->contains("name") || !pkg->contains("version") || !pkg->contains("source"))
-            //             continue;
+            for (const auto& item : packages) {
+                const auto pkg = item.as_table();
+                if (!pkg.contains("name") || !pkg.contains("version") || !pkg.contains("source"))
+                    continue;
 
-            //         const std::string name = *pkg->at("name").value<std::string>();
-            //         const std::string version = *pkg->at("version").value<std::string>();
-            //         const std::string source = *pkg->at("source").value<std::string>();
-            //         const std::string short_hash = version.substr(0, 8);
+                const std::string name = pkg.at("name").as_string();
+                const std::string version = pkg.at("version").as_string();
+                const std::string source = pkg.at("source").as_string();
+                const std::string short_hash = version.substr(0, 8);
 
-            //         muuk::terminal::info("Installing: {}{}{} @ {}{}", muuk::terminal::style::CYAN, name, muuk::terminal::style::RESET, short_hash, muuk::terminal::style::RESET);
+                muuk::terminal::info("Installing: {}{}{} @ {}{}", muuk::terminal::style::CYAN, name, muuk::terminal::style::RESET, short_hash, muuk::terminal::style::RESET);
 
-            //         std::string git_url;
-            //         if (source.rfind("git+", 0) == 0) {
-            //             git_url = source.substr(4); // remove "git+"
-            //         } else {
-            //             muuk::logger::warn("Unsupported source format: {}", source);
-            //             continue;
-            //         }
+                std::string git_url;
+                if (source.rfind("git+", 0) == 0) {
+                    git_url = source.substr(4); // remove "git+"
+                } else {
+                    muuk::logger::warn("Unsupported source format: {}", source);
+                    continue;
+                }
 
-            //         std::string target_dir = std::string(DEPENDENCY_FOLDER) + "/" + name + "/" + version;
+                std::string target_dir = std::string(DEPENDENCY_FOLDER) + "/" + name + "/" + version;
 
-            //         if (fs::exists(target_dir) && is_package_installed(target_dir)) {
-            //             std::cout << muuk::terminal::style::YELLOW << "Already installed - skipping.\n"
-            //                       << muuk::terminal::style::RESET << "\n";
-            //             continue;
-            //         }
+                if (fs::exists(target_dir) && is_package_installed(target_dir)) {
+                    std::cout << muuk::terminal::style::YELLOW << "Already installed - skipping.\n"
+                              << muuk::terminal::style::RESET << "\n";
+                    continue;
+                }
 
-            //         std::cout << muuk::terminal::style::MAGENTA << "Cloning from " << git_url << muuk::terminal::style::RESET << "\n";
-            //         clone_shallow_repo(git_url, target_dir, version);
+                std::cout << muuk::terminal::style::MAGENTA << "Cloning from " << git_url << muuk::terminal::style::RESET << "\n";
+                clone_shallow_repo(git_url, target_dir, version);
 
-            //         if (fs::exists(target_dir)) {
-            //             std::cout << muuk::terminal::style::GREEN << "Installed " << name << " @ " << short_hash << muuk::terminal::style::RESET << "\n\n";
-            //         } else {
-            //             std::cout << muuk::terminal::style::RED << "Failed to install " << name << muuk::terminal::style::RESET << "\n\n";
-            //         }
-            //     }
+                if (fs::exists(target_dir)) {
+                    std::cout << muuk::terminal::style::GREEN << "Installed " << name << " @ " << short_hash << muuk::terminal::style::RESET << "\n\n";
+                } else {
+                    std::cout << muuk::terminal::style::RED << "Failed to install " << name << muuk::terminal::style::RESET << "\n\n";
+                }
+            }
 
-            //     std::cout << muuk::terminal::style::GREEN << muuk::terminal::style::BOLD << "All dependencies are installed!" << muuk::terminal::style::RESET << "\n";
+            std::cout << muuk::terminal::style::GREEN << muuk::terminal::style::BOLD << "All dependencies are installed!" << muuk::terminal::style::RESET << "\n";
             return {};
         }
 
         Result<void> remove_package(const std::string& package_name, const std::string& toml_path, const std::string& lockfile_path) {
-            // muuk::logger::info("Removing package: {}", package_name);
+            muuk::logger::info("Removing package: {}", package_name);
 
-            // try {
-            //     if (!fs::exists(toml_path)) {
-            //         muuk::logger::error("muuk.toml file not found at '{}'", toml_path);
-            //         return Err("");
-            //     }
+            try {
+                if (!fs::exists(toml_path)) {
+                    muuk::logger::error("muuk.toml file not found at '{}'", toml_path);
+                    return Err("");
+                }
 
-            //     auto result = MuukFiler::create(toml_path);
-            //     if (!result) {
-            //         muuk::logger::error("Failed to read '{}': {}", toml_path, result.error());
-            //         return Err("");
-            //     }
-            //     MuukFiler muuk_filer = result.value();
+                auto result = MuukFiler::create(toml_path);
+                if (!result) {
+                    muuk::logger::error("Failed to read '{}': {}", toml_path, result.error());
+                    return Err("");
+                }
+                MuukFiler muuk_filer = result.value();
 
-            //     toml::table& dependencies = muuk_filer.get_section("dependencies");
+                toml::table& dependencies = muuk_filer.get_section("dependencies");
 
-            //     if (!dependencies.contains(package_name)) {
-            //         muuk::logger::error("Package '{}' is not listed in '{}'", package_name, toml_path);
-            //         return Err("");
-            //     }
+                if (!dependencies.contains(package_name)) {
+                    muuk::logger::error("Package '{}' is not listed in '{}'", package_name, toml_path);
+                    return Err("");
+                }
 
-            //     dependencies.erase(package_name);
-            //     muuk_filer.write_to_file();
+                dependencies.erase(package_name);
+                muuk_filer.write_to_file();
 
-            //     if (fs::exists(lockfile_path)) {
-            //         MuukFiler lockFiler(lockfile_path);
-            //         toml::table& lock_dependencies = lockFiler.get_section("dependencies");
+                if (fs::exists(lockfile_path)) {
+                    MuukFiler lockFiler(lockfile_path);
+                    toml::table& lock_dependencies = lockFiler.get_section("dependencies");
 
-            //         if (lock_dependencies.contains(package_name)) {
-            //             lock_dependencies.erase(package_name);
-            //             lockFiler.write_to_file();
-            //         }
-            //     }
+                    if (lock_dependencies.contains(package_name)) {
+                        lock_dependencies.erase(package_name);
+                        lockFiler.write_to_file();
+                    }
+                }
 
-            //     fs::path package_path = std::string(DEPENDENCY_FOLDER) + "/" + package_name;
-            //     if (fs::exists(package_path)) {
-            //         delete_hash_file(package_path);
-            //         fs::remove_all(package_path);
-            //         muuk::logger::info("Removed package directory: {}", package_path.string());
-            //     } else {
-            //         muuk::logger::warn("Package directory '{}' does not exist. Skipping.", package_path.string());
-            //     }
+                fs::path package_path = std::string(DEPENDENCY_FOLDER) + "/" + package_name;
+                if (fs::exists(package_path)) {
+                    delete_hash_file(package_path);
+                    fs::remove_all(package_path);
+                    muuk::logger::info("Removed package directory: {}", package_path.string());
+                } else {
+                    muuk::logger::warn("Package directory '{}' does not exist. Skipping.", package_path.string());
+                }
 
-            //     muuk::logger::info("Successfully removed package '{}'", package_name);
-            // } catch (const std::exception& e) {
-            //     muuk::logger::error("Error removing package '{}': {}", package_name, e.what());
-            //     return Err("");
-            // }
+                muuk::logger::info("Successfully removed package '{}'", package_name);
+            } catch (const std::exception& e) {
+                muuk::logger::error("Error removing package '{}': {}", package_name, e.what());
+                return Err("");
+            }
             return {};
         }
     }
