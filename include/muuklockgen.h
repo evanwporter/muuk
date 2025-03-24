@@ -76,6 +76,7 @@ struct Dependency {
     std::string version;
     std::unordered_set<std::string> enabled_features;
     bool system = false;
+    std::unordered_set<std::string> libs;
 
     static Dependency from_toml(const toml::table& data) {
         Dependency dep;
@@ -235,14 +236,14 @@ private:
         const std::string& package_name,
         const std::string& version);
 
-    std::optional<std::shared_ptr<Package>> find_package(
+    std::shared_ptr<Package> find_package(
         const std::string& package_name,
         std::optional<std::string> version = std::nullopt);
 
     // TODO: Use or Remove
     void resolve_system_dependency(
         const std::string& package_name,
-        std::optional<std::shared_ptr<Package>> package);
+        std::shared_ptr<Package> package);
 
     void merge_profiles(
         const std::string& base_profile,
