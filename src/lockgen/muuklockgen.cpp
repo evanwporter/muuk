@@ -179,6 +179,7 @@ Result<void> MuukLockGenerator::resolve_dependencies(const std::string& package_
                 resolve_system_dependency(dep_name, package);
             } else {
                 // Resolve dependency, passing the search path if available
+                // This will parse the search path and stuff
                 auto result = resolve_dependencies(
                     dep_name,
                     dep_version,
