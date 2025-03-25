@@ -12,6 +12,7 @@
 #include <spdlog/spdlog.h>
 
 #include "muukterminal.hpp"
+#include "rustify.hpp"
 
 namespace muuk {
 
@@ -50,6 +51,11 @@ namespace muuk {
             spdlog::warn(formatted_message);
         }
 
+        template <typename T>
+        static inline void warn(Result<T>&& result) {
+            warn(result.error());
+        }
+
         template <typename... Args>
         static void error(const std::string& format_str, Args&&... args) {
             initialize();
@@ -57,6 +63,11 @@ namespace muuk {
             muuk::terminal::error(formatted_message);
             std::cerr.flush();
             spdlog::error(formatted_message);
+        }
+
+        template <typename T>
+        static inline void error(Result<T>&& result) {
+            error(result.error());
         }
 
         template <typename... Args>

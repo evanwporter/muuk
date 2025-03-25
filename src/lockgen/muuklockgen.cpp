@@ -32,8 +32,7 @@ Result<MuukLockGenerator> MuukLockGenerator::create(const std::string& base_path
 
     auto result = lockgen.load();
     if (!result) {
-        muuk::logger::error("Failed to load muuk.lock.toml: {}", result.error());
-        return Err("");
+        return Err(result);
     }
 
     return lockgen;
@@ -107,6 +106,7 @@ Result<void> MuukLockGenerator::resolve_dependencies(const std::string& package_
         return {};
     }
 
+    // TODO: ALso account for visited version
     visited.insert(package_name);
     muuk::logger::info("Resolving dependencies for: {} with muuk path: '{}'", package_name, search_path.value_or(""));
 
@@ -144,8 +144,11 @@ Result<void> MuukLockGenerator::resolve_dependencies(const std::string& package_
             }
         } else {
             // If no search path, search in dependency folders
-            search_and_parse_dependency(package_name, version.value());
-            package = resolved_packages[package_name][version.value()];
+            auto result = search_and_parse_dependency(package_name, version.value());
+            if (!result)
+                return Err(result);
+
+            package = find_package(package_name, version.value());
 
             if (!package) {
                 return Err("Package '{}' not found after searching the dependency folder ({}).", package_name, DEPENDENCY_FOLDER);
@@ -291,16 +294,18 @@ Result<void> MuukLockGenerator::load() {
     const auto& base_package_dep = Dependency::from_toml(base_data);
 
     // Resolve dependencies for the base package
-    resolve_dependencies(base_package_name, base_package_version);
+    auto result_base_pkg = resolve_dependencies(base_package_name, base_package_version);
+    if (!result_base_pkg)
+        return Err(result_base_pkg);
 
     muuk::logger::info("Resolving dependencies for build packages...");
     for (const auto& [build_name, build] : builds) {
-        auto result = resolve_dependencies(build_name);
-        if (!result) {
+        auto result_build_pkg = resolve_dependencies(build_name);
+        if (!result_build_pkg) {
             muuk::logger::error(
                 "Failed to resolve dependencies for build package '{}': {}",
                 build_name,
-                result.error());
+                result_build_pkg.error());
         }
     }
 
