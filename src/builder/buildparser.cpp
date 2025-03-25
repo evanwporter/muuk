@@ -1,5 +1,5 @@
 #include <filesystem>
-#include <memory>
+#include <sstream>
 #include <unordered_map>
 #include <vector>
 
@@ -14,38 +14,89 @@
 #include "moduleresolver.hpp"
 #include "muuk.h"
 #include "muuk_parser.hpp"
+#include "rustify.hpp"
 #include "util.h"
 
 namespace fs = std::filesystem;
 
-BuildParser::BuildParser(std::shared_ptr<BuildManager> manager, muuk::Compiler compiler, const fs::path& build_dir, std::string profile) :
-    build_manager(std::move(manager)),
-    muuk_file([&]() -> toml::value {
-        auto result = muuk::parse_muuk_file("build/muuk.lock.toml", true);
-        if (!result) {
-            muuk::logger::error("Failed to parse muuk.lock.toml: {}", result.error());
-            throw std::runtime_error("Failed to parse muuk.lock.toml: " + result.error());
-        }
-        return result.value();
-    }()),
-    build_dir(build_dir),
-    compiler(compiler),
-    profile_(profile) { }
+Result<BuildProfile> extract_profile_flags(const std::string& profile, muuk::Compiler compiler, const toml::value& muuk_file) {
+    muuk::logger::info("Extracting profile-specific flags for profile '{}'", profile);
 
-void BuildParser::parse() {
-    parse_compilation_targets();
-    parse_libraries();
-    parse_executables();
+    if (!muuk_file.contains("profile"))
+        return Err("No 'profile' section found in configuration.");
+
+    auto profile_table = muuk_file.at("profile").as_table();
+
+    if (!profile_table.contains(profile))
+        return Err("Profile '{}' does not exist in the configuration.", profile);
+
+    auto profile_entry = profile_table.at(profile).as_table();
+
+    BuildProfile build_profile;
+    build_profile.cflags = muuk::parse_array_as_vec(profile_entry, "cflags");
+    build_profile.lflags = muuk::parse_array_as_vec(profile_entry, "lflags");
+    build_profile.defines = muuk::parse_array_as_vec(profile_entry, "defines", "-D");
+
+    muuk::normalize_flags_inplace(build_profile.cflags, compiler);
+    muuk::normalize_flags_inplace(build_profile.lflags, compiler);
+    muuk::normalize_flags_inplace(build_profile.defines, compiler);
+
+    muuk::logger::trace("Profile '{}' CFLAGS: {}", profile, fmt::join(build_profile.cflags, " "));
+    muuk::logger::trace("Profile '{}' LFLAGS: {}", profile, fmt::join(build_profile.lflags, " "));
+    muuk::logger::trace("Profile '{}' Defines: {}", profile, fmt::join(build_profile.defines, " "));
+
+    return build_profile;
 }
 
-void BuildParser::parse_compilation_unit(
-    const toml::array& unit_array,
-    const std::string& name,
-    const fs::path& pkg_dir,
-    const std::vector<std::string>& base_cflags,
-    const std::vector<std::string>& platform_cflags,
-    const std::vector<std::string>& compiler_cflags,
-    const std::vector<std::string>& iflags) {
+/** Extract platform-specific FLAGS */
+std::vector<std::string> extract_platform_flags(const toml::table& package_table) {
+    std::vector<std::string> flags;
+    if (!package_table.contains("platform"))
+        return flags;
+
+    auto platform_table = package_table.at("platform").as_table();
+
+    std::string detected_platform;
+
+#ifdef _WIN32
+    detected_platform = "windows";
+#elif __APPLE__
+    detected_platform = "macos";
+#elif __linux__
+    detected_platform = "linux";
+#else
+    detected_platform = "unknown";
+#endif
+
+    if (platform_table.contains(detected_platform)) {
+        auto platform_entry = platform_table.at(detected_platform).as_table();
+
+        flags = muuk::parse_array_as_vec(platform_entry, "cflags");
+    }
+
+    return flags;
+}
+
+/** Extract compiler-specific FLAGS */
+std::vector<std::string> extract_compiler_flags(const toml::table& package_table, const muuk::Compiler compiler) {
+    std::vector<std::string> flags;
+    if (!package_table.contains("compiler"))
+        return flags;
+
+    auto compiler_table = package_table.at("compiler").as_table();
+
+    auto compiler_ = compiler.to_string();
+
+    if (compiler_table.contains(compiler_)) {
+        auto compiler_entry = compiler_table.at(compiler_).as_table();
+
+        flags = muuk::parse_array_as_vec(compiler_entry, "cflags");
+    }
+
+    return flags;
+}
+
+void parse_compilation_unit(BuildManager& build_manager, muuk::Compiler compiler, const toml::array& unit_array, const std::string& name, const std::filesystem::path& pkg_dir, const std::vector<std::string>& base_cflags, const std::vector<std::string>& platform_cflags, const std::vector<std::string>& compiler_cflags, const std::vector<std::string>& iflags) {
 
     for (const auto& unit_entry : unit_array) {
         if (!unit_entry.is_table())
@@ -73,7 +124,7 @@ void BuildParser::parse_compilation_unit(
         muuk::normalize_flags_inplace(unit_cflags, compiler);
 
         // Register in build manager
-        build_manager->add_compilation_target(src_path, obj_path, unit_cflags, iflags);
+        build_manager.add_compilation_target(src_path, obj_path, unit_cflags, iflags);
 
         // Logging
         muuk::logger::info("Added {} compilation target: {} -> {}", name, src_path, obj_path);
@@ -82,7 +133,7 @@ void BuildParser::parse_compilation_unit(
     }
 }
 
-void BuildParser::parse_compilation_targets() {
+void parse_compilation_targets(BuildManager& build_manager, const muuk::Compiler compiler, const std::filesystem::path& build_dir, const toml::value& muuk_file) {
     for (const std::string& name : { "build", "library" }) {
         if (!muuk_file.contains(name))
             continue;
@@ -105,7 +156,7 @@ void BuildParser::parse_compilation_targets() {
             auto defines = muuk::parse_array_as_vec(package_table, "defines", "-D");
 
             auto platform_cflags = extract_platform_flags(package_table);
-            auto compiler_cflags = extract_compiler_flags(package_table);
+            auto compiler_cflags = extract_compiler_flags(package_table, compiler);
 
             muuk::normalize_flags_inplace(cflags, compiler);
             muuk::normalize_flags_inplace(iflags, compiler);
@@ -117,21 +168,21 @@ void BuildParser::parse_compilation_targets() {
             // Parse Modules
             if (package_table.contains("modules")) {
                 auto modules = package_table.at("modules").as_array();
-                parse_compilation_unit(modules, "module", pkg_dir, cflags, platform_cflags, compiler_cflags, iflags);
+                parse_compilation_unit(build_manager, compiler, modules, "module", pkg_dir, cflags, platform_cflags, compiler_cflags, iflags);
             }
 
             // Parse Sources
             if (package_table.contains("sources")) {
                 auto sources = package_table.at("sources").as_array();
-                parse_compilation_unit(sources, "source", pkg_dir, cflags, platform_cflags, compiler_cflags, iflags);
+                parse_compilation_unit(build_manager, compiler, sources, "source", pkg_dir, cflags, platform_cflags, compiler_cflags, iflags);
             }
         }
     }
 
     muuk::resolve_modules(build_manager, build_dir.string());
-}
+};
 
-void BuildParser::parse_libraries() {
+void parse_libraries(BuildManager& build_manager, const muuk::Compiler compiler, const std::filesystem::path& build_dir, const toml::value& muuk_file) {
 
     for (const auto& library_table : muuk_file.at("library").as_array()) {
         const auto library_name = library_table.at("name").as_string();
@@ -159,15 +210,16 @@ void BuildParser::parse_libraries() {
 
         auto aflags = muuk::parse_array_as_vec(library_table.as_table(), "aflags");
         muuk::normalize_flags_inplace(aflags, compiler);
-        build_manager->add_archive_target(lib_path, obj_files, aflags);
+        build_manager.add_archive_target(lib_path, obj_files, aflags);
 
         muuk::logger::info("Added library target: {}", lib_path);
         muuk::logger::trace("  - Object Files: {}", fmt::join(obj_files, ", "));
         muuk::logger::trace("  - Archive Flags: {}", fmt::join(aflags, ", "));
     }
-}
+};
 
-void BuildParser::parse_executables() {
+void parse_executables(
+    BuildManager& build_manager, const muuk::Compiler compiler, const std::filesystem::path& build_dir, const std::string& profile_, const toml::value& muuk_file) {
     if (!muuk_file.contains("build") || !muuk_file.contains("library"))
         return;
 
@@ -262,7 +314,7 @@ void BuildParser::parse_executables() {
         muuk::normalize_flags_inplace(lflags, compiler);
 
         // Register build
-        build_manager->add_link_target(exe_path, obj_files, libs, lflags);
+        build_manager.add_link_target(exe_path, obj_files, libs, lflags);
 
         muuk::logger::info("Added link target: {}", exe_path);
         muuk::logger::trace("  - Object Files: {}", fmt::join(obj_files, ", "));
@@ -272,91 +324,47 @@ void BuildParser::parse_executables() {
     }
 }
 
-/** Extract platform-specific FLAGS */
-std::vector<std::string> BuildParser::extract_platform_flags(const toml::table& package_table) {
-    std::vector<std::string> flags;
-    if (!package_table.contains("platform"))
-        return flags;
+Result<void> parse(BuildManager& build_manager, muuk::Compiler compiler, const std::filesystem::path& build_dir, const std::string& profile) {
 
-    auto platform_table = package_table.at("platform").as_table();
+    auto result = muuk::parse_muuk_file("build/muuk.lock.toml", true);
+    if (!result) {
+        return Err(result);
+    }
+    auto muuk_file = result.value();
 
-    std::string detected_platform;
-
-#ifdef _WIN32
-    detected_platform = "windows";
-#elif __APPLE__
-    detected_platform = "macos";
-#elif __linux__
-    detected_platform = "linux";
-#else
-    detected_platform = "unknown";
-#endif
-
-    if (platform_table.contains(detected_platform)) {
-        auto platform_entry = platform_table.at(detected_platform).as_table();
-
-        flags = muuk::parse_array_as_vec(platform_entry, "cflags");
+    auto profile_result = extract_profile_flags(profile, compiler, muuk_file);
+    if (!profile_result) {
+        return Err(profile_result);
     }
 
-    return flags;
+    build_manager.set_profile_flags(profile, profile_result.value());
+
+    parse_compilation_targets(build_manager, compiler, build_dir, muuk_file);
+    parse_libraries(build_manager, compiler, build_dir, muuk_file);
+    parse_executables(build_manager, compiler, build_dir, profile, muuk_file);
+
+    return {};
 }
 
-/** Extract compiler-specific FLAGS */
-std::vector<std::string> BuildParser::extract_compiler_flags(const toml::table& package_table) {
-    std::vector<std::string> flags;
-    if (!package_table.contains("compiler"))
-        return flags;
+std::pair<std::string, std::string> get_profile_flag_strings(BuildManager& manager, const std::string& profile) {
+    const auto* build_profile = manager.get_profile(profile);
+    std::string profile_cflags, profile_lflags;
 
-    auto compiler_table = package_table.at("compiler").as_table();
+    if (build_profile) {
+        std::ostringstream cflags_stream, lflags_stream;
 
-    auto compiler_ = compiler.to_string();
+        for (const auto& flag : build_profile->cflags)
+            cflags_stream << flag << " ";
+        for (const auto& def : build_profile->defines)
+            cflags_stream << def << " ";
+        for (const auto& flag : build_profile->lflags)
+            lflags_stream << flag << " ";
 
-    if (compiler_table.contains(compiler_)) {
-        auto compiler_entry = compiler_table.at(compiler_).as_table();
-
-        flags = muuk::parse_array_as_vec(compiler_entry, "cflags");
+        profile_cflags = cflags_stream.str();
+        profile_lflags = lflags_stream.str();
+    } else {
+        muuk::logger::warn("No profile flags found for '{}'", profile);
     }
 
-    return flags;
-}
-
-std::pair<std::string, std::string> BuildParser::extract_profile_flags(const std::string& profile) {
-    muuk::logger::info("Extracting profile-specific flags for profile '{}'", profile);
-
-    std::string profile_cflags_str, profile_lflags_str;
-
-    if (!muuk_file.contains("profile")) {
-        muuk::logger::warn("No 'profile' section found in configuration.");
-        return { "", "" };
-    }
-
-    auto profile_table = muuk_file.at("profile").as_table();
-
-    if (!profile_table.contains(profile)) {
-        muuk::logger::warn("Profile '{}' does not exist in the configuration.", profile);
-        return { "", "" };
-    }
-
-    auto profile_entry = profile_table.at(profile).as_table();
-
-    // Handle CFLAGS extraction safely
-    std::vector<std::string> profile_cflags = muuk::parse_array_as_vec(profile_entry, "cflags");
-    profile_cflags_str = muuk::normalize_flags(profile_cflags, compiler);
-    muuk::logger::info("Profile '{}' CFLAGS: {}", profile, profile_cflags_str);
-
-    // Handle LFLAGS extraction safely
-    std::vector<std::string> profile_lflags = muuk::parse_array_as_vec(profile_entry, "lflags");
-    profile_lflags_str = muuk::normalize_flags(profile_lflags, compiler);
-    muuk::logger::info("Profile '{}' LFLAGS: {}", profile, profile_lflags_str);
-
-    std::vector<std::string> profile_defines = muuk::parse_array_as_vec(profile_entry, "defines", "-D");
-    for (const auto& flag : profile_defines) {
-        profile_cflags_str += muuk::normalize_flag(flag, compiler) + " ";
-    }
-    muuk::logger::info("Profile '{}' Defines: {}", profile, profile_cflags_str);
-
-    muuk::logger::info("Extracted profile_cflags: '{}'", profile_cflags_str);
-    muuk::logger::info("Extracted profile_lflags: '{}'", profile_lflags_str);
-
-    return { profile_cflags_str, profile_lflags_str };
+    return { profile_cflags, profile_lflags };
 }

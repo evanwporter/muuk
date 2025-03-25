@@ -40,8 +40,7 @@ public:
 
 class NinjaBackend : public BuildBackend {
 private:
-    std::shared_ptr<BuildManager> build_manager;
-    std::shared_ptr<BuildParser> build_parser;
+    std::unique_ptr<BuildManager> build_manager;
     std::string ninja_filename;
     std::filesystem::path build_dir_;
 
@@ -67,8 +66,7 @@ private:
 
 class CompileCommandsBackend : public BuildBackend {
 private:
-    std::shared_ptr<BuildManager> build_manager;
-    std::shared_ptr<BuildParser> build_parser;
+    std::unique_ptr<BuildManager> build_manager;
     std::filesystem::path build_dir_;
 
 public:
