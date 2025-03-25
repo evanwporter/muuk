@@ -188,9 +188,7 @@ Result<void> MuukLockGenerator::resolve_dependencies(const std::string& package_
                         : std::optional<std::string> { dep_search_path });
 
                 if (!result) {
-                    std::string error_msg = "Failed to resolve dependency '" + dep_name + "' for package '" + package_name + "'.";
-                    muuk::logger::error(error_msg);
-                    return Err("");
+                    return Err(result);
                 }
             }
 
@@ -267,7 +265,10 @@ Result<void> MuukLockGenerator::load() {
     muuk::logger::info(" Generating muuk.lock.toml...");
     muuk::logger::info("------------------------------");
 
-    parse_muuk_toml(base_path_ + "muuk.toml", true);
+    auto result = parse_muuk_toml(base_path_ + "muuk.toml", true);
+    if (!result) {
+        return Err(result);
+    }
 
     // TODO: Make it be base_path + "/" <= check for file
     // Extract the package name and version from the base muuk.toml
