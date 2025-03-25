@@ -1,6 +1,5 @@
 #include <fstream>
 #include <iostream>
-#include <memory>
 #include <string>
 #include <unordered_map>
 
@@ -16,10 +15,10 @@
 namespace muuk {
 
     // Generates the compilation database for clang-scan-deps
-    void generate_compilation_database(const std::shared_ptr<BuildManager>& build_manager, const std::string& dependency_db, const std::string& build_dir) {
+    void generate_compilation_database(BuildManager& build_manager, const std::string& dependency_db, const std::string& build_dir) {
         nlohmann::json compdb = nlohmann::json::array();
 
-        auto compilation_targets = build_manager->get_compilation_targets();
+        auto compilation_targets = build_manager.get_compilation_targets();
 
         for (const auto& target : compilation_targets) {
             std::string command = "clang++ -x c++-module --std=c++23";
@@ -86,6 +85,7 @@ namespace muuk {
     void resolve_provided_modules(
         const nlohmann::json& dependencies,
         std::unordered_map<std::string, CompilationTarget*>& target_map) {
+
         for (const auto& rule : dependencies["rules"]) {
             if (!rule.contains("primary-output") || !rule["primary-output"].is_string()) {
                 continue; // Skip invalid rules
@@ -93,9 +93,8 @@ namespace muuk {
 
             std::string primary_output = rule["primary-output"];
             auto primary_target_it = target_map.find(primary_output);
-            if (primary_target_it == target_map.end()) {
+            if (primary_target_it == target_map.end())
                 continue;
-            }
 
             CompilationTarget* primary_target = primary_target_it->second;
 
@@ -114,29 +113,27 @@ namespace muuk {
     // Resolves required modules and links dependencies
     void resolve_required_modules(
         const nlohmann::json& dependencies,
-        std::shared_ptr<BuildManager> build_manager,
+        BuildManager& build_manager,
         std::unordered_map<std::string, CompilationTarget*>& target_map) {
+
         for (const auto& rule : dependencies["rules"]) {
-            if (!rule.contains("primary-output") || !rule["primary-output"].is_string()) {
+            if (!rule.contains("primary-output") || !rule["primary-output"].is_string())
                 continue;
-            }
 
             std::string primary_output = rule["primary-output"];
             auto primary_target_it = target_map.find(primary_output);
-            if (primary_target_it == target_map.end()) {
+            if (primary_target_it == target_map.end())
                 continue;
-            }
 
             CompilationTarget* primary_target = primary_target_it->second;
 
             if (rule.contains("requires") && rule["requires"].is_array()) {
                 for (const auto& require : rule["requires"]) {
-                    if (!require.contains("source-path") || !require["source-path"].is_string()) {
+                    if (!require.contains("source-path") || !require["source-path"].is_string())
                         continue;
-                    }
 
                     std::string required_source = require["source-path"];
-                    CompilationTarget* required_target = build_manager->find_compilation_target("input", required_source);
+                    CompilationTarget* required_target = build_manager.find_compilation_target("input", required_source);
                     if (required_target) {
                         primary_target->dependencies.push_back(required_target);
                         muuk::logger::info("Added dependency: Target '{}' requires '{}'", primary_output, required_source);
@@ -149,24 +146,23 @@ namespace muuk {
     }
 
     // Orchestrates module resolution
-    void resolve_modules(std::shared_ptr<BuildManager> build_manager, const std::string& build_dir) {
+    void resolve_modules(BuildManager& build_manager, const std::string& build_dir) {
         std::string dependency_db = build_dir + "/dependency-db.json";
 
         generate_compilation_database(build_manager, dependency_db, build_dir);
 
         nlohmann::json dependencies = parse_dependency_db(dependency_db);
-        if (dependencies.empty()) {
+        if (dependencies.empty())
             return;
-        }
 
         std::unordered_map<std::string, CompilationTarget*> target_map;
-        auto compilation_targets = build_manager->get_compilation_targets();
+        auto compilation_targets = build_manager.get_compilation_targets();
         for (auto& target : compilation_targets) {
             target_map[target.output] = &target;
         }
 
         resolve_provided_modules(dependencies, target_map);
-
         resolve_required_modules(dependencies, build_manager, target_map);
     }
-} // namespace muuks
+
+} // namespace muuk

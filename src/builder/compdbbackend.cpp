@@ -22,7 +22,7 @@ CompileCommandsBackend::CompileCommandsBackend(
     const std::string& linker,
     const std::string& lockfile_path) :
     BuildBackend(compiler, archiver, linker, lockfile_path),
-    build_manager(std::make_shared<BuildManager>()) {
+    build_manager(std::make_unique<BuildManager>()) {
 }
 
 void CompileCommandsBackend::generate_build_file(const std::string& target_build, const std::string& profile) {
@@ -37,10 +37,13 @@ void CompileCommandsBackend::generate_build_file(const std::string& target_build
         muuk::logger::info("Created build directory: {}", build_dir_.string());
     }
 
-    build_parser = std::make_shared<BuildParser>(build_manager, compiler_, build_dir_, profile);
-    build_parser->parse();
+    parse(
+        *build_manager,
+        compiler_,
+        build_dir_,
+        profile);
 
-    auto [profile_cflags, profile_lflags] = build_parser->extract_profile_flags(profile);
+    auto [profile_cflags, profile_lflags] = get_profile_flag_strings(*build_manager, profile);
 
     // Generate compile_commands.json
     json compile_commands = generate_compile_commands(profile_cflags);

@@ -19,7 +19,7 @@ NinjaBackend::NinjaBackend(
     const std::string& linker,
     const std::string& lockfile_path) :
     BuildBackend(compiler, archiver, linker, lockfile_path),
-    build_manager(std::make_shared<BuildManager>()) {
+    build_manager(std::make_unique<BuildManager>()) {
 }
 
 void NinjaBackend::generate_build_file(
@@ -37,14 +37,17 @@ void NinjaBackend::generate_build_file(
 
     spdlog::default_logger()->flush();
 
-    build_parser = std::make_shared<BuildParser>(build_manager, compiler_, build_dir_, profile);
+    parse(
+        *build_manager,
+        compiler_,
+        build_dir_,
+        profile);
 
     const std::string ninja_file_ = (build_dir_ / "build.ninja").string();
 
     std::ostringstream output_stream;
 
     write_header(output_stream, profile);
-    build_parser->parse();
     generate_build_rules(output_stream, target_build);
 
     std::ofstream out(ninja_file_, std::ios::out);
@@ -137,7 +140,7 @@ void NinjaBackend::write_header(std::ostringstream& out, std::string profile) {
 
     module_dir = "../../" + module_dir;
 
-    auto [profile_cflags, profile_lflags] = build_parser->extract_profile_flags(profile);
+    auto [profile_cflags, profile_lflags] = get_profile_flag_strings(*build_manager, profile);
 
     out << "# Profile-Specific Flags\n"
         << "profile_cflags = " << profile_cflags << "\n"

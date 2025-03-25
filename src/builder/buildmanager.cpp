@@ -59,3 +59,15 @@ CompilationTarget* BuildManager::find_compilation_target(const std::string& key,
 
     return (it != compilation_targets.end()) ? &(*it) : nullptr;
 }
+
+void BuildManager::set_profile_flags(const std::string& profile_name, BuildProfile profile) {
+    profiles[profile_name] = std::move(profile);
+}
+
+const BuildProfile* BuildManager::get_profile(const std::string& profile_name) const {
+    auto it = profiles.find(profile_name);
+    if (it != profiles.end()) {
+        return &it->second;
+    }
+    return nullptr;
+}
