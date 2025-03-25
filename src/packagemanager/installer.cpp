@@ -141,7 +141,7 @@ namespace muuk {
 
             auto lockgen = MuukLockGenerator::create("./");
             if (!lockgen) {
-                return Err("Failed to load muuk.lock.toml: {}", lockgen.error());
+                return Err(lockgen.error());
             }
 
             auto lock_file_result = lockgen->generate_lockfile(lockfile_path.string());

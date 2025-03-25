@@ -33,7 +33,7 @@ namespace muuk {
             if (!is_lockfile) {
                 auto validation = validate_muuk_toml(parsed);
                 if (!validation) {
-                    return Err("Validation failed for '{}': {}", path, validation.error());
+                    return Err(validation.error());
                 }
             }
 
