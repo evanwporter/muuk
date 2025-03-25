@@ -260,7 +260,7 @@ private:
         const std::string& package_version,
         const std::string& path);
 
-    void search_and_parse_dependency(
+    Result<void> search_and_parse_dependency(
         const std::string& package_name,
         const std::string& version);
 
@@ -276,7 +276,7 @@ private:
         const std::string& base_profile,
         const std::string& inherited_profile);
 
-    void parse_muuk_toml(const std::string& path, bool is_base = false);
+    Result<void> parse_muuk_toml(const std::string& path, bool is_base = false);
 
     tl::expected<void, std::string> resolve_dependencies(
         const std::string& package_name,

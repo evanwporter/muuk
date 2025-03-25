@@ -43,21 +43,18 @@ Result<MuukLockGenerator> MuukLockGenerator::create(const std::string& base_path
 void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
     muuk::logger::trace("Attempting to parse muuk.toml: {}", path);
     if (!fs::exists(path)) {
-        muuk::logger::error("Failed to locate 'muuk.toml' at path '{}'. Check if the file exists.", path);
-        return;
+        return Err("Failed to locate 'muuk.toml' at path '{}'. Check if the file exists.", path);
     }
 
     auto result_muuk = muuk::parse_muuk_file(path);
     if (!result_muuk) {
-        muuk::logger::error("Failed to parse muuk.toml: {}", result_muuk.error());
-        return;
+        return Err(result_muuk.error());
     }
 
     auto data = result_muuk.value();
 
     if (!data.contains("package") || !data["package"].is_table()) {
-        muuk::logger::error("Missing 'package' section in TOML file.");
-        return;
+        return Err("Missing 'package' section in TOML file.");
     }
 
     const auto package_name = data["package"]["name"].as_string();
@@ -100,6 +97,8 @@ void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
         base_package_ = package;
 
     } // if (is_base)
+
+    return {};
 }
 
 Result<void> MuukLockGenerator::resolve_dependencies(const std::string& package_name, std::optional<std::string> version, std::optional<std::string> search_path) {
@@ -130,17 +129,14 @@ Result<void> MuukLockGenerator::resolve_dependencies(const std::string& package_
                 if (version.has_value()) {
                     package = resolved_packages[package_name][version.value()];
                 } else {
-                    muuk::logger::error("Version not specified for package '" + package_name + "'.");
                     return Err("Version not specified for package '" + package_name + "'.");
                 }
 
                 if (!package) {
-                    muuk::logger::error("Package '{}' not found after parsing '{}'.", package_name, *search_path);
-                    return Err("");
+                    return Err("Package '{}' not found after parsing '{}'.", package_name, *search_path);
                 }
             } else {
-                muuk::logger::error("Search file '{}' for '{}' does not exist.", search_file.string(), package_name);
-                return Err("");
+                return Err("Search file '{}' for '{}' does not exist.", search_file.string(), package_name);
             }
         } else {
             // If no search path, search in dependency folders
@@ -148,8 +144,7 @@ Result<void> MuukLockGenerator::resolve_dependencies(const std::string& package_
             package = resolved_packages[package_name][version.value()];
 
             if (!package) {
-                muuk::logger::error("Package '{}' not found after searching the dependency folder ({}).", package_name, DEPENDENCY_FOLDER);
-                return Err("");
+                return Err("Package '{}' not found after searching the dependency folder ({}).", package_name, DEPENDENCY_FOLDER);
             }
         }
         // muuk::logger::info("Package '{}' not found in resolved packages.", package_name);
@@ -241,22 +236,25 @@ Result<void> MuukLockGenerator::merge_resolved_dependencies(const std::string& p
 }
 
 // Searches for the specified package in the dependency folder and parses its muuk.toml file if found.
-void MuukLockGenerator::search_and_parse_dependency(const std::string& package_name, const std::string& version) {
+Result<void> MuukLockGenerator::search_and_parse_dependency(const std::string& package_name, const std::string& version) {
     muuk::logger::info("Searching for target package '{}', version '{}'.", package_name, version);
     fs::path search_dir = fs::path(DEPENDENCY_FOLDER) / package_name / version;
 
     // TODO: Make this return matter
     if (!fs::exists(search_dir)) {
-        muuk::logger::warn("Dependency '{}' version '{}' not found in '{}'", package_name, version, search_dir.string());
-        return;
+        return Err("Dependency '{}' version '{}' not found in '{}'", package_name, version, search_dir.string());
     }
 
     fs::path dep_path = search_dir / "muuk.toml";
     if (fs::exists(dep_path)) {
-        parse_muuk_toml(dep_path.string());
+        auto result = parse_muuk_toml(dep_path.string());
+        if (!result) {
+            return Err(result);
+        }
     } else {
-        muuk::logger::warn("muuk.toml for dependency '{}' version '{}' not found in '{}'", package_name, version, search_dir.string());
+        return Err("muuk.toml for dependency '{}' version '{}' not found in '{}'", package_name, version, search_dir.string());
     }
+    return {};
 }
 
 Result<void> MuukLockGenerator::load() {
@@ -406,13 +404,13 @@ Result<void> MuukLockGenerator::generate_lockfile(const std::string& output_path
                 continue;
             }
 
-            const auto pkg = find_package(dep_name, dep_version);
-            if (!pkg) {
+            const auto package = find_package(dep_name, dep_version);
+            if (!package) {
                 continue;
             }
 
-            const auto& source = !pkg->source.empty()
-                ? pkg->source
+            const auto& source = !package->source.empty()
+                ? package->source
                 : dep_ptr->git_url;
 
             cargo_style_lock << "[[package]]\n";
