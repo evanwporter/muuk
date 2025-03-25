@@ -323,12 +323,12 @@ Result<void> MuukLockGenerator::load() {
     merge_resolved_dependencies(base_package_name, base_package_version);
 
     for (const auto& [build_name, build] : builds) {
-        auto result = merge_resolved_dependencies(build_name);
-        if (!result) {
+        auto result_merge = merge_resolved_dependencies(build_name);
+        if (!result_merge) {
             muuk::logger::error(
                 "Failed to merge dependencies for build package '{}': {}",
                 build_name,
-                result.error());
+                result_merge.error());
         }
 
         build->deps.insert(base_package_name);
