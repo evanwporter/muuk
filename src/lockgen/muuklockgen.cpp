@@ -40,7 +40,7 @@ Result<MuukLockGenerator> MuukLockGenerator::create(const std::string& base_path
 }
 
 // Parse a single muuk.toml file representing a package
-void MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
+Result<void> MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
     muuk::logger::trace("Attempting to parse muuk.toml: {}", path);
     if (!fs::exists(path)) {
         return Err("Failed to locate 'muuk.toml' at path '{}'. Check if the file exists.", path);
@@ -123,7 +123,11 @@ Result<void> MuukLockGenerator::resolve_dependencies(const std::string& package_
             }
 
             if (fs::exists(search_file)) {
-                parse_muuk_toml(search_file.string());
+                auto result = parse_muuk_toml(search_file.string());
+                if (!result) {
+                    return Err(result);
+                };
+
                 package = resolved_packages[package_name][version.value_or("")];
 
                 if (version.has_value()) {
