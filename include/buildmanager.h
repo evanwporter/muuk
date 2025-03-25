@@ -7,12 +7,20 @@
 
 #include "buildtargets.h"
 
+struct BuildProfile {
+    std::vector<std::string> cflags;
+    std::vector<std::string> lflags;
+    std::vector<std::string> defines;
+};
+
 class BuildManager {
     std::vector<CompilationTarget> compilation_targets;
     std::vector<ArchiveTarget> archive_targets;
     std::vector<LinkTarget> link_targets;
     std::unordered_map<std::string, std::string> object_registry;
     std::unordered_map<std::string, std::string> library_registry;
+
+    std::unordered_map<std::string, BuildProfile> profiles;
 
 public:
     void add_compilation_target(std::string src, std::string obj, std::vector<std::string> cflags, std::vector<std::string> iflags);
@@ -24,6 +32,9 @@ public:
     std::vector<LinkTarget> get_link_targets() const;
 
     CompilationTarget* find_compilation_target(const std::string& key, const std::string& value);
+
+    void set_profile_flags(const std::string& profile_name, BuildProfile profile);
+    const BuildProfile* get_profile(const std::string& profile_name) const;
 };
 
 #endif
