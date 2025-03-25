@@ -7,9 +7,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "buildconfig.h"
 #include "buildmanager.h"
-#include "buildparser.hpp"
 #include "buildtargets.h"
 #include "compiler.hpp"
 
@@ -25,8 +23,7 @@ public:
     BuildBackend(
         muuk::Compiler compiler,
         std::string archiver,
-        std::string linker,
-        const std::string& lockfile_path) :
+        std::string linker) :
         compiler_(compiler),
         archiver_(std::move(archiver)),
         linker_(std::move(linker)) {
@@ -48,8 +45,7 @@ public:
     NinjaBackend(
         muuk::Compiler compiler,
         const std::string& archiver,
-        const std::string& linker,
-        const std::string& lockfile_path = MUUK_CACHE_FILE);
+        const std::string& linker);
 
     void generate_build_file(
         const std::string& target_build,
@@ -73,8 +69,7 @@ public:
     CompileCommandsBackend(
         muuk::Compiler compiler,
         const std::string& archiver,
-        const std::string& linker,
-        const std::string& lockfile_path = MUUK_CACHE_FILE);
+        const std::string& linker);
 
     void generate_build_file(
         const std::string& target_build,

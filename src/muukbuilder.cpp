@@ -109,7 +109,7 @@ namespace muuk {
 
     Result<void> generate_compile_commands(const std::string& profile, const muuk::Compiler& compiler, const std::string& archiver, const std::string& linker) {
         muuk::logger::info("Generating compile_commands.json for profile '{}'", profile);
-        CompileCommandsBackend backend(compiler, archiver, linker, MUUK_CACHE_FILE);
+        CompileCommandsBackend backend(compiler, archiver, linker);
         backend.generate_build_file("compile_commands", profile);
         muuk::logger::info("compile_commands.json generated successfully.");
         return {};
@@ -146,8 +146,7 @@ namespace muuk {
         NinjaBackend build_backend(
             selected_compiler,
             selected_archiver,
-            selected_linker,
-            MUUK_CACHE_FILE);
+            selected_linker);
 
         muuk::logger::info("Generating Ninja file for '{}'", selected_profile);
         build_backend.generate_build_file(target_build, selected_profile);
