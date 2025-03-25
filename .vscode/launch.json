@@ -25,7 +25,7 @@
       "environment": [],
       "console": "integratedTerminal",
       "symbolSearchPath": "${workspaceFolder}/build/debug/bin",
-      // "preLaunchTask": "Build Debug (MSVC)"
+      "preLaunchTask": "Build Debug (MSVC)"
     },
     {
       "name": "(gdb) Launch",
