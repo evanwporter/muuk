@@ -16,9 +16,8 @@ namespace fs = std::filesystem;
 NinjaBackend::NinjaBackend(
     muuk::Compiler compiler,
     const std::string& archiver,
-    const std::string& linker,
-    const std::string& lockfile_path) :
-    BuildBackend(compiler, archiver, linker, lockfile_path),
+    const std::string& linker) :
+    BuildBackend(compiler, archiver, linker),
     build_manager(std::make_unique<BuildManager>()) {
 }
 
