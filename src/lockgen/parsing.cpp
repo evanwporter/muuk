@@ -101,8 +101,14 @@ Result<void> MuukLockGenerator::parse_library(const toml::value& section, std::s
                 file_path = source_entry;
             }
 
-            package->sources.emplace_back(file_path, extracted_cflags);
-            muuk::logger::debug("Added source file: {}, CFLAGS: {}", file_path, fmt::join(extracted_cflags, " "));
+            package->sources.emplace_back(
+                file_path,
+                extracted_cflags);
+
+            muuk::logger::debug(
+                "Added source file: {}, CFLAGS: {}",
+                file_path,
+                fmt::join(extracted_cflags, " "));
         }
     }
 
