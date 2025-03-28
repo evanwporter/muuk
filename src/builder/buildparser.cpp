@@ -284,8 +284,8 @@ void parse_executables(
         }
 
         // Dependencies
-        if (build_table.contains("dependencies2")) {
-            for (const auto& dep : build_table.at("dependencies2").as_array()) {
+        if (build_table.contains("dependencies")) {
+            for (const auto& dep : build_table.at("dependencies").as_array()) {
                 const auto& dep_table = dep.as_table();
                 const auto& lib_name = dep_table.at("name").as_string();
                 const auto& version = dep_table.at("version").as_string();

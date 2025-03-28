@@ -4,6 +4,7 @@
 
 #include "fileops.hpp"
 #include "logger.h"
+#include "muuk_parser.hpp"
 #include "muukfiler.h"
 #include "types.h"
 #include "util.h"
@@ -212,36 +213,4 @@ toml::table MuukFiler::get_config() const {
 
 bool MuukFiler::has_section(const std::string& section) const {
     return sections_.find(section) != sections_.end();
-}
-
-std::vector<std::string> parse_array_as_vec(const toml::table& table, const std::string& key, const std::string& prefix = "") {
-    std::vector<std::string> arr_;
-    if (table.contains(key)) {
-        auto toml_arr_ = table.at(key).as_array();
-        for (const auto& value : toml_arr_) {
-            if (value.is_string()) {
-                arr_.push_back(prefix + value.as_string());
-            }
-        }
-    } else {
-        // muuk::logger::warn("No '{}' section found in configuration.", key);
-    }
-
-    return arr_;
-}
-
-std::unordered_set<std::string> parse_array_as_set(const toml::table& table, const std::string& key, const std::string& prefix = "") {
-    std::unordered_set<std::string> arr_;
-    if (table.contains(key)) {
-        auto toml_arr_ = table.at(key).as_array();
-        for (const auto& value : toml_arr_) {
-            if (value.is_string()) {
-                arr_.insert(prefix + value.as_string());
-            }
-        }
-    } else {
-        // muuk::logger::warn("No '{}' section found in configuration.", key);
-    }
-
-    return arr_;
 }

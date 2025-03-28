@@ -1,0 +1,20 @@
+Checks: >
+  -*,
+  bugprone-*,             # Detects potential bugs (includes unused stuff)
+  clang-analyzer-*,       # Static analysis
+  readability-*,          # Naming, style
+  performance-*,          # Inefficient patterns
+  misc-unused-parameters, # Unused function parameters
+  misc-unused-alias-decls,# Unused `using` declarations
+  modernize-*,            # Recommend modern C++
+  cppcoreguidelines-*     # Safety/usage guidelines
+
+WarningsAsErrors: ""
+HeaderFilterRegex: ".*"
+AnalyzeTemporaryDtors: false
+FormatStyle: file
+CheckOptions:
+  - key: readability-function-size.LineThreshold
+    value: "300"
+  - key: cppcoreguidelines-avoid-magic-numbers.IgnoreEnums
+    value: "1"

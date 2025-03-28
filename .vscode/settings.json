@@ -144,19 +144,17 @@
     "--experimental-modules-support",
     "--compile-commands-dir=${workspaceFolder}/build/debug",
     "--compile-commands-dir=${workspaceFolder}/build/release",
-    "--clang-tidy"
+    "--clang-tidy",
+    "--completion-style=detailed",
+    "--header-insertion=iwyu"
     // "--completion-style=detailed",
     // "--header-insertion=never"
   ],
-  "c-cpp-flylint.run": "onSave",
-  "c-cpp-flylint.standard": [
-    "c23",
-    "c++23"
+  "cpp-check-lint.cppcheck.--std_c++=": "c++20",
+  "cpp-check-lint.cppcheck.--std_c=": "c11",
+  "cpp-check-lint.cppcheck.--suppress=": [
+    "duplInheritedMember",
+    // "unmatchedSuppression",
+    // "missingIncludeSystem"
   ],
-  "c-cpp-flylint.lizard.enable": false,
-  "c-cpp-flylint.flexelint.enable": false,
-  "c-cpp-flylint.flawfinder.enable": false,
-  "c-cpp-flylint.cppcheck.extraArgs": [
-    "--suppress=missingIncludeSystem"
-  ]
 }

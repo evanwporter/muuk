@@ -1,0 +1,61 @@
+name: build
+
+on:
+  push:
+    tags:
+      - 'v*'  # Only build on version tags (e.g. v1.0.0)
+  workflow_dispatch:  # Allows manual triggering
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    env:
+      BUILD_TYPE: 'release'
+      BUILD_BACKEND: 'Ninja'
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Install Ninja
+      uses: seanmiddleditch/gha-setup-ninja@3b1f8f94a2f8254bd26914c4ab9474d4f0015f67
+
+    - name: Visual Studio Development Environment
+      uses: ilammy/msvc-dev-cmd@cec98b9d092141f74527d0afa6feb2af698cfe89
+
+    - name: Set up build environment
+      run: echo "No setup needed"
+
+    - name: Compile on Linux (gcc)
+      if: runner.os != 'Windows'
+      run: |
+        muuk -c gcc -p ${{ env.BUILD_TYPE }}
+
+    - name: Compile on macOS (clang++)
+      if: runner.os == 'macOS'
+      run: |
+        muuk -c clang -p  ${{ env.BUILD_TYPE }}
+        
+    - name: Compile on Windows (MSVC)
+      if: runner.os == 'Windows'
+      run: |
+        muuk -c cl -p ${{ env.BUILD_TYPE }}
+
+    - name: Package build
+      run: |
+        cd build
+        if [[ "$RUNNER_OS" == "Windows" ]]; then
+          powershell -Command "Compress-Archive -Path ${{ env.BUILD_TYPE }}/muuk.exe -DestinationPath ../muuk-${{ runner.os }}.zip"
+        else
+          zip ../muuk-${{ runner.os }}.zip ${{ env.BUILD_TYPE }}/muuk
+        fi
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: muuk-${{ runner.os }}
+        path: muuk-${{ runner.os }}.zip
