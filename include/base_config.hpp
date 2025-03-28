@@ -191,34 +191,37 @@ struct BaseFields {
     }
 
     std::vector<source_file> parse_sources(const toml::value& section) {
-        std::vector<source_file> temp_sources;
-        for (const auto& src : section.at("sources").as_array()) {
-            std::string source_entry = src.as_string();
+        if (section.contains("sources") && !section.at("sources").is_array()) {
+            std::vector<source_file> temp_sources;
+            for (const auto& src : section.at("sources").as_array()) {
+                std::string source_entry = src.as_string();
 
-            std::vector<std::string> extracted_cflags;
-            std::string file_path;
+                std::vector<std::string> extracted_cflags;
+                std::string file_path;
 
-            // Splitting "source.cpp CFLAGS" into file_path and flags
-            size_t space_pos = source_entry.find(' ');
-            if (space_pos != std::string::npos) {
-                file_path = source_entry.substr(0, space_pos);
-                std::string flags_str = source_entry.substr(space_pos + 1);
+                // Splitting "source.cpp CFLAGS" into file_path and flags
+                size_t space_pos = source_entry.find(' ');
+                if (space_pos != std::string::npos) {
+                    file_path = source_entry.substr(0, space_pos);
+                    std::string flags_str = source_entry.substr(space_pos + 1);
 
-                std::istringstream flag_stream(flags_str);
-                std::string flag;
-                while (flag_stream >> flag) {
-                    extracted_cflags.push_back(flag);
+                    std::istringstream flag_stream(flags_str);
+                    std::string flag;
+                    while (flag_stream >> flag) {
+                        extracted_cflags.push_back(flag);
+                    }
+                } else {
+                    file_path = source_entry;
                 }
-            } else {
-                file_path = source_entry;
+
+                temp_sources.emplace_back(
+                    file_path,
+                    extracted_cflags);
             }
 
-            temp_sources.emplace_back(
-                file_path,
-                extracted_cflags);
+            return temp_sources;
         }
-
-        return temp_sources;
+        return {}; // Return empty vector if no sources are defined
     }
 };
 
