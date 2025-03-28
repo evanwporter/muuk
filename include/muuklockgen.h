@@ -9,6 +9,7 @@
 
 #include <toml.hpp>
 
+#include "base_config.hpp"
 #include "compiler.hpp"
 #include "muuk.h"
 #include "rustify.hpp"
@@ -72,71 +73,6 @@ struct Feature {
     std::unordered_set<std::string> dependencies;
 };
 
-struct Dependency {
-    std::string git_url;
-    std::string path;
-    std::string version;
-    std::unordered_set<std::string> enabled_features;
-    bool system = false;
-    std::unordered_set<std::string> libs;
-
-    static Dependency from_toml(const toml::value& data) {
-        Dependency dep;
-
-        if (data.is_string()) {
-            dep.version = data.as_string();
-            return dep;
-        }
-
-        if (data.contains("git"))
-            dep.git_url = data.at("git").as_string();
-
-        if (data.contains("path"))
-            dep.path = data.at("path").as_string();
-
-        if (data.contains("version"))
-            dep.version = data.at("version").as_string();
-
-        if (data.contains("features"))
-            for (const auto& feature : data.at("features").as_array())
-                dep.enabled_features.insert(feature.as_string());
-
-        if (data.contains("libs"))
-            for (const auto& lib : data.at("libs").as_array()) {
-                dep.libs.insert(lib.as_string());
-            }
-
-        return dep;
-    }
-
-    toml::value to_toml() const {
-        toml::value dep_table = toml::table {};
-
-        if (!git_url.empty())
-            dep_table["git"] = git_url;
-        if (!path.empty())
-            dep_table["path"] = path;
-        if (!version.empty())
-            dep_table["version"] = version;
-
-        if (!enabled_features.empty()) {
-            toml::array features;
-            for (const auto& feat : enabled_features)
-                features.push_back(feat);
-            dep_table["features"] = features;
-        }
-
-        if (!libs.empty()) {
-            toml::array lib_array;
-            for (const auto& lib : libs)
-                lib_array.push_back(lib);
-            dep_table["libs"] = lib_array;
-        }
-
-        return dep_table;
-    }
-};
-
 // { Dependency { Versioning { Dependency Info } } }
 typedef DependencyVersionMap<Dependency> DependencyInfoMap;
 
@@ -183,6 +119,12 @@ public:
     std::unordered_map<std::string, Feature> features;
 
     LinkType link_type = LinkType::STATIC;
+
+    CompilerConfig compiler_config;
+    PlatformConfig platform_config;
+
+    Library library_config;
+    Build build;
 
 private:
     static void serialize_dependencies(

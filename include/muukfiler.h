@@ -76,9 +76,6 @@ public:
 
     static Result<MuukFiler> create(const std::string& config_file, bool is_lock_file = false);
 
-    static std::vector<std::string> parse_array_as_vec(const toml::table& table, const std::string& key, const std::string& prefix = "");
-    static std::unordered_set<std::string> parse_array_as_set(const toml::table& table, const std::string& key, const std::string& prefix = "");
-
 private:
     void parse();
     std::unordered_map<std::string, toml::table> build_sections_;

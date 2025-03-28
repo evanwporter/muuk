@@ -87,6 +87,8 @@ Result<void> MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is
 
     package->source = package_source;
 
+    package->library_config.load(data["library"].as_table());
+
     resolved_packages[package_name][package_version] = package;
 
     if (is_base) {
