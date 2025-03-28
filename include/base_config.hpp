@@ -95,6 +95,11 @@ struct Dependency {
     }
 };
 
+struct source_file {
+    std::string path;
+    std::vector<std::string> cflags;
+};
+
 template <typename Derived>
 struct BaseFields {
     std::vector<std::string> modules, sources, libs, include, defines;
