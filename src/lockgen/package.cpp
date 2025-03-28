@@ -80,7 +80,7 @@ void Package::merge(const Package& child_pkg) {
         }
     }
 
-    // library_config.merge(child_pkg.library_config);
+    library_config.merge(child_pkg.library_config);
 
     // dependencies.insert(child_pkg.dependencies.begin(), child_pkg.dependencies.end());
 }

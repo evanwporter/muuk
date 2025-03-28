@@ -87,7 +87,20 @@ Result<void> MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is
 
     package->source = package_source;
 
-    package->library_config.load(data["library"].as_table());
+    if (data.contains("library"))
+        package->library_config.load(data["library"].as_table());
+
+    if (data.contains("profile"))
+        for (const auto& [profile_name, profile_data] : data["profile"].as_table()) {
+            package->profiles_config[profile_name] = {};
+            package->profiles_config[profile_name].load(profile_data.as_table(), profile_name);
+        }
+
+    if (data.contains("compiler"))
+        package->compilers_config.load(data["compiler"]);
+
+    if (data.contains("platform"))
+        package->compilers_config.load(data["platform"]);
 
     resolved_packages[package_name][package_version] = package;
 

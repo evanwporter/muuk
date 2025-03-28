@@ -78,38 +78,38 @@ struct BaseFields {
     std::vector<std::string> cflags, cxxflags, aflags, lflags;
     std::unordered_map<std::string, Dependency> dependencies;
 
-    static constexpr bool disable_modules = false;
-    static constexpr bool disable_sources = false;
-    static constexpr bool disable_include = false;
-    static constexpr bool disable_defines = false;
-    static constexpr bool disable_cflags = false;
-    static constexpr bool disable_cxxflags = false;
-    static constexpr bool disable_aflags = false;
-    static constexpr bool disable_lflags = false;
-    static constexpr bool disable_dependencies = false;
-    static constexpr bool disable_libs = false;
+    static constexpr bool enable_modules = true;
+    static constexpr bool enable_sources = true;
+    static constexpr bool enable_include = true;
+    static constexpr bool enable_defines = true;
+    static constexpr bool enable_cflags = true;
+    static constexpr bool enable_cxxflags = true;
+    static constexpr bool enable_aflags = true;
+    static constexpr bool enable_lflags = true;
+    static constexpr bool enable_dependencies = true;
+    static constexpr bool enable_libs = true;
 
     void load(const toml::value& v) {
-        if constexpr (!Derived::disable_modules)
+        if constexpr (Derived::enable_modules)
             modules = toml::find_or<std::vector<std::string>>(v, "modules", {});
-        if constexpr (!Derived::disable_sources)
+        if constexpr (Derived::enable_sources)
             sources = toml::find_or<std::vector<std::string>>(v, "sources", {});
-        if constexpr (!Derived::disable_include)
+        if constexpr (Derived::enable_include)
             include = toml::find_or<std::vector<std::string>>(v, "include", {});
-        if constexpr (!Derived::disable_defines)
+        if constexpr (Derived::enable_defines)
             defines = toml::find_or<std::vector<std::string>>(v, "defines", {});
-        if constexpr (!Derived::disable_cflags)
+        if constexpr (Derived::enable_cflags)
             cflags = toml::find_or<std::vector<std::string>>(v, "cflags", {});
-        if constexpr (!Derived::disable_cxxflags)
+        if constexpr (Derived::enable_cxxflags)
             cxxflags = toml::find_or<std::vector<std::string>>(v, "cxxflags", {});
-        if constexpr (!Derived::disable_aflags)
+        if constexpr (Derived::enable_aflags)
             aflags = toml::find_or<std::vector<std::string>>(v, "aflags", {});
-        if constexpr (!Derived::disable_lflags)
+        if constexpr (Derived::enable_lflags)
             lflags = toml::find_or<std::vector<std::string>>(v, "lflags", {});
-        if constexpr (!Derived::disable_libs)
+        if constexpr (Derived::enable_libs)
             libs = toml::find_or<std::vector<std::string>>(v, "libs", {});
 
-        if constexpr (!Derived::disable_dependencies) {
+        if constexpr (Derived::enable_dependencies) {
             if (v.contains("dependencies")) {
                 for (const auto& [k, val] : toml::find<toml::table>(v, "dependencies")) {
                     Dependency dep;
@@ -120,17 +120,16 @@ struct BaseFields {
         }
     }
 
-    // void merge(const Derived& child_derived) {
-    //     for (const auto& path : child_derived.include)
-    //         include.insert(path);
-
-    //     cflags.insert(child_derived.cflags.begin(), child_derived.cflags.end());
-    //     cxxflags.insert(child_derived.cxxflags.begin(), child_derived.cxxflags.end());
-    //     aflags.insert(child_derived.aflags.begin(), child_derived.aflags.end());
-    //     lflags.insert(child_derived.lflags.begin(), child_derived.lflags.end());
-
-    //     defines.insert(child_derived.defines.begin(), child_derived.defines.end());
-    // }
+    // TODO append base path to includes
+    void merge(const Derived& child_derived) {
+        include.insert(include.end(), child_derived.include.begin(), child_derived.include.end());
+        cflags.insert(cflags.end(), child_derived.cflags.begin(), child_derived.cflags.end());
+        cxxflags.insert(cxxflags.end(), child_derived.cxxflags.begin(), child_derived.cxxflags.end());
+        aflags.insert(aflags.end(), child_derived.aflags.begin(), child_derived.aflags.end());
+        lflags.insert(lflags.end(), child_derived.lflags.begin(), child_derived.lflags.end());
+        defines.insert(defines.end(), child_derived.defines.begin(), child_derived.defines.end());
+        libs.insert(libs.end(), child_derived.libs.begin(), child_derived.libs.end());
+    }
 };
 
 struct CompilerConfig : BaseFields<CompilerConfig> {
@@ -149,9 +148,14 @@ struct Compilers {
     CompilerConfig clang, gcc, msvc;
 
     void load(const toml::value& v) {
-        clang.load(toml::find_or(v, "clang", {}));
-        gcc.load(toml::find_or(v, "gcc", {}));
-        msvc.load(toml::find_or(v, "msvc", {}));
+        if (v.contains("clang"))
+            clang.load(v.at("clang"));
+
+        if (v.contains("clang"))
+            gcc.load(v.at("clang"));
+
+        if (v.contains("clang"))
+            msvc.load(v.at("clang"));
     }
 };
 
@@ -159,9 +163,14 @@ struct Platforms {
     PlatformConfig windows, linux, apple;
 
     void load(const toml::value& v) {
-        windows.load(toml::find_or(v, "windows", {}));
-        linux.load(toml::find_or(v, "linux", {}));
-        apple.load(toml::find_or(v, "apple", {}));
+        if (v.contains("windows"))
+            windows.load(v.at("windows"));
+
+        if (v.contains("linux"))
+            linux.load(v.at("linux"));
+
+        if (v.contains("apple"))
+            apple.load(v.at("apple"));
     }
 };
 
@@ -173,20 +182,20 @@ struct BaseConfig : public BaseFields<Derived> {
     toml::value raw_compiler;
     toml::value raw_platform;
 
-    static constexpr bool disable_compilers = false;
-    static constexpr bool disable_platforms = false;
+    static constexpr bool enable_compilers = true;
+    static constexpr bool enable_platforms = true;
 
     void load(const toml::value& v) {
         BaseFields<Derived>::load(v);
 
-        if constexpr (!Derived::disable_compilers) {
+        if constexpr (Derived::enable_compilers) {
             if (v.contains("compiler")) {
                 raw_compiler = toml::find(v, "compiler");
                 compilers.load(raw_compiler);
             }
         }
 
-        if constexpr (!Derived::disable_platforms) {
+        if constexpr (Derived::enable_platforms) {
             if (v.contains("platform")) {
                 raw_platform = toml::find(v, "platform");
                 platforms.load(raw_platform);
@@ -194,21 +203,21 @@ struct BaseConfig : public BaseFields<Derived> {
         }
     }
 
-    // void merge(const Derived& other) {
-    //     BaseFields<Derived>::merge(other);
+    void merge(const Derived& other) {
+        BaseFields<Derived>::merge(other);
 
-    //     if constexpr (!Derived::disable_compilers) {
-    //         compilers.clang.merge(other.compilers.clang);
-    //         compilers.gcc.merge(other.compilers.gcc);
-    //         compilers.msvc.merge(other.compilers.msvc);
-    //     }
+        if constexpr (Derived::enable_compilers) {
+            compilers.clang.merge(other.compilers.clang);
+            compilers.gcc.merge(other.compilers.gcc);
+            compilers.msvc.merge(other.compilers.msvc);
+        }
 
-    //     if constexpr (!Derived::disable_platforms) {
-    //         platforms.windows.merge(other.platforms.windows);
-    //         platforms.linux.merge(other.platforms.linux);
-    //         platforms.apple.merge(other.platforms.apple);
-    //     }
-    // }
+        if constexpr (Derived::enable_platforms) {
+            platforms.windows.merge(other.platforms.windows);
+            platforms.linux.merge(other.platforms.linux);
+            platforms.apple.merge(other.platforms.apple);
+        }
+    }
 };
 
 struct Build : BaseConfig<Build> {
@@ -217,9 +226,9 @@ struct Build : BaseConfig<Build> {
 };
 
 struct Library : BaseConfig<Library> {
-    static constexpr bool disable_compilers = true;
-    static constexpr bool disable_platforms = true;
-    static constexpr bool disable_dependencies = true;
+    static constexpr bool enable_compilers = false;
+    static constexpr bool enable_platforms = false;
+    static constexpr bool enable_dependencies = false;
 
     struct External {
         std::string type, path;
@@ -242,26 +251,14 @@ struct Library : BaseConfig<Library> {
             external.load(toml::find(v, "external"));
         }
     }
-
-    // void merge(const Library& child_lib) {
-    //     for (const auto& path : child_lib.include)
-    //         include.insert(path);
-
-    //     cflags.insert(child_lib.cflags.begin(), child_lib.cflags.end());
-    //     cxxflags.insert(child_lib.cxxflags.begin(), child_lib.cxxflags.end());
-    //     aflags.insert(child_lib.aflags.begin(), child_lib.aflags.end());
-    //     lflags.insert(child_lib.lflags.begin(), child_lib.lflags.end());
-
-    //     defines.insert(child_lib.defines.begin(), child_lib.defines.end());
-    // }
 };
 
-struct Profile : BaseConfig<Profile> {
+struct ProfileConfig : BaseConfig<ProfileConfig> {
     std::string name;
     std::vector<std::string> inherits;
 
     void load(const toml::value& v, const std::string& profile_name) {
-        BaseConfig<Profile>::load(v);
+        BaseConfig<ProfileConfig>::load(v);
         name = profile_name;
         inherits = toml::find_or<std::vector<std::string>>(v, "inherits", {});
     }

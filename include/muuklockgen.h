@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <optional>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -120,11 +121,13 @@ public:
 
     LinkType link_type = LinkType::STATIC;
 
-    CompilerConfig compiler_config;
-    PlatformConfig platform_config;
+    Compilers compilers_config;
+    Platforms platforms_config;
 
     Library library_config;
     Build build;
+
+    std::unordered_map<std::string, ProfileConfig> profiles_config;
 
 private:
     static void serialize_dependencies(
