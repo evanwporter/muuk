@@ -16,7 +16,7 @@
 #include "muuk_parser.hpp"
 #include "muuklockgen.h"
 #include "rustify.hpp"
-#include "util.h"
+#include "toml11/fwd/format_fwd.hpp"
 
 namespace fs = std::filesystem;
 
@@ -76,24 +76,54 @@ Result<void> MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is
         fs::path(path).parent_path().string(),
         PackageType::LIBRARY);
 
+    const auto base_path = fs::path(path).parent_path().string();
+
+    // TODO: Check and move below into parse_dependencies
     auto deps_result = parse_dependencies(data, package);
+    for (const auto& [dep_name, version_map] : package->dependencies_)
+        for (const auto& [_, dep_ptr] : version_map)
+            if (dep_ptr)
+                package->all_dependencies_array.insert(dep_ptr);
 
     if (data.contains("library") && data["library"].is_table())
-        Try(parse_library(data["library"].as_table(), package));
+        package->library_config.load(
+            package_name,
+            package_version,
+            base_path,
+            data["library"].as_table());
 
-    parse_platform(data, package);
-    parse_compiler(data, package);
     parse_features(data, package);
 
     package->source = package_source;
 
+    if (data.contains("compiler"))
+        package->compilers_config.load(data["compiler"], base_path);
+
+    if (data.contains("platform"))
+        package->compilers_config.load(data["platform"], base_path);
+
     resolved_packages[package_name][package_version] = package;
 
     if (is_base) {
+        // TODO parse this out of regular libraries as well
+        // and compare with the base package
         edition_ = muuk::Edition::from_string(data["package"]["edition"].as_string()).value_or(muuk::Edition::Unknown);
         parse_profile(data);
-        parse_builds(data, package_version, path);
+
         base_package_ = package;
+
+        for (const auto& [build_name, build_pkg] : data["build"].as_table()) {
+            // TODO: Make sure build key exists
+            auto build = std::make_shared<Build>();
+            build->load(build_pkg, base_path);
+            builds_[build_name] = build;
+        }
+
+        if (data.contains("profile"))
+            for (const auto& [profile_name, profile_data] : data["profile"].as_table()) {
+                package->profiles_config[profile_name] = {};
+                package->profiles_config[profile_name].load(profile_data.as_table(), profile_name, base_path);
+            }
 
     } // if (is_base)
 
@@ -190,13 +220,11 @@ Result<void> MuukLockGenerator::resolve_dependencies(const std::string& package_
                         ? std::nullopt
                         : std::optional<std::string> { dep_search_path });
 
-                if (!result) {
+                if (!result)
                     return Err(result);
-                }
             }
 
-            if (
-                resolved_packages.count(dep_name) && resolved_packages[dep_name].count(dep_version)) {
+            if (resolved_packages.count(dep_name) && resolved_packages[dep_name].count(dep_version)) {
                 muuk::logger::info("Merging '{}' into '{}'", dep_name, package_name);
                 resolved_deps.emplace_back(dep_name, dep_version, dep_info);
             }
@@ -205,6 +233,47 @@ Result<void> MuukLockGenerator::resolve_dependencies(const std::string& package_
 
     muuk::logger::info("Added '{}' to resolved order list.", package_name);
     resolved_order_.push_back(std::make_pair(package_name, version.value_or("unknown")));
+    return {};
+}
+
+// TODO: Recursively merge packages
+Result<void> MuukLockGenerator::merge_build_dependencies(
+    const std::string& build_name,
+    std::shared_ptr<Build> build,
+    const Dependency& base_package_dep) {
+
+    if (!build) {
+        return Err("Build '{}' is null. Cannot merge dependencies.", build_name);
+    }
+
+    muuk::logger::info("Merging dependencies for build '{}'", build_name);
+
+    // auto result_merge = merge_resolved_dependencies(build_name);
+    // if (!result_merge) {
+    //     return Err("Failed to merge resolved dependencies for build '{}': {}", build_name, result_merge.error());
+    // }
+
+    // Add base package to the build
+    build->dependencies[base_package_->name][base_package_->version] = base_package_dep;
+    build->all_dependencies_array.insert(std::make_shared<Dependency>(base_package_dep));
+    build->merge(*base_package_);
+
+    // Merge each dependency's resolved package into the build
+    for (const auto& [dep_name, versions] : build->dependencies) {
+        for (const auto& [dep_version, _] : versions) {
+            if (resolved_packages.count(dep_name) && resolved_packages[dep_name].count(dep_version)) {
+                const auto& dep_package = resolved_packages[dep_name][dep_version];
+                build->merge(*dep_package);
+            } else {
+                muuk::logger::warn(
+                    "Resolved package '{}' version '{}' not found when merging into build '{}'.",
+                    dep_name,
+                    dep_version,
+                    build_name);
+            }
+        }
+    }
+
     return {};
 }
 
@@ -268,6 +337,7 @@ Result<void> MuukLockGenerator::load() {
     muuk::logger::info(" Generating muuk.lock.toml...");
     muuk::logger::info("------------------------------");
 
+    // TODO: Remove 2x parse
     auto result = parse_muuk_toml(base_path_ + "muuk.toml", true);
     if (!result) {
         return Err(result);
@@ -291,22 +361,25 @@ Result<void> MuukLockGenerator::load() {
     const std::string base_package_version = base_data["package"]["version"].as_string();
     muuk::logger::info("Base package name extracted: {}, version: {}", base_package_name, base_package_version);
 
-    const auto& base_package_dep = Dependency::from_toml(base_data);
+    Dependency base_package_dep;
+    base_package_dep.load(base_package_name, base_data);
+    base_package_dep.version = base_package_version;
 
     // Resolve dependencies for the base package
-    auto result_base_pkg = resolve_dependencies(base_package_name, base_package_version);
+    auto result_base_pkg = resolve_dependencies(
+        base_package_name,
+        base_package_version);
     if (!result_base_pkg)
         return Err(result_base_pkg);
 
     muuk::logger::info("Resolving dependencies for build packages...");
-    for (const auto& [build_name, build] : builds) {
-        auto result_build_pkg = resolve_dependencies(build_name);
-        if (!result_build_pkg) {
+    for (const auto& [build_name, build] : builds_) {
+        auto result_build_pkg = resolve_build_dependencies(build_name);
+        if (!result_build_pkg)
             muuk::logger::error(
                 "Failed to resolve dependencies for build package '{}': {}",
                 build_name,
                 result_build_pkg.error());
-        }
     }
 
     for (const auto& [package_name, version] : resolved_order_) {
@@ -314,31 +387,22 @@ Result<void> MuukLockGenerator::load() {
         if (!package)
             continue;
 
-        for (const auto& [dep_name, version_map] : package->dependencies_) {
-            for (const auto& [dep_version, dep_info] : version_map) {
+        for (const auto& [dep_name, version_map] : package->dependencies_)
+            for (const auto& [dep_version, dep_info] : version_map)
                 if (dependencies_.count(dep_name) && dependencies_[dep_name].count(dep_version)) {
                     auto dep = dependencies_[dep_name][dep_version];
                     auto package_dep = resolved_packages[dep_name][dep_version];
                     package_dep->enable_features(dep->enabled_features);
                 }
-            }
-        }
     }
 
     merge_resolved_dependencies(base_package_name, base_package_version);
 
-    for (const auto& [build_name, build] : builds) {
-        auto result_merge = merge_resolved_dependencies(build_name);
-        if (!result_merge) {
-            muuk::logger::error(
-                "Failed to merge dependencies for build package '{}': {}",
-                build_name,
-                result_merge.error());
+    for (const auto& [build_name, build] : builds_) {
+        auto build_result = merge_build_dependencies(build_name, build, base_package_dep);
+        if (!build_result) {
+            muuk::logger::error("Failed to merge build dependencies for '{}': {}", build_name, build_result.error());
         }
-
-        build->deps.insert(base_package_name);
-        build->deps_all_[base_package_name][base_package_version] = std::make_shared<Dependency>(base_package_dep);
-        build->merge(*base_package_);
     }
 
     return {};
@@ -349,29 +413,84 @@ Result<void> MuukLockGenerator::generate_cache(const std::string& output_path) {
     // ─────────────────────────────────────────────
     //   Write to cache file
     // ─────────────────────────────────────────────
+    toml::value root = toml::table {};
+
+    // ─────────────────────────────────────────────
+    // Write Libraries
+    // ─────────────────────────────────────────────
+    toml::value library_array = toml::array {};
+    for (const auto& [package_name, version] : resolved_order_) {
+        const auto package = find_package(package_name, version);
+        if (!package)
+            continue;
+
+        toml::value lib_table;
+        package->library_config.serialize(lib_table);
+
+        if (lib_table.contains("external"))
+            lib_table.at("external").as_table_fmt().fmt = toml::table_format::oneline;
+
+        if (lib_table.contains("sources"))
+            lib_table.at("sources").as_array_fmt().fmt = toml::array_format::multiline;
+
+        library_array.as_array().push_back(lib_table);
+
+        muuk::logger::info("Written package '{}' to lockfile.", package_name);
+    }
+
+    library_array.as_array_fmt().fmt = toml::array_format::array_of_tables;
+    root["library"] = library_array;
+
+    // ─────────────────────────────────────────────
+    // Write builds
+    // ─────────────────────────────────────────────
+    toml::value build_array = toml::array {};
+    for (const auto& [build_name, build_ptr] : builds_) {
+        if (!build_ptr)
+            continue;
+
+        toml::value build_table;
+        build_ptr->serialize(build_table);
+        build_table["name"] = build_name;
+        build_table["version"] = base_package_->version;
+
+        if (build_table.contains("sources"))
+            build_table.at("sources").as_array_fmt().fmt = toml::array_format::multiline;
+
+        build_array.as_array().push_back(build_table);
+    }
+
+    build_array.as_array_fmt().fmt = toml::array_format::array_of_tables;
+
+    root["build"] = build_array;
+
+    // ─────────────────────────────────────────────
+    // Write Profiles
+    // ─────────────────────────────────────────────
+    if (base_package_ && !base_package_->profiles_config.empty()) {
+        toml::value profile_section = toml::table {};
+
+        for (const auto& [profile_name, profile_cfg] : base_package_->profiles_config) {
+            toml::value profile_data = toml::table {};
+            profile_cfg.serialize(profile_data);
+            profile_section[profile_name] = profile_data;
+        }
+
+        root["profile"] = profile_section;
+    }
+
+    // ─────────────────────────────────────────────
+    // Write To Cachefile
+    // ─────────────────────────────────────────────
     std::ofstream lockfile(output_path);
     if (!lockfile) {
         muuk::logger::error("Failed to open lockfile: {}", output_path);
         return Err("");
     }
 
-    for (const auto& [package_name, version] : resolved_order_) {
-        const auto package = find_package(package_name, version);
-        if (!package)
-            continue;
+    lockfile << toml::format(root);
 
-        const auto package_type = package->package_type;
-
-        const std::string package_table = package->serialize();
-
-        lockfile << "[[" << package_type.to_string() << "]]\nname = \"" << package_name << "\"\n";
-        lockfile << package_table << "\n";
-
-        muuk::logger::info("Written package '{}' to lockfile.", package_name);
-    }
-
-    lockfile << format_dependencies(dependencies_);
-
+    // TODO: Use PROFILES from base_config.hpp
     if (!profiles_.empty()) {
         for (const auto& [profile_name, profile_settings] : profiles_) {
             lockfile << "[profile." << profile_name << "]\n";
@@ -482,83 +601,85 @@ std::shared_ptr<Package> MuukLockGenerator::find_package(const std::string& pack
     }
     return nullptr;
 }
+
+// TODO: This need to be redone
 void MuukLockGenerator::resolve_system_dependency(const std::string& package_name, std::shared_ptr<Package> package) {
-    muuk::logger::info("Resolving system dependency: '{}'", package_name);
+    //     muuk::logger::info("Resolving system dependency: '{}'", package_name);
 
-    std::string include_path, lib_path;
+    //     std::string include_path, lib_path;
 
-    // Attempt to find the dependency in the main dependency map
-    std::shared_ptr<Dependency> dep_info;
-    if (dependencies_.count(package_name)) {
-        for (const auto& [_, ptr] : dependencies_[package_name]) {
-            if (ptr) {
-                dep_info = ptr;
-                break;
-            }
-        }
-    }
+    //     // Attempt to find the dependency in the main dependency map
+    //     std::shared_ptr<Dependency> dep_info;
+    //     if (dependencies_.count(package_name)) {
+    //         for (const auto& [_, ptr] : dependencies_[package_name]) {
+    //             if (ptr) {
+    //                 dep_info = ptr;
+    //                 break;
+    //             }
+    //         }
+    //     }
 
-    std::optional<std::string> custom_path;
-    if (dep_info && !dep_info->path.empty()) {
-        custom_path = dep_info->path;
-        muuk::logger::info("Using custom path '{}' for system dependency '{}'", *custom_path, package_name);
-    }
+    //     std::optional<std::string> custom_path;
+    //     if (dep_info && !dep_info->path.empty()) {
+    //         custom_path = dep_info->path;
+    //         muuk::logger::info("Using custom path '{}' for system dependency '{}'", *custom_path, package_name);
+    //     }
 
-    // ───────────── Check custom path ─────────────
-    if (custom_path && fs::exists(*custom_path)) {
-        muuk::logger::info("Checking custom path for '{}': {}", package_name, *custom_path);
+    //     // ───────────── Check custom path ─────────────
+    //     if (custom_path && fs::exists(*custom_path)) {
+    //         muuk::logger::info("Checking custom path for '{}': {}", package_name, *custom_path);
 
-        // Search for include and lib manually under path
-        fs::path inc_dir = fs::path(*custom_path) / "include";
-        fs::path lib_dir = fs::path(*custom_path) / "lib";
+    //         // Search for include and lib manually under path
+    //         fs::path inc_dir = fs::path(*custom_path) / "include";
+    //         fs::path lib_dir = fs::path(*custom_path) / "lib";
 
-        if (fs::exists(inc_dir))
-            include_path = inc_dir.string();
-        if (fs::exists(lib_dir))
-            lib_path = lib_dir.string();
-    }
+    //         if (fs::exists(inc_dir))
+    //             include_path = inc_dir.string();
+    //         if (fs::exists(lib_dir))
+    //             lib_path = lib_dir.string();
+    //     }
 
-    // ───────────── Fallback to pkg-config or system tools ─────────────
-    if (include_path.empty() || lib_path.empty()) {
-#ifdef _WIN32
-        muuk::logger::warn("System dependency '{}' resolution on Windows is limited. Ensure proper path is provided.", package_name);
-#else
-        muuk::logger::info("Using pkg-config for '{}'", package_name);
-        include_path = util::command_line::execute_command("pkg-config --cflags-only-I " + package_name + " | sed 's/-I//' | tr -d '\n'");
-        lib_path = util::command_line::execute_command("pkg-config --libs-only-L " + package_name + " | sed 's/-L//' | tr -d '\n'");
-#endif
-    }
+    //     // ───────────── Fallback to pkg-config or system tools ─────────────
+    //     if (include_path.empty() || lib_path.empty()) {
+    // #ifdef _WIN32
+    //         muuk::logger::warn("System dependency '{}' resolution on Windows is limited. Ensure proper path is provided.", package_name);
+    // #else
+    //         muuk::logger::info("Using pkg-config for '{}'", package_name);
+    //         include_path = util::command_line::execute_command("pkg-config --cflags-only-I " + package_name + " | sed 's/-I//' | tr -d '\n'");
+    //         lib_path = util::command_line::execute_command("pkg-config --libs-only-L " + package_name + " | sed 's/-L//' | tr -d '\n'");
+    // #endif
+    //     }
 
-    // ───────────── Save resolved paths ─────────────
-    if (!include_path.empty() && util::path_exists(include_path)) {
-        system_include_paths_.insert(include_path);
-        if (package)
-            package->add_include_path(include_path);
-        muuk::logger::info("  - Resolved Include Path: {}", include_path);
-    } else {
-        muuk::logger::warn("  - Include path for '{}' not found.", package_name);
-    }
+    //     // ───────────── Save resolved paths ─────────────
+    //     if (!include_path.empty() && util::path_exists(include_path)) {
+    //         system_include_paths_.insert(include_path);
+    //         if (package)
+    //             package->add_include_path(include_path);
+    //         muuk::logger::info("  - Resolved Include Path: {}", include_path);
+    //     } else {
+    //         muuk::logger::warn("  - Include path for '{}' not found.", package_name);
+    //     }
 
-    if (!lib_path.empty() && fs::exists(lib_path)) {
-        system_library_paths_.insert(lib_path);
-        if (package)
-            package->libs.push_back(lib_path);
-        muuk::logger::info("  - Resolved Library Path: {}", lib_path);
-    } else {
-        muuk::logger::warn("  - Library path for '{}' not found.", package_name);
-    }
+    //     if (!lib_path.empty() && fs::exists(lib_path)) {
+    //         system_library_paths_.insert(lib_path);
+    //         if (package)
+    //             package->libs.push_back(lib_path);
+    //         muuk::logger::info("  - Resolved Library Path: {}", lib_path);
+    //     } else {
+    //         muuk::logger::warn("  - Library path for '{}' not found.", package_name);
+    //     }
 
-    // ───────────── Add specified libs to package ─────────────
-    if (package && dep_info && !dep_info->libs.empty()) {
-        muuk::logger::info("  - Linking specified libs for '{}': {}", package_name, fmt::join(dep_info->libs, ", "));
-        for (const auto& lib : dep_info->libs) {
-            package->libs.push_back(lib);
-        }
-    }
+    //     // ───────────── Add specified libs to package ─────────────
+    //     if (package && dep_info && !dep_info->libs.empty()) {
+    //         muuk::logger::info("  - Linking specified libs for '{}': {}", package_name, fmt::join(dep_info->libs, ", "));
+    //         for (const auto& lib : dep_info->libs) {
+    //             package->libs.push_back(lib);
+    //         }
+    //     }
 
-    if (include_path.empty() && lib_path.empty() && (!dep_info || dep_info->libs.empty())) {
-        muuk::logger::error("Failed to resolve system dependency '{}'. Provide a valid path or ensure it is installed.", package_name);
-    }
+    //     if (include_path.empty() && lib_path.empty() && (!dep_info || dep_info->libs.empty())) {
+    //         muuk::logger::error("Failed to resolve system dependency '{}'. Provide a valid path or ensure it is installed.", package_name);
+    //     }
 }
 
 // Merges the settings of the inherited profile into the base profile.
@@ -660,4 +781,75 @@ void MuukLockGenerator::parse_and_store_flag_categories(
                 category_data, flag_type);
         }
     }
+}
+
+Result<void> MuukLockGenerator::resolve_build_dependencies(const std::string& build_name) {
+    if (visited_builds.count(build_name)) {
+        muuk::logger::trace("Build '{}' already processed. Skipping resolution.", build_name);
+        return {};
+    }
+
+    visited_builds.insert(build_name);
+    muuk::logger::info("Resolving dependencies for build target '{}'", build_name);
+
+    if (!builds_.count(build_name))
+        return Err("Build target '{}' not found in build map.", build_name);
+
+    auto build_config = builds_[build_name];
+    if (!build_config) {
+        return Err("Build target '{}' is null in build map.", build_name);
+    }
+
+    for (const auto& dep_ptr : build_config->all_dependencies_array) {
+        if (!dep_ptr) {
+            muuk::logger::warn("Null dependency pointer in build '{}'", build_name);
+            continue;
+        }
+
+        const auto& dep_name = dep_ptr->name;
+        const auto& dep_version = dep_ptr->version;
+
+        std::string dep_search_path;
+        if (!dep_ptr->path.empty()) {
+            dep_search_path = dep_ptr->path;
+            muuk::logger::info("Using specified path for build dependency '{}': {}", dep_name, dep_search_path);
+        }
+
+        if (dep_ptr->system) {
+            // TODO
+            // resolve_system_dependency(dep_name, build_config);
+        } else {
+            auto result = resolve_dependencies(
+                dep_name,
+                dep_version,
+                dep_search_path.empty()
+                    ? std::nullopt
+                    : std::optional<std::string> { dep_search_path });
+
+            if (!result)
+                return Err(
+                    "Failed to resolve dependency '{}' for build '{}': {}",
+                    dep_name,
+                    build_name,
+                    result.error());
+        }
+
+        if (resolved_packages.count(dep_name) && resolved_packages[dep_name].count(dep_version)) {
+            const auto dep_pkg = resolved_packages[dep_name][dep_version];
+            build_config->merge(*dep_pkg);
+            build_config->all_dependencies_array.insert(dep_ptr);
+            muuk::logger::info(
+                "Merged dependency '{}' (v{}) into build '{}'",
+                dep_name,
+                dep_version,
+                build_name);
+        } else
+            muuk::logger::warn(
+                "Dependency '{}' (v{}) not found in resolved_packages after resolution.",
+                dep_name,
+                dep_version);
+    }
+
+    resolved_order_.emplace_back(build_name, base_package_->version);
+    return {};
 }

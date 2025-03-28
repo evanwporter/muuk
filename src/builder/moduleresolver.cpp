@@ -15,7 +15,7 @@
 namespace muuk {
 
     // Generates the compilation database for clang-scan-deps
-    void generate_compilation_database(BuildManager& build_manager, const std::string& dependency_db, const std::string& build_dir) {
+    nlohmann::json generate_compilation_database(BuildManager& build_manager, const std::string& build_dir) {
         nlohmann::json compdb = nlohmann::json::array();
 
         auto compilation_targets = build_manager.get_compilation_targets();
@@ -54,16 +54,7 @@ namespace muuk {
             compdb.push_back(entry);
         }
 
-        // Write to output file (dependency-db.json)
-        std::ofstream out_file(dependency_db);
-        if (!out_file) {
-            muuk::logger::error("Could not open output file {} for writing!", dependency_db);
-            return;
-        }
-        out_file << compdb.dump(4); // Pretty-print JSON with 4-space indentation
-        out_file.close();
-
-        muuk::logger::info("Compilation database written to {}", dependency_db);
+        return compdb;
     }
 
     // Runs clang-scan-deps and retrieves dependency information
@@ -149,7 +140,18 @@ namespace muuk {
     void resolve_modules(BuildManager& build_manager, const std::string& build_dir) {
         std::string dependency_db = build_dir + "/dependency-db.json";
 
-        generate_compilation_database(build_manager, dependency_db, build_dir);
+        auto compdb = generate_compilation_database(build_manager, build_dir);
+
+        // Write to output file (dependency-db.json)
+        std::ofstream out_file(dependency_db);
+        if (!out_file) {
+            muuk::logger::error("Could not open output file {} for writing!", dependency_db);
+            return;
+        }
+        out_file << compdb.dump(4); // Pretty-print JSON with 4-space indentation
+        out_file.close();
+
+        muuk::logger::info("Compilation database written to {}", dependency_db);
 
         nlohmann::json dependencies = parse_dependency_db(dependency_db);
         if (dependencies.empty())
