@@ -78,17 +78,16 @@ Result<void> MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is
 
     auto deps_result = parse_dependencies(data, package);
 
-    if (data.contains("library") && data["library"].is_table())
+    if (data.contains("library") && data["library"].is_table()) {
+        package->library_config.load(package_name, package_version, data["library"].as_table());
         Try(parse_library(data["library"].as_table(), package));
+    }
 
     parse_platform(data, package);
     parse_compiler(data, package);
     parse_features(data, package);
 
     package->source = package_source;
-
-    if (data.contains("library"))
-        package->library_config.load(data["library"].as_table());
 
     if (data.contains("profile"))
         for (const auto& [profile_name, profile_data] : data["profile"].as_table()) {
@@ -370,8 +369,6 @@ Result<void> MuukLockGenerator::generate_cache(const std::string& output_path) {
         return Err("");
     }
 
-    toml::array library_array;
-
     for (const auto& [package_name, version] : resolved_order_) {
         const auto package = find_package(package_name, version);
         if (!package)
@@ -381,10 +378,6 @@ Result<void> MuukLockGenerator::generate_cache(const std::string& output_path) {
 
         const std::string package_table = package->serialize();
 
-        toml::value data;
-        package->library_config.serialize(data);
-        library_array.push_back(data);
-
         lockfile
             << "[[" << package_type.to_string() << "]]\nname = \"" << package_name << "\"\n";
         lockfile << package_table << "\n";
@@ -392,9 +385,31 @@ Result<void> MuukLockGenerator::generate_cache(const std::string& output_path) {
         muuk::logger::info("Written package '{}' to lockfile.", package_name);
     }
 
-    toml::value data;
-    data["library"] = library_array;
-    muuk::logger::info(toml::format(data));
+    toml::value library_array = toml::array {};
+
+    for (const auto& [package_name, version] : resolved_order_) {
+        const auto package = find_package(package_name, version);
+        if (!package)
+            continue;
+
+        toml::value lib_table;
+        package->library_config.serialize(lib_table);
+
+        if (lib_table.contains("external"))
+            lib_table.at("external").as_table_fmt().fmt = toml::table_format::oneline;
+
+        library_array.as_array().push_back(lib_table);
+
+        muuk::logger::info("Written package '{}' to lockfile.", package_name);
+    }
+
+    library_array.as_array_fmt().fmt = toml::array_format::array_of_tables;
+
+    toml::value root = toml::table {};
+    root["library"] = library_array;
+
+    // Output
+    std::cout << toml::format(root);
 
     lockfile << format_dependencies(dependencies_);
 

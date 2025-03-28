@@ -318,6 +318,9 @@ struct Build : BaseConfig<Build> {
 };
 
 struct Library : BaseConfig<Library> {
+    std::string name;
+    std::string version;
+
     static constexpr bool enable_compilers = false;
     static constexpr bool enable_platforms = false;
     static constexpr bool enable_dependencies = false;
@@ -353,7 +356,10 @@ struct Library : BaseConfig<Library> {
 
     External external;
 
-    void load(const toml::value& v) {
+    void load(std::string name_, std::string version_, const toml::value& v) {
+        name = name_;
+        version = version_;
+
         BaseConfig<Library>::load(v);
         if (v.contains("external")) {
             external.load(toml::find(v, "external"));
@@ -361,6 +367,9 @@ struct Library : BaseConfig<Library> {
     }
 
     void serialize(toml::value& out) const {
+        out["name"] = name;
+        out["version"] = version;
+
         BaseConfig<Library>::serialize(out);
 
         toml::value external_section = toml::table {};
@@ -372,6 +381,9 @@ struct Library : BaseConfig<Library> {
             external_section["args"] = external.args;
         if (!external.outputs.empty())
             external_section["outputs"] = external.outputs;
+
+        // Set formatting to inline
+        external_section.as_table_fmt().fmt = toml::table_format::oneline;
 
         out["external"] = external_section;
     }
