@@ -202,5 +202,21 @@ This section defines build-related scripts, such as running an executable. This 
 [scripts]
 do = "something.exe"
 ```
-
 - `run` → Defines how to run the built executable.
+
+
+# todo
+
+Little Extra Stuff I have Planned So I don't Forget
+
+## full compat with other meta-builders
+
+```
+[library.external]
+type = "cmake", 
+path = "../some_cmake_lib", 
+args = ["-DBUILD_SHARED_LIBS=ON"]
+outputs = ["build/cmake_some_cmake_lib/libmylib.a"]
+```
+
+Output will define the library to link against.
