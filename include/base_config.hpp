@@ -184,6 +184,37 @@ struct BaseFields {
         defines.insert(defines.end(), child_derived.defines.begin(), child_derived.defines.end());
         libs.insert(libs.end(), child_derived.libs.begin(), child_derived.libs.end());
     }
+
+    std::vector<source_file> parse_sources(const toml::value& section) {
+        std::vector<source_file> temp_sources;
+        for (const auto& src : section.at("sources").as_array()) {
+            std::string source_entry = src.as_string();
+
+            std::vector<std::string> extracted_cflags;
+            std::string file_path;
+
+            // Splitting "source.cpp CFLAGS" into file_path and flags
+            size_t space_pos = source_entry.find(' ');
+            if (space_pos != std::string::npos) {
+                file_path = source_entry.substr(0, space_pos);
+                std::string flags_str = source_entry.substr(space_pos + 1);
+
+                std::istringstream flag_stream(flags_str);
+                std::string flag;
+                while (flag_stream >> flag) {
+                    extracted_cflags.push_back(flag);
+                }
+            } else {
+                file_path = source_entry;
+            }
+
+            temp_sources.emplace_back(
+                file_path,
+                extracted_cflags);
+        }
+
+        return temp_sources;
+    }
 };
 
 struct CompilerConfig : BaseFields<CompilerConfig> {
@@ -382,8 +413,7 @@ struct Library : BaseConfig<Library> {
         if (!external.outputs.empty())
             external_section["outputs"] = external.outputs;
 
-        // Set formatting to inline
-        external_section.as_table_fmt().fmt = toml::table_format::oneline;
+        // external_section.as_table_fmt().fmt = toml::table_format::oneline;
 
         out["external"] = external_section;
     }

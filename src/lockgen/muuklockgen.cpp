@@ -79,7 +79,10 @@ Result<void> MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is
     auto deps_result = parse_dependencies(data, package);
 
     if (data.contains("library") && data["library"].is_table()) {
-        package->library_config.load(package_name, package_version, data["library"].as_table());
+        package->library_config.load(
+            package_name,
+            package_version,
+            data["library"].as_table());
         Try(parse_library(data["library"].as_table(), package));
     }
 
