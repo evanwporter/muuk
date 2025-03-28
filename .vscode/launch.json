@@ -28,6 +28,29 @@
       "preLaunchTask": "Build Debug (MSVC)"
     },
     {
+      "name": "(Windows) Build Clang",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/debug/bin/bin.exe",
+      "args": [
+        "build",
+        "-c",
+        "clang",
+        "--profile",
+        "release"
+        // "install"
+        // "add",
+        // "Neargye/magic_enum"
+        // "aappleby/smhasher"
+      ],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "console": "integratedTerminal",
+      "symbolSearchPath": "${workspaceFolder}/build/debug/bin",
+      "preLaunchTask": "Build Debug (MSVC)"
+    },
+    {
       "name": "(gdb) Launch",
       "type": "cppdbg",
       "request": "launch",
