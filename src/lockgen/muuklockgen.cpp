@@ -370,6 +370,8 @@ Result<void> MuukLockGenerator::generate_cache(const std::string& output_path) {
         return Err("");
     }
 
+    toml::array library_array;
+
     for (const auto& [package_name, version] : resolved_order_) {
         const auto package = find_package(package_name, version);
         if (!package)
@@ -379,11 +381,20 @@ Result<void> MuukLockGenerator::generate_cache(const std::string& output_path) {
 
         const std::string package_table = package->serialize();
 
-        lockfile << "[[" << package_type.to_string() << "]]\nname = \"" << package_name << "\"\n";
+        toml::value data;
+        package->library_config.serialize(data);
+        library_array.push_back(data);
+
+        lockfile
+            << "[[" << package_type.to_string() << "]]\nname = \"" << package_name << "\"\n";
         lockfile << package_table << "\n";
 
         muuk::logger::info("Written package '{}' to lockfile.", package_name);
     }
+
+    toml::value data;
+    data["library"] = library_array;
+    muuk::logger::info(toml::format(data));
 
     lockfile << format_dependencies(dependencies_);
 

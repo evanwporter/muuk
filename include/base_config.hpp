@@ -70,6 +70,29 @@ struct Dependency {
 
         return dep_table;
     }
+
+    void serialize(toml::value& out) const {
+        if (!git_url.empty())
+            out["git"] = git_url;
+        if (!path.empty())
+            out["path"] = path;
+        if (!version.empty())
+            out["version"] = version;
+
+        if (!enabled_features.empty()) {
+            toml::array features;
+            for (const auto& feat : enabled_features)
+                features.push_back(feat);
+            out["features"] = features;
+        }
+
+        if (!libs.empty()) {
+            toml::array lib_array;
+            for (const auto& lib : libs)
+                lib_array.push_back(lib);
+            out["libs"] = lib_array;
+        }
+    }
 };
 
 template <typename Derived>
@@ -120,6 +143,37 @@ struct BaseFields {
         }
     }
 
+    void serialize(toml::value& out) const {
+        if constexpr (Derived::enable_modules)
+            out["modules"] = modules;
+        if constexpr (Derived::enable_sources)
+            out["sources"] = sources;
+        if constexpr (Derived::enable_include)
+            out["include"] = include;
+        if constexpr (Derived::enable_defines)
+            out["defines"] = defines;
+        if constexpr (Derived::enable_cflags)
+            out["cflags"] = cflags;
+        if constexpr (Derived::enable_cxxflags)
+            out["cxxflags"] = cxxflags;
+        if constexpr (Derived::enable_aflags)
+            out["aflags"] = aflags;
+        if constexpr (Derived::enable_lflags)
+            out["lflags"] = lflags;
+        if constexpr (Derived::enable_libs)
+            out["libs"] = libs;
+
+        if constexpr (Derived::enable_dependencies) {
+            toml::value deps_out = toml::table {};
+            for (const auto& [key, dep] : dependencies) {
+                toml::value dep_val = toml::table {};
+                dep.serialize(dep_val);
+                deps_out[key] = dep_val;
+            }
+            out["dependencies"] = deps_out;
+        }
+    }
+
     // TODO append base path to includes
     void merge(const Derived& child_derived) {
         include.insert(include.end(), child_derived.include.begin(), child_derived.include.end());
@@ -157,6 +211,20 @@ struct Compilers {
         if (v.contains("clang"))
             msvc.load(v.at("clang"));
     }
+
+    void merge(const Compilers& other) {
+        clang.merge(other.clang);
+        gcc.merge(other.gcc);
+        msvc.merge(other.msvc);
+    }
+
+    void serialize(toml::value& out) const {
+        toml::value compiler;
+        clang.serialize(compiler["clang"]);
+        gcc.serialize(compiler["gcc"]);
+        msvc.serialize(compiler["msvc"]);
+        out["compiler"] = compiler;
+    }
 };
 
 struct Platforms {
@@ -171,6 +239,20 @@ struct Platforms {
 
         if (v.contains("apple"))
             apple.load(v.at("apple"));
+    }
+
+    void merge(const Platforms& other) {
+        windows.merge(other.windows);
+        linux.merge(other.linux);
+        apple.merge(other.apple);
+    }
+
+    void serialize(toml::value& out) const {
+        toml::value platform;
+        windows.serialize(platform["windows"]);
+        linux.serialize(platform["linux"]);
+        apple.serialize(platform["apple"]);
+        out["platform"] = platform;
     }
 };
 
@@ -218,6 +300,16 @@ struct BaseConfig : public BaseFields<Derived> {
             platforms.apple.merge(other.platforms.apple);
         }
     }
+
+    void serialize(toml::value& out) const {
+        BaseFields<Derived>::serialize(out);
+
+        if constexpr (Derived::enable_compilers)
+            compilers.serialize(out);
+
+        if constexpr (Derived::enable_platforms)
+            platforms.serialize(out);
+    }
 };
 
 struct Build : BaseConfig<Build> {
@@ -241,6 +333,22 @@ struct Library : BaseConfig<Library> {
             args = toml::find_or<std::vector<std::string>>(v, "args", {});
             outputs = toml::find_or<std::vector<std::string>>(v, "outputs", {});
         }
+
+        void serialize(toml::value& out) const {
+            // BaseConfig<Library>::serialize(out);
+
+            toml::value external_section = toml::table {};
+            if (!type.empty())
+                external_section["type"] = type;
+            if (!path.empty())
+                external_section["path"] = path;
+            if (!args.empty())
+                external_section["args"] = args;
+            if (!outputs.empty())
+                external_section["outputs"] = outputs;
+
+            out["external"] = external_section;
+        }
     };
 
     External external;
@@ -250,6 +358,22 @@ struct Library : BaseConfig<Library> {
         if (v.contains("external")) {
             external.load(toml::find(v, "external"));
         }
+    }
+
+    void serialize(toml::value& out) const {
+        BaseConfig<Library>::serialize(out);
+
+        toml::value external_section = toml::table {};
+        if (!external.type.empty())
+            external_section["type"] = external.type;
+        if (!external.path.empty())
+            external_section["path"] = external.path;
+        if (!external.args.empty())
+            external_section["args"] = external.args;
+        if (!external.outputs.empty())
+            external_section["outputs"] = external.outputs;
+
+        out["external"] = external_section;
     }
 };
 

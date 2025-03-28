@@ -3,6 +3,7 @@
 #include <glob/glob.h>
 #include <toml.hpp>
 
+#include "base_config.hpp"
 #include "logger.h"
 #include "muuklockgen.h"
 #include "util.h"
@@ -82,6 +83,8 @@ void Package::merge(const Package& child_pkg) {
 
     library_config.merge(child_pkg.library_config);
 
+    compilers_config.merge(child_pkg.compilers_config);
+    platforms_config.merge(child_pkg.platforms_config);
     // dependencies.insert(child_pkg.dependencies.begin(), child_pkg.dependencies.end());
 }
 

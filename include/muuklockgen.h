@@ -20,11 +20,6 @@ enum class LinkType {
     SHARED
 };
 
-// enum class PackageType {
-//     LIBRARY,
-//     BUILD
-// };
-
 class PackageType {
 public:
     enum class Type {
