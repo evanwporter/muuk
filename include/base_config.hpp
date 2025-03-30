@@ -1,12 +1,16 @@
 #pragma once
 
 #include "toml11/find.hpp"
+#include <filesystem>
+#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
 #include <toml.hpp>
+
+#include "muuk.h"
 
 // namespace muuk {
 //     namespace lockgen {
@@ -32,21 +36,17 @@ struct Dependency {
         auto enabled_feats = toml::find_or<std::vector<std::string>>(v, "features", {});
         enabled_features = std::unordered_set<std::string>(enabled_feats.begin(), enabled_feats.end());
 
-        libs
-            = toml::find_or<std::vector<std::string>>(v, "libs", {});
+        libs = toml::find_or<std::vector<std::string>>(v, "libs", {});
     }
 
     static Dependency from_toml(const toml::value& data) {
         Dependency dep;
-
         dep.load(data);
-
         return dep;
     }
 
     toml::value to_toml() const {
         toml::value dep_table = toml::table {};
-
         if (!git_url.empty())
             dep_table["git"] = git_url;
         if (!path.empty())
@@ -98,13 +98,21 @@ struct Dependency {
 struct source_file {
     std::string path;
     std::vector<std::string> cflags;
+
+    toml::value serialize() const {
+        return toml::table {
+            { "path", path },
+            { "cflags", cflags }
+        };
+    }
 };
 
 template <typename Derived>
 struct BaseFields {
-    std::vector<std::string> modules, sources, libs, include, defines;
+    std::vector<source_file> sources;
+    std::vector<std::string> modules, libs, include, defines;
     std::vector<std::string> cflags, cxxflags, aflags, lflags;
-    std::unordered_map<std::string, Dependency> dependencies;
+    DependencyVersionMap<Dependency> dependencies;
 
     static constexpr bool enable_modules = true;
     static constexpr bool enable_sources = true;
@@ -117,13 +125,16 @@ struct BaseFields {
     static constexpr bool enable_dependencies = true;
     static constexpr bool enable_libs = true;
 
-    void load(const toml::value& v) {
+    void load(const toml::value& v, const std::string& base_path) {
         if constexpr (Derived::enable_modules)
             modules = toml::find_or<std::vector<std::string>>(v, "modules", {});
         if constexpr (Derived::enable_sources)
-            sources = toml::find_or<std::vector<std::string>>(v, "sources", {});
-        if constexpr (Derived::enable_include)
-            include = toml::find_or<std::vector<std::string>>(v, "include", {});
+            sources = parse_sources(v, base_path);
+        if constexpr (Derived::enable_include) {
+            auto raw_includes = toml::find_or<std::vector<std::string>>(v, "include", {});
+            for (const auto& inc : raw_includes)
+                include.push_back((std::filesystem::path(base_path) / inc).lexically_normal().string());
+        }
         if constexpr (Derived::enable_defines)
             defines = toml::find_or<std::vector<std::string>>(v, "defines", {});
         if constexpr (Derived::enable_cflags)
@@ -142,7 +153,7 @@ struct BaseFields {
                 for (const auto& [k, val] : toml::find<toml::table>(v, "dependencies")) {
                     Dependency dep;
                     dep.load(val);
-                    dependencies[k] = dep;
+                    dependencies[k][dep.version] = dep;
                 }
             }
         }
@@ -151,8 +162,12 @@ struct BaseFields {
     void serialize(toml::value& out) const {
         if constexpr (Derived::enable_modules)
             out["modules"] = modules;
-        if constexpr (Derived::enable_sources)
-            out["sources"] = sources;
+        if constexpr (Derived::enable_sources) {
+            toml::array src_array;
+            for (const auto& s : sources)
+                src_array.push_back(s.serialize());
+            out["sources"] = src_array;
+        }
         if constexpr (Derived::enable_include)
             out["include"] = include;
         if constexpr (Derived::enable_defines)
@@ -170,16 +185,15 @@ struct BaseFields {
 
         if constexpr (Derived::enable_dependencies) {
             toml::value deps_out = toml::table {};
-            for (const auto& [key, dep] : dependencies) {
-                toml::value dep_val = toml::table {};
-                dep.serialize(dep_val);
-                deps_out[key] = dep_val;
-            }
+            // for (const auto& [key, dep] : dependencies) {
+            //     toml::value dep_val = toml::table {};
+            //     dep.serialize(dep_val);
+            //     deps_out[key] = dep_val;
+            // }
             out["dependencies"] = deps_out;
         }
     }
 
-    // TODO append base path to includes
     void merge(const Derived& child_derived) {
         include.insert(include.end(), child_derived.include.begin(), child_derived.include.end());
         cflags.insert(cflags.end(), child_derived.cflags.begin(), child_derived.cflags.end());
@@ -190,65 +204,60 @@ struct BaseFields {
         libs.insert(libs.end(), child_derived.libs.begin(), child_derived.libs.end());
     }
 
-    std::vector<source_file> parse_sources(const toml::value& section) {
-        if (section.contains("sources") && !section.at("sources").is_array()) {
-            std::vector<source_file> temp_sources;
-            for (const auto& src : section.at("sources").as_array()) {
-                std::string source_entry = src.as_string();
+    std::vector<source_file> parse_sources(const toml::value& section, const std::string& base_path) {
+        std::vector<source_file> temp_sources;
+        if (!section.contains("sources"))
+            return temp_sources;
 
-                std::vector<std::string> extracted_cflags;
-                std::string file_path;
+        for (const auto& src : section.at("sources").as_array()) {
+            std::string source_entry = src.as_string();
 
-                // Splitting "source.cpp CFLAGS" into file_path and flags
-                size_t space_pos = source_entry.find(' ');
-                if (space_pos != std::string::npos) {
-                    file_path = source_entry.substr(0, space_pos);
-                    std::string flags_str = source_entry.substr(space_pos + 1);
+            std::vector<std::string> extracted_cflags;
+            std::string file_path;
 
-                    std::istringstream flag_stream(flags_str);
-                    std::string flag;
-                    while (flag_stream >> flag) {
-                        extracted_cflags.push_back(flag);
-                    }
-                } else {
-                    file_path = source_entry;
-                }
+            size_t space_pos = source_entry.find(' ');
+            if (space_pos != std::string::npos) {
+                file_path = source_entry.substr(0, space_pos);
+                std::string flags_str = source_entry.substr(space_pos + 1);
 
-                temp_sources.emplace_back(
-                    file_path,
-                    extracted_cflags);
+                std::istringstream flag_stream(flags_str);
+                std::string flag;
+                while (flag_stream >> flag)
+                    extracted_cflags.push_back(flag);
+            } else {
+                file_path = source_entry;
             }
 
-            return temp_sources;
+            std::filesystem::path full_path = std::filesystem::path(base_path) / file_path;
+            temp_sources.emplace_back(full_path.lexically_normal().string(), extracted_cflags);
         }
-        return {}; // Return empty vector if no sources are defined
+
+        return temp_sources;
     }
 };
 
 struct CompilerConfig : BaseFields<CompilerConfig> {
-    void load(const toml::value& v) {
-        BaseFields::load(v);
+    void load(const toml::value& v, const std::string& base_path) {
+        BaseFields::load(v, base_path);
     }
 };
 
 struct PlatformConfig : BaseFields<PlatformConfig> {
-    void load(const toml::value& v) {
-        BaseFields::load(v);
+    void load(const toml::value& v, const std::string& base_path) {
+        BaseFields::load(v, base_path);
     }
 };
 
 struct Compilers {
     CompilerConfig clang, gcc, msvc;
 
-    void load(const toml::value& v) {
+    void load(const toml::value& v, const std::string& base_path) {
         if (v.contains("clang"))
-            clang.load(v.at("clang"));
-
-        if (v.contains("clang"))
-            gcc.load(v.at("clang"));
-
-        if (v.contains("clang"))
-            msvc.load(v.at("clang"));
+            clang.load(v.at("clang"), base_path);
+        if (v.contains("gcc"))
+            gcc.load(v.at("gcc"), base_path);
+        if (v.contains("msvc"))
+            msvc.load(v.at("msvc"), base_path);
     }
 
     void merge(const Compilers& other) {
@@ -269,15 +278,13 @@ struct Compilers {
 struct Platforms {
     PlatformConfig windows, linux, apple;
 
-    void load(const toml::value& v) {
+    void load(const toml::value& v, const std::string& base_path) {
         if (v.contains("windows"))
-            windows.load(v.at("windows"));
-
+            windows.load(v.at("windows"), base_path);
         if (v.contains("linux"))
-            linux.load(v.at("linux"));
-
+            linux.load(v.at("linux"), base_path);
         if (v.contains("apple"))
-            apple.load(v.at("apple"));
+            apple.load(v.at("apple"), base_path);
     }
 
     void merge(const Platforms& other) {
@@ -306,22 +313,16 @@ struct BaseConfig : public BaseFields<Derived> {
     static constexpr bool enable_compilers = true;
     static constexpr bool enable_platforms = true;
 
-    void load(const toml::value& v) {
-        BaseFields<Derived>::load(v);
+    void load(const toml::value& v, const std::string& base_path) {
+        BaseFields<Derived>::load(v, base_path);
 
-        if constexpr (Derived::enable_compilers) {
-            if (v.contains("compiler")) {
-                raw_compiler = toml::find(v, "compiler");
-                compilers.load(raw_compiler);
-            }
-        }
+        if constexpr (Derived::enable_compilers)
+            if (v.contains("compiler"))
+                compilers.load(toml::find(v, "compiler"), base_path);
 
-        if constexpr (Derived::enable_platforms) {
-            if (v.contains("platform")) {
-                raw_platform = toml::find(v, "platform");
-                platforms.load(raw_platform);
-            }
-        }
+        if constexpr (Derived::enable_platforms)
+            if (v.contains("platform"))
+                platforms.load(toml::find(v, "platform"), base_path);
     }
 
     void merge(const Derived& other) {
@@ -345,7 +346,6 @@ struct BaseConfig : public BaseFields<Derived> {
 
         if constexpr (Derived::enable_compilers)
             compilers.serialize(out);
-
         if constexpr (Derived::enable_platforms)
             platforms.serialize(out);
     }
@@ -395,35 +395,20 @@ struct Library : BaseConfig<Library> {
 
     External external;
 
-    void load(std::string name_, std::string version_, const toml::value& v) {
+    void load(const std::string& name_, const std::string& version_, const std::string& base_path_, const toml::value& v) {
         name = name_;
         version = version_;
 
-        BaseConfig<Library>::load(v);
-        if (v.contains("external")) {
+        BaseConfig<Library>::load(v, base_path_);
+        if (v.contains("external"))
             external.load(toml::find(v, "external"));
-        }
     }
 
     void serialize(toml::value& out) const {
         out["name"] = name;
         out["version"] = version;
-
         BaseConfig<Library>::serialize(out);
-
-        toml::value external_section = toml::table {};
-        if (!external.type.empty())
-            external_section["type"] = external.type;
-        if (!external.path.empty())
-            external_section["path"] = external.path;
-        if (!external.args.empty())
-            external_section["args"] = external.args;
-        if (!external.outputs.empty())
-            external_section["outputs"] = external.outputs;
-
-        // external_section.as_table_fmt().fmt = toml::table_format::oneline;
-
-        out["external"] = external_section;
+        external.serialize(out);
     }
 };
 
@@ -431,11 +416,12 @@ struct ProfileConfig : BaseConfig<ProfileConfig> {
     std::string name;
     std::vector<std::string> inherits;
 
-    void load(const toml::value& v, const std::string& profile_name) {
-        BaseConfig<ProfileConfig>::load(v);
+    void load(const toml::value& v, const std::string& profile_name, const std::string& base_path) {
+        BaseConfig<ProfileConfig>::load(v, base_path);
         name = profile_name;
         inherits = toml::find_or<std::vector<std::string>>(v, "inherits", {});
     }
 };
+
 // } // namespace lockgen
 // } // namespace muuk

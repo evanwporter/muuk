@@ -16,6 +16,7 @@
 #include "muuk_parser.hpp"
 #include "muuklockgen.h"
 #include "rustify.hpp"
+#include "toml11/fwd/format_fwd.hpp"
 #include "util.h"
 
 namespace fs = std::filesystem;
@@ -76,12 +77,14 @@ Result<void> MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is
         fs::path(path).parent_path().string(),
         PackageType::LIBRARY);
 
+    const auto base_path = fs::path(path).parent_path().string();
     auto deps_result = parse_dependencies(data, package);
 
     if (data.contains("library") && data["library"].is_table()) {
         package->library_config.load(
             package_name,
             package_version,
+            base_path,
             data["library"].as_table());
         Try(parse_library(data["library"].as_table(), package));
     }
@@ -95,14 +98,14 @@ Result<void> MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is
     if (data.contains("profile"))
         for (const auto& [profile_name, profile_data] : data["profile"].as_table()) {
             package->profiles_config[profile_name] = {};
-            package->profiles_config[profile_name].load(profile_data.as_table(), profile_name);
+            package->profiles_config[profile_name].load(profile_data.as_table(), profile_name, base_path);
         }
 
     if (data.contains("compiler"))
-        package->compilers_config.load(data["compiler"]);
+        package->compilers_config.load(data["compiler"], base_path);
 
     if (data.contains("platform"))
-        package->compilers_config.load(data["platform"]);
+        package->compilers_config.load(data["platform"], base_path);
 
     resolved_packages[package_name][package_version] = package;
 
@@ -358,6 +361,19 @@ Result<void> MuukLockGenerator::load() {
         build->merge(*base_package_);
     }
 
+    for (const auto& [build_name, build] : builds_) {
+        auto result_merge = merge_resolved_dependencies(build_name);
+        if (!result_merge) {
+            muuk::logger::error(
+                "Failed to merge dependencies for build package '{}': {}",
+                build_name,
+                result_merge.error());
+        }
+
+        // build->dependencies[base_package_name][base_package_version] = std::make_shared<Dependency>(base_package_dep);
+        // build->merge(*base_package_);
+    }
+
     return {};
 }
 
@@ -401,9 +417,18 @@ Result<void> MuukLockGenerator::generate_cache(const std::string& output_path) {
         if (lib_table.contains("external"))
             lib_table.at("external").as_table_fmt().fmt = toml::table_format::oneline;
 
+        if (lib_table.contains("sources"))
+            lib_table.at("sources").as_array_fmt().fmt = toml::array_format::multiline;
+
         library_array.as_array().push_back(lib_table);
 
         muuk::logger::info("Written package '{}' to lockfile.", package_name);
+    }
+
+    std::ofstream lockfile_2("muuk.lock.toml");
+    if (!lockfile_2) {
+        muuk::logger::error("Failed to open lockfile: {}", output_path);
+        return Err("");
     }
 
     library_array.as_array_fmt().fmt = toml::array_format::array_of_tables;
@@ -412,7 +437,7 @@ Result<void> MuukLockGenerator::generate_cache(const std::string& output_path) {
     root["library"] = library_array;
 
     // Output
-    std::cout << toml::format(root);
+    lockfile_2 << toml::format(root);
 
     lockfile << format_dependencies(dependencies_);
 
@@ -433,6 +458,7 @@ Result<void> MuukLockGenerator::generate_cache(const std::string& output_path) {
     }
 
     lockfile.close();
+    lockfile_2.close();
     return {};
 }
 
