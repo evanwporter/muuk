@@ -145,6 +145,19 @@ namespace muuk {
         }
     }
 
+    void resolve_dependencies_from_json(
+        BuildManager& build_manager,
+        const nlohmann::json& deps)
+    {
+        std::unordered_map<std::string, CompilationTarget*> map;
+        for (auto& t : build_manager.get_compilation_targets()) {
+            map[t.output] = &t;
+        }
+    
+        resolve_provided_modules(deps, map);
+        resolve_required_modules(deps, map, build_manager);
+    }
+
     // Orchestrates module resolution
     void resolve_modules(BuildManager& build_manager, const std::string& build_dir) {
         std::string dependency_db = build_dir + "/dependency-db.json";
@@ -155,14 +168,7 @@ namespace muuk {
         if (dependencies.empty())
             return;
 
-        std::unordered_map<std::string, CompilationTarget*> target_map;
-        auto compilation_targets = build_manager.get_compilation_targets();
-        for (auto& target : compilation_targets) {
-            target_map[target.output] = &target;
-        }
-
-        resolve_provided_modules(dependencies, target_map);
-        resolve_required_modules(dependencies, build_manager, target_map);
+        resolve_dependencies_from_json(build_manager, dependencies);
     }
 
 } // namespace muuk
