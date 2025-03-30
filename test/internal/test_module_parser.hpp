@@ -1,7 +1,11 @@
-#include <gtest/gtest.h>
-#include <nlohmann/json.hpp>
+// Tests were taken from
+// https://clang.llvm.org/docs/StandardCPlusPlusModules.html#discovering-dependencies
+
 #include <fstream>
 #include <filesystem>
+
+#include <gtest/gtest.h>
+#include <nlohmann/json.hpp>
 
 #include "buildmanager.h"
 #include "muuk.h"
