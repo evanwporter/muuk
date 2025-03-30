@@ -230,3 +230,7 @@ Here is how to compile the standard library into module with MSVC
 
 We can use "%VCToolsInstallDir%\modules\std.ixx" to get there
 
+For simplicity we just compile the modules ourselves using discovery or by being prompted.
+
+This prompt will need to be attached to the compiler settings...
+
