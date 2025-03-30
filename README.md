@@ -220,3 +220,13 @@ outputs = ["build/cmake_some_cmake_lib/libmylib.a"]
 ```
 
 Output will define the library to link against.
+
+
+# little extra stuff i don't want to forget
+
+Here is how to compile the standard library into module with MSVC
+
+* https://learn.microsoft.com/en-us/cpp/cpp/tutorial-import-stl-named-module?view=msvc-170
+
+We can use "%VCToolsInstallDir%\modules\std.ixx" to get there
+
