@@ -30,3 +30,5 @@ TOML.md
 generate_flags.py
 flags.md
 compiler_flags.json
+
+nsis/
