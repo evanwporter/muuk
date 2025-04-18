@@ -15,7 +15,6 @@
       "cStandard": "c23",
       "cppStandard": "c++23",
       "compileCommands": [
-        "${workspaceFolder}/build/release/compile_commands.json",
         "${workspaceFolder}/build/debug/compile_commands.json"
       ]
     }

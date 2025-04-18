@@ -1,7 +1,0 @@
-[package]
-name = 'zip'
-version = "v0.3.3"
-
-[library.zip]
-include = ['src']
-sources = ["src/zip.c"]

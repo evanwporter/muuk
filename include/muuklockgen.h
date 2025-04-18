@@ -16,9 +16,11 @@
 #include "rustify.hpp"
 
 // { Dependency { Versioning { Dependency Info } } }
+// Maps dependencies to their versioning information and associated dependency details.
 typedef DependencyVersionMap<Dependency> DependencyInfoMap;
 
-// { Dependency { Versioning { Package } } }
+// Maps dependencies to their respective versions and associated packages.
+typedef DependencyVersionMap<std::shared_ptr<Package>> DependencyMap;
 typedef DependencyVersionMap<std::shared_ptr<Package>> DependencyMap;
 
 class MuukLockGenerator {
@@ -107,18 +109,10 @@ private:
         const std::string& package_name,
         std::optional<std::string> version = std::nullopt);
 
-    static std::string format_dependencies(
-        const DependencyVersionMap<toml::table>& dependencies,
-        std::string section_name = "dependencies");
-
-    static std::string format_dependencies(
-        const DependencyVersionMap<std::shared_ptr<Dependency>>& dependencies,
-        const std::string& section_name = "dependencies");
-
     static void parse_and_store_flag_categories(
         const toml::value& data,
         std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_set<std::string>>>& target,
         const std::vector<std::string>& flag_categories);
 };
 
-#endif // MUUK_PARSER_H
+#endif // MUUK_LOCK_GEN_H

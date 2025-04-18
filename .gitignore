@@ -1,5 +1,4 @@
 logs/
-obj/
 __pycache__/
 build/
 deps/

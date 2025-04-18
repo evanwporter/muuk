@@ -6,7 +6,6 @@
 
 #include "logger.h"
 #include "muuk_parser.hpp"
-#include "muukfiler.h"
 #include "muuklockgen.h"
 #include "muukterminal.hpp"
 #include "package_manager.h"
@@ -224,7 +223,6 @@ namespace muuk {
             return {};
         }
 
-        // TODO: Remove MuukFiler dependency
         Result<void> remove_package(const std::string& package_name, const std::string& toml_path, const std::string& lockfile_path) {
             muuk::logger::info("Removing package: {}", package_name);
 
@@ -234,32 +232,36 @@ namespace muuk {
                     return Err("");
                 }
 
-                auto result = MuukFiler::create(toml_path);
-                if (!result) {
-                    muuk::logger::error("Failed to read '{}': {}", toml_path, result.error());
+                auto parse_result = muuk::parse_muuk_file(toml_path, false);
+                if (!parse_result) {
+                    muuk::logger::error("Failed to read '{}': {}", toml_path, parse_result.error());
                     return Err("");
                 }
-                MuukFiler muuk_filer = result.value();
+                toml::value muuk_toml = parse_result.value();
 
-                toml::table& dependencies = muuk_filer.get_section("dependencies");
+                if (!muuk_toml.contains("dependencies")) { // TODO: Check if table too
+                    muuk::logger::error("No [dependencies] section found in '{}'", toml_path);
+                    return Err("");
+                }
 
+                toml::table& dependencies = muuk_toml["dependencies"].as_table();
                 if (!dependencies.contains(package_name)) {
                     muuk::logger::error("Package '{}' is not listed in '{}'", package_name, toml_path);
                     return Err("");
                 }
 
                 dependencies.erase(package_name);
-                muuk_filer.write_to_file();
 
-                if (fs::exists(lockfile_path)) {
-                    MuukFiler lockFiler(lockfile_path);
-                    toml::table& lock_dependencies = lockFiler.get_section("dependencies");
-
-                    if (lock_dependencies.contains(package_name)) {
-                        lock_dependencies.erase(package_name);
-                        lockFiler.write_to_file();
-                    }
+                std::ofstream toml_out(toml_path);
+                if (!toml_out) {
+                    muuk::logger::error("Could not open '{}' for writing", toml_path);
+                    return Err("");
                 }
+
+                toml_out << toml::format(muuk_toml);
+                toml_out.close();
+
+                // TODO: Generate lockfile
 
                 fs::path package_path = std::string(DEPENDENCY_FOLDER) + "/" + package_name;
                 if (fs::exists(package_path)) {
