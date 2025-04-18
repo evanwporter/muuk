@@ -76,6 +76,13 @@ namespace util {
             }
         }
     }
+
+    namespace array_ops {
+        template <typename T>
+        inline void merge_sets(std::unordered_set<T>& dest, const std::unordered_set<T>& src) {
+            dest.insert(src.begin(), src.end());
+        }
+    }
 } // namespace Utils
 
 #endif

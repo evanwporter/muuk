@@ -20,12 +20,11 @@ void Package::merge(const Package& child_pkg) {
 
     muuk::logger::info("[MuukLockGenerator] Merging {} into {}", child_pkg.name, name);
 
-    all_dependencies_array.insert(
-        child_pkg.all_dependencies_array.begin(),
-        child_pkg.all_dependencies_array.end());
+    util::array_ops::merge_sets(
+        all_dependencies_array,
+        child_pkg.all_dependencies_array);
 
     library_config.merge(child_pkg.library_config);
-
     compilers_config.merge(child_pkg.compilers_config);
     platforms_config.merge(child_pkg.platforms_config);
     // dependencies.insert(child_pkg.dependencies.begin(), child_pkg.dependencies.end());

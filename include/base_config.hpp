@@ -58,7 +58,6 @@ struct Dependency {
 
     void load(const std::string name_, const toml::value& v);
     static Dependency from_toml(const toml::value& data);
-    toml::value to_toml() const;
     void serialize(toml::value& out) const;
 };
 
@@ -164,14 +163,15 @@ struct BaseFields {
         }
     }
 
-    void merge(const Derived& child_derived) {
-        include.insert(child_derived.include.begin(), child_derived.include.end());
-        cflags.insert(child_derived.cflags.begin(), child_derived.cflags.end());
-        cxxflags.insert(child_derived.cxxflags.begin(), child_derived.cxxflags.end());
-        aflags.insert(child_derived.aflags.begin(), child_derived.aflags.end());
-        lflags.insert(child_derived.lflags.begin(), child_derived.lflags.end());
-        defines.insert(child_derived.defines.begin(), child_derived.defines.end());
-        libs.insert(child_derived.libs.begin(), child_derived.libs.end());
+    void merge(const Derived& other) {
+        using util::array_ops::merge_sets;
+        merge_sets(include, other.include);
+        merge_sets(cflags, other.cflags);
+        merge_sets(cxxflags, other.cxxflags);
+        merge_sets(aflags, other.aflags);
+        merge_sets(lflags, other.lflags);
+        merge_sets(defines, other.defines);
+        merge_sets(libs, other.libs);
     }
 
     std::vector<source_file> parse_sources(const toml::value& section, const std::string& base_path) {

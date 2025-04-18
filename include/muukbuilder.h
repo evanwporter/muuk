@@ -3,7 +3,8 @@
 
 #include <string>
 
-#include "muukfiler.h"
+#include <toml.hpp>
+
 #include "rustify.hpp"
 
 namespace muuk {
@@ -11,7 +12,7 @@ namespace muuk {
         std::string& target_build,
         const std::string& compiler,
         const std::string& profile,
-        MuukFiler& config);
+        const toml::value& config);
 }
 
 #endif // MUUK_BUILDER_H

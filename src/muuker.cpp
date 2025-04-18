@@ -20,13 +20,12 @@
 #include <glob/glob.h>
 
 #include "logger.h"
-#include "muukfiler.h"
 #include "util.h"
 
 namespace fs = std::filesystem;
 
 namespace muuk {
-    void clean(MuukFiler& config_manager_) {
+    void clean() {
         // muuk::logger::info("Starting clean operation.");
 
         // if (!config_manager_.has_section("clean")) {
@@ -92,7 +91,7 @@ namespace muuk {
         // muuk::logger::info("Clean operation completed.");
     }
 
-    void run_script(const MuukFiler& config_manager_, const std::string& script, const std::vector<std::string>& args) {
+    void run_script(const std::string& script, const std::vector<std::string>& args) {
         // muuk::logger::info("Running script: {}", script);
 
         // const auto& config = config_manager_.get_config();

@@ -10,27 +10,12 @@
 #include "buildconfig.h"
 #include "logger.h"
 #include "muuk.h"
+#include "muuk_parser.hpp"
 #include "muukbuilder.h"
 #include "muuker.hpp"
-#include "muukfiler.h"
 #include "muukterminal.hpp"
 #include "package_manager.h"
 #include "rustify.hpp"
-
-// Define a macro to handle tl::expected, if the unexpected
-// happens it will log the error and return 1, otherwise
-// it will return 0
-#define CHECK_CALL(call)                               \
-    do {                                               \
-        auto _muuk_result = (call);                    \
-        if (!_muuk_result) {                           \
-            const auto& err = _muuk_result.error();    \
-            if (!err.empty()) {                        \
-                muuk::logger::error("Error: {}", err); \
-            }                                          \
-            return 1;                                  \
-        }                                              \
-    } while (0)
 
 inline int check_and_report(const Result<void>& result) {
     if (!result) {
@@ -41,40 +26,6 @@ inline int check_and_report(const Result<void>& result) {
     }
     return 0;
 }
-
-// using namespace Muuk;
-
-#ifdef DEBUG
-void start_repl(std::unordered_map<std::string, std::function<void()>>& command_map) {
-    std::cout << "\n=== DEBUG REPL MODE ===\n";
-    std::cout << "Enter commands manually. Type 'exit' or press Ctrl+C to quit.\n";
-    std::cout << "Available commands: ";
-
-    // Print all available commands at the start
-    for (const auto& [cmd, _] : command_map) {
-        std::cout << cmd << " ";
-    }
-    std::cout << "\n\n";
-
-    while (true) {
-        std::cout << ">> ";
-        std::string command;
-        std::getline(std::cin, command);
-
-        if (command == "exit") {
-            std::cout << "Exiting REPL mode...\n";
-            break;
-        }
-
-        auto it = command_map.find(command);
-        if (it != command_map.end()) {
-            it->second();
-        } else {
-            std::cout << "Unknown command: " << command << "\n";
-        }
-    }
-}
-#endif
 
 int main(int argc, char* argv[]) {
 
@@ -197,16 +148,6 @@ int main(int argc, char* argv[]) {
             return check_and_report(muuk::init_project());
         }
 
-        // if (program.is_subcommand_used("qinit")) {
-        //     std::string lib_path = qinit_command.get<std::string>("--path");
-        //     std::string lib_name = qinit_command.get<std::string>("--name");
-        //     std::string license = qinit_command.get<std::string>("--license");
-        //     std::string author = qinit_command.get<std::string>("--author");
-
-        //     muuk::qinit_library(lib_path, lib_name, license, author);
-        //     return 0;
-        // }
-
         if (program.is_subcommand_used("install")) {
             muuk::logger::info("Installing dependencies from muuk.toml...");
             return check_and_report(muuk::package_manager::install("muuk.lock"));
@@ -256,15 +197,15 @@ int main(int argc, char* argv[]) {
         // The reason I define `muukfiler` here is so I can define the manifest location
         muuk::logger::info("[muuk] Using configuration from: {}", muuk_path);
 
-        auto result_muuk = MuukFiler::create(muuk_path);
-        if (!result_muuk) {
+        auto parse_result = muuk::parse_muuk_file(muuk_path, false);
+        if (!parse_result) {
+            muuk::logger::error("Failed to parse muuk.toml: {}", parse_result.error());
             return 1;
         }
-
-        MuukFiler muuk_filer = result_muuk.value();
+        toml::value muuk_config = parse_result.value();
 
         if (program.is_subcommand_used("clean")) {
-            muuk::clean(muuk_filer);
+            muuk::clean();
             return 0;
         }
 
@@ -275,7 +216,7 @@ int main(int argc, char* argv[]) {
                 muuk::logger::error("Error: No script name provided for 'run'.\n");
                 return 1;
             }
-            muuk::run_script(muuk_filer, script.value(), extra_args);
+            muuk::run_script(script.value(), extra_args);
             return 0;
         }
 
@@ -283,7 +224,7 @@ int main(int argc, char* argv[]) {
             std::string target_build = build_command.get<std::string>("--target-build");
             std::string compiler = build_command.get<std::string>("--compiler");
             std::string profile = build_command.get<std::string>("--profile");
-            return check_and_report(muuk::build(target_build, compiler, profile, muuk_filer));
+            return check_and_report(muuk::build(target_build, compiler, profile, muuk_config));
         }
 
 #ifdef DEBUG

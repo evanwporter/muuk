@@ -347,7 +347,7 @@ Result<void> MuukLockGenerator::load() {
     // Extract the package name and version from the base muuk.toml
     auto base_muuk_result = muuk::parse_muuk_file(base_path_ + "muuk.toml");
     if (!base_muuk_result) {
-        muuk::logger::error("Failed to create MuukFiler for base muuk.toml");
+        muuk::logger::error("Failed to parse muuk file for base muuk.toml");
         return Err("");
     }
 
@@ -694,75 +694,6 @@ void MuukLockGenerator::merge_profiles(const std::string& base_profile, const st
     for (const auto& [key, values] : profiles_[inherited_profile]) {
         profiles_[base_profile][key].insert(values.begin(), values.end());
     }
-}
-
-std::string MuukLockGenerator::format_dependencies(const DependencyVersionMap<toml::table>& dependencies, std::string section_name) {
-    std::ostringstream oss;
-    oss << "[" << section_name << "]\n";
-
-    for (const auto& [dep_name, versions] : dependencies) {
-        for (const auto& [version, dep_info] : versions) {
-            oss << dep_name << " = { ";
-
-            std::string dep_entries;
-            bool first = true;
-
-            for (const auto& [key, val] : dep_info) {
-                if (!first)
-                    dep_entries += ", ";
-                dep_entries += fmt::format("{} = '{}'", key, val.as_string());
-                first = false;
-            }
-
-            oss << fmt::format("{} }}\n", dep_entries);
-        }
-    }
-
-    oss << "\n";
-    return oss.str();
-}
-
-std::string MuukLockGenerator::format_dependencies(
-    const DependencyVersionMap<std::shared_ptr<Dependency>>& dependencies,
-    const std::string& section_name) {
-    std::ostringstream oss;
-    oss << "[" << section_name << "]\n";
-
-    for (const auto& [dep_name, versions] : dependencies) {
-        for (const auto& [version, dep_ptr] : versions) {
-            if (!dep_ptr) {
-                muuk::logger::warn("Skipping dependency '{}' (version '{}') due to null pointer.", dep_name, version);
-                continue;
-            }
-
-            const toml::table dep_table = dep_ptr->to_toml().as_table(); // Convert Dependency to TOML table
-
-            oss << dep_name << " = { ";
-
-            std::vector<std::string> dep_entries;
-            for (const auto& [key, val] : dep_table) {
-
-                if (val.is_string()) {
-                    dep_entries.push_back(fmt::format("{} = '{}'", key, val.as_string()));
-                } else if (val.is_array()) {
-                    std::vector<std::string> array_values;
-                    for (const auto& item : val.as_array()) {
-                        if (item.is_string()) {
-                            array_values.push_back(fmt::format("'{}'", item.as_string()));
-                        }
-                    }
-                    dep_entries.push_back(fmt::format("{} = [{}]", key, fmt::join(array_values, ", ")));
-                } else {
-                    muuk::logger::warn("Skipping unsupported TOML type for key '{}'", key);
-                }
-            }
-
-            oss << fmt::format("{} }}\n", fmt::join(dep_entries, ", "));
-        }
-    }
-
-    oss << "\n";
-    return oss.str();
 }
 
 void MuukLockGenerator::parse_and_store_flag_categories(

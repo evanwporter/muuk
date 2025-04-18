@@ -143,7 +143,7 @@
   "clangd.arguments": [
     "--experimental-modules-support",
     "--compile-commands-dir=${workspaceFolder}/build/debug",
-    "--compile-commands-dir=${workspaceFolder}/build/release",
+    // "--compile-commands-dir=${workspaceFolder}/build/release",
     "--clang-tidy",
     "--completion-style=detailed",
     "--header-insertion=iwyu"

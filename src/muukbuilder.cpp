@@ -6,8 +6,8 @@
 #include "buildconfig.h"
 #include "compiler.hpp"
 #include "logger.h"
+#include "muuk_parser.hpp"
 #include "muukbuilder.h"
-#include "muukfiler.h"
 #include "muuklockgen.h"
 #include "rustify.hpp"
 #include "util.h"
@@ -56,16 +56,14 @@ namespace muuk {
         return Err("No suitable C++ compiler found. Install GCC, Clang, or MSVC.");
     }
 
-    Result<std::string> select_profile(const std::string& profile, const MuukFiler& config) {
+    Result<std::string> select_profile(const std::string& profile, const toml::value& config) {
         if (!profile.empty())
             return profile;
 
-        toml::value data = config.get_config();
-
-        if (!data.contains("profile") || !data.at("profile").is_table())
+        if (!config.contains("profile") || !config.at("profile").is_table())
             return Err("No profiles found in lockfile.");
 
-        const auto& profiles = toml::find<toml::table>(data, "profile");
+        const auto& profiles = toml::find<toml::table>(config, "profile");
         for (const auto& [name, val] : profiles) {
             if (val.is_table()) {
                 const auto& tbl = val.as_table();
@@ -86,25 +84,33 @@ namespace muuk {
     Result<void> add_script(const std::string& profile, const std::string& build_name) {
         (void)build_name;
 
-        try {
-            MuukFiler muuk_filer("muuk.toml");
+        auto result = muuk::parse_muuk_file("muuk.toml", false);
+        if (!result)
+            return tl::unexpected("Failed to parse muuk.toml: " + result.error());
 
-            std::string executable_name = "muuk";
+        toml::value config = result.value();
+
+        std::string executable_name = "muuk";
 #ifdef _WIN32
-            std::string executable_path = "build/" + profile + "/" + executable_name + ".exe";
+        std::string executable_path = "build/" + profile + "/" + executable_name + ".exe";
 #else
-            std::string executable_path = "./build/" + profile + "/" + executable_name;
+        std::string executable_path = "./build/" + profile + "/" + executable_name;
 #endif
 
-            toml::value scripts_section = muuk_filer.get_section("scripts");
-            scripts_section.as_table()["run"] = toml::value(executable_path);
-            muuk_filer.write_to_file();
-
-            muuk::logger::info("Successfully added run script to 'muuk.toml': {}", executable_path);
-            return {};
-        } catch (const std::exception& e) {
-            return tl::unexpected("Failed to add run script: " + std::string(e.what()));
+        if (!config.contains("scripts") || !config["scripts"].is_table()) {
+            config["scripts"] = toml::table {};
         }
+
+        config["scripts"].as_table()["run"] = toml::value(executable_path);
+
+        std::ofstream out("muuk.toml");
+        if (!out) {
+            return tl::unexpected("Failed to open muuk.toml for writing.");
+        }
+        out << toml::format(config);
+
+        muuk::logger::info("Successfully added run script to 'muuk.toml': {}", executable_path);
+        return {};
     }
 
     Result<void> generate_compile_commands(const std::string& profile, const muuk::Compiler& compiler, const std::string& archiver, const std::string& linker) {
@@ -115,7 +121,8 @@ namespace muuk {
         return {};
     }
 
-    Result<void> build(std::string& target_build, const std::string& compiler, const std::string& profile, MuukFiler& config) {
+    Result<void> build(std::string& target_build, const std::string& compiler, const std::string& profile, const toml::value& config) {
+
         auto lock_generator_ = MuukLockGenerator::create("./");
         if (!lock_generator_)
             return Err(lock_generator_.error());

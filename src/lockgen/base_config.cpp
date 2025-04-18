@@ -39,34 +39,6 @@ void Dependency::load(const std::string name_, const toml::value& v) {
     libs = toml::find_or<std::vector<std::string>>(v, "libs", {});
 }
 
-toml::value Dependency::to_toml() const {
-    toml::value dep_table = toml::table {};
-    if (!git_url.empty())
-        dep_table["git"] = git_url;
-    if (!path.empty())
-        dep_table["path"] = path;
-    if (!version.empty())
-        dep_table["version"] = version;
-    if (!name.empty())
-        dep_table["name"] = name;
-
-    if (!enabled_features.empty()) {
-        toml::array features;
-        for (const auto& feat : enabled_features)
-            features.push_back(feat);
-        dep_table["features"] = features;
-    }
-
-    if (!libs.empty()) {
-        toml::array lib_array;
-        for (const auto& lib : libs)
-            lib_array.push_back(lib);
-        dep_table["libs"] = lib_array;
-    }
-
-    return dep_table;
-}
-
 void Dependency::serialize(toml::value& out) const {
     if (!git_url.empty())
         out["git"] = git_url;
