@@ -8,13 +8,15 @@
 #include <tl/expected.hpp>
 
 #include "buildconfig.h"
+#include "commands/add.hpp"
+#include "commands/build.hpp"
+#include "commands/install.hpp"
+#include "commands/remove.hpp"
 #include "logger.h"
 #include "muuk.h"
 #include "muuk_parser.hpp"
-#include "muukbuilder.h"
 #include "muuker.hpp"
 #include "muukterminal.hpp"
-#include "package_manager.h"
 #include "rustify.hpp"
 
 inline int check_and_report(const Result<void>& result) {
@@ -34,12 +36,6 @@ int main(int argc, char* argv[]) {
     program.add_argument("--muuk-path")
         .help("Specify the path to muuk.toml")
         .default_value(std::string("muuk.toml"));
-
-    // #ifdef DEBUG
-    //     program.add_argument("--repl")
-    //         .help("Start REPL mode for debugging")
-    //         .flag();
-    // #endif
 
     argparse::ArgumentParser clean_command("clean", "Clean the project");
     clean_command.add_argument("clean_args")
@@ -110,28 +106,12 @@ int main(int argc, char* argv[]) {
         .help("Specify a target section to add the dependency (e.g., build.test, library.muuk).")
         .default_value(std::string(""));
 
-    argparse::ArgumentParser qinit_command("qinit", "Quickly initialize a library for muuk.");
-    qinit_command.add_argument("--path")
-        .help("Path to the library directory (default: current directory).")
-        .default_value(std::string("."));
-    qinit_command.add_argument("--name")
-        .help("Specify the library name manually (default: inferred from directory name).")
-        .default_value(std::string(""));
-    qinit_command.add_argument("--license")
-        .help("Specify a license (default: MIT).")
-        .default_value(std::string("MIT"));
-    qinit_command.add_argument("--author")
-        .help("Specify the author name.")
-        .default_value(std::string("Unknown"));
-    program.add_subparser(qinit_command);
-
     program.add_subparser(clean_command);
     program.add_subparser(run_command);
     program.add_subparser(build_command);
     program.add_subparser(download_command);
     program.add_subparser(remove_command);
     program.add_subparser(init_command);
-    program.add_subparser(qinit_command);
     program.add_subparser(add_command);
 
     if (argc < 2) {
@@ -150,13 +130,13 @@ int main(int argc, char* argv[]) {
 
         if (program.is_subcommand_used("install")) {
             muuk::logger::info("Installing dependencies from muuk.toml...");
-            return check_and_report(muuk::package_manager::install("muuk.lock"));
+            return check_and_report(muuk::install("muuk.lock"));
         }
 
         if (program.is_subcommand_used("remove")) {
             const auto package_name = remove_command.get<std::string>("package_name");
             muuk::logger::info("Removing dependency: {}", package_name);
-            muuk::package_manager::remove_package(package_name, "muuk.toml", MUUK_CACHE_FILE);
+            muuk::remove_package(package_name, "muuk.toml", MUUK_CACHE_FILE);
             return 0;
         }
 
@@ -173,7 +153,7 @@ int main(int argc, char* argv[]) {
 
             muuk::logger::info("Adding dependency: {}", dependency_name);
 
-            auto result = muuk::package_manager::add_dependency(
+            auto result = muuk::add(
                 muuk_path,
                 dependency_name,
                 version,

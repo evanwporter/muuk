@@ -16,7 +16,6 @@
 #include "muuk_parser.hpp"
 #include "muuklockgen.h"
 #include "rustify.hpp"
-#include "toml11/fwd/format_fwd.hpp"
 
 namespace fs = std::filesystem;
 
@@ -46,9 +45,8 @@ Result<void> MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is
     }
 
     auto result_muuk = muuk::parse_muuk_file(path);
-    if (!result_muuk) {
+    if (!result_muuk)
         return Err(result_muuk.error());
-    }
 
     auto data = result_muuk.value();
 

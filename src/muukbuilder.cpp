@@ -4,10 +4,10 @@
 
 #include "buildbackend.hpp"
 #include "buildconfig.h"
+#include "commands/build.hpp"
 #include "compiler.hpp"
 #include "logger.h"
 #include "muuk_parser.hpp"
-#include "muukbuilder.h"
 #include "muuklockgen.h"
 #include "rustify.hpp"
 #include "util.h"
