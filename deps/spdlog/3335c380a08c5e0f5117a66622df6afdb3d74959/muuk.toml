@@ -1,0 +1,24 @@
+[package]
+name = 'spdlog'
+revision = '3335c380a08c5e0f5117a66622df6afdb3d74959'
+version = '3335c380a08c5e0f5117a66622df6afdb3d74959'
+
+[dependencies.fmt]
+git = 'https://github.com/fmtlib/fmt.git'
+muuk_path = 'deps/fmt/muuk.toml'
+revision = '577fd3be883accf8629423ed77fcca8a24bccee2'
+version = '577fd3be883accf8629423ed77fcca8a24bccee2'
+features = ['use_std2_fmt']
+
+[library]
+cflags = ['/DSPDLOG_COMPILED_LIB', '/DSPDLOG_FMT_EXTERNAL']
+include = ['include']
+sources = [
+    'src/async.cpp',
+    'src/cfg.cpp',
+    'src/spdlog.cpp',
+    'src/color_sinks.cpp',
+    'src/stdout_sinks.cpp',
+    'src/bundled_fmtlib_format.cpp',
+    'src/file_sinks.cpp',
+]
