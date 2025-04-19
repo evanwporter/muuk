@@ -1,0 +1,9 @@
+[package]
+name = 'fmt'
+revision = '577fd3be883accf8629423ed77fcca8a24bccee2'
+version = '577fd3be883accf8629423ed77fcca8a24bccee2'
+
+[library]
+include = ['include']
+libs = []
+sources = ['src/format.cc']
