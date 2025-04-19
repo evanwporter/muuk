@@ -2,7 +2,6 @@
 #include <algorithm>
 #include <gtest/gtest.h>
 
-
 class BuildManagerTest : public ::testing::Test {
 protected:
     BuildManager build_manager;

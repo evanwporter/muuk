@@ -15,7 +15,6 @@
 #include <type_traits>
 #include <utility>
 
-
 // Detect whether we are compiling with GCC/Clang for statement expressions
 #if defined(__GNUC__) || defined(__clang__)
 #define TRY_HAS_STATEMENT_EXPR 1

@@ -52,7 +52,9 @@ namespace muuk {
             bool required,
             TomlTypeVariant type,
             std::unordered_map<std::string, SchemaNode> children = {}) :
-            required(required), type(std::move(type)), children(std::move(children)) { }
+            required(required),
+            type(std::move(type)),
+            children(std::move(children)) { }
     };
 
     Result<TomlType> get_toml_type(const toml::value& node);

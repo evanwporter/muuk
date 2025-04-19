@@ -1,13 +1,13 @@
-#include <gtest/gtest.h>
-#include <gmock/gmock.h>
 #include "../../include/util.h"
 #include <filesystem>
 #include <fstream>
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
 
 namespace fs = std::filesystem;
 using ::testing::_;
-using ::testing::Return;
 using ::testing::Invoke;
+using ::testing::Return;
 
 class UtilTest : public ::testing::Test {
 protected:
@@ -81,7 +81,7 @@ TEST(UtilPatternTest, MatchPattern) {
 // **Test Case: Execute System Command**
 TEST(UtilCommandTest, ExecuteCommand) {
     int result = util::command_line::execute_command("echo Hello");
-    EXPECT_EQ(result, 0);  // System commands return 0 on success
+    EXPECT_EQ(result, 0); // System commands return 0 on success
 }
 
 // **Test Case: UTF-8 Validation**
@@ -112,7 +112,7 @@ TEST(UtilPathTest, NormalizePath) {
 // ** Test Case: Execute Non-Existent Command **
 TEST(UtilCommandTest, ExecuteInvalidCommand) {
     int result = util::command_line::execute_command("invalid_command_that_does_not_exist");
-    EXPECT_NE(result, 0);  // Expect a failure result
+    EXPECT_NE(result, 0); // Expect a failure result
 }
 
 // ** Test Case: Remove Non-Existent Path **
