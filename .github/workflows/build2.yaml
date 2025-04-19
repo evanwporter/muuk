@@ -16,7 +16,7 @@ jobs:
       id: find-run
       shell: pwsh
       run: |
-        $run = gh run list --workflow windows-ninja.yml --branch main --limit 1 --json databaseId | ConvertFrom-Json
+        $run = gh run list --workflow build_win.yaml --branch main --limit 1 --json databaseId | ConvertFrom-Json
         echo "run_id=$($run[0].databaseId)" >> $env:GITHUB_OUTPUT
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
