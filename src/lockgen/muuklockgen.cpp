@@ -467,17 +467,17 @@ Result<void> MuukLockGenerator::generate_cache(const std::string& output_path) {
     // ─────────────────────────────────────────────
     // Write Profiles
     // ─────────────────────────────────────────────
-    if (base_package_ && !base_package_->profiles_config.empty()) {
-        toml::value profile_section = toml::table {};
+    // if (base_package_ && !base_package_->profiles_config.empty()) {
+    //     toml::value profile_section = toml::table {};
 
-        for (const auto& [profile_name, profile_cfg] : base_package_->profiles_config) {
-            toml::value profile_data = toml::table {};
-            profile_cfg.serialize(profile_data);
-            profile_section[profile_name] = profile_data;
-        }
+    //     for (const auto& [profile_name, profile_cfg] : base_package_->profiles_config) {
+    //         toml::value profile_data = toml::table {};
+    //         profile_cfg.serialize(profile_data);
+    //         profile_section[profile_name] = profile_data;
+    //     }
 
-        root["profile"] = profile_section;
-    }
+    //     root["profile"] = profile_section;
+    // }
 
     // ─────────────────────────────────────────────
     // Write To Cachefile

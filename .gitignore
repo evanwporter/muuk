@@ -1,7 +1,6 @@
 logs/
 __pycache__/
 build/
-deps/
 
 *.log
 *.obj
@@ -19,7 +18,7 @@ github_api_response.json
 subprojects/
 
 # TODO: Eventually remove vscode folder from remote
-.vscode
+# .vscode
 muuk.code-workspace
 
 idea.md
