@@ -1,9 +1,0 @@
-[package]
-name = 'compile-time-regular-expressions'
-revision = 'a9418a5d8bd60afa0b71565ab95c16b1eab168e7'
-# version = ['a9418a5d8bd60afa0b71565ab95c16b1eab168e7']
-version = 'a9418a5d8bd60afa0b71565ab95c16b1eab168e7'
-
-
-[library]
-include = ['single-header']
