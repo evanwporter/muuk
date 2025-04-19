@@ -27,6 +27,7 @@ jobs:
           copy build.ninja build\release\
 
       - name: Build with Ninja
+        # working-directory: build/release
         run: ninja -C build/release
 
       - name: Upload executables
