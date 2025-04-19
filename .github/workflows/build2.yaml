@@ -1,25 +1,33 @@
-name: install-and-build
+name: install-and-build-from-artifact
 
 on:
-    workflow_run:
-      workflows: ["windows-ninja"]
-      types:
-        - completed
+  workflow_dispatch:
 
 jobs:
   build:
-    name: Install + Build via muuk
+    name: Install + Build via muuk (Windows)
     runs-on: windows-latest
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Download artifact from previous job
-      uses: actions/download-artifact@v4
-      with:
-        name: bin-windows
-        path: ./previous-build
+    - name: Install GitHub CLI
+      uses: cli/cli-action@v2
+
+    - name: Find latest successful run of windows-ninja
+      id: find-run
+      run: |
+        run_id=$(gh run list --workflow windows-ninja.yml --branch main --limit 1 --json databaseId -q '.[0].databaseId')
+        echo "run_id=$run_id" >> $GITHUB_OUTPUT
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Download bin-windows artifact from that run
+      run: |
+        gh run download ${{ steps.find-run.outputs.run_id }} --name bin-windows --dir ./previous-build
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Install Ninja
       uses: seanmiddleditch/gha-setup-ninja@3b1f8f94a2f8254bd26914c4ab9474d4f0015f67
@@ -28,12 +36,10 @@ jobs:
       uses: ilammy/msvc-dev-cmd@cec98b9d092141f74527d0afa6feb2af698cfe89
 
     - name: Install dependencies with muuk
-      run: |
-        muuk install
+      run: muuk install
 
-    - name: Build project with muuk
-      run: |
-        muuk build -c msvc -p release
+    - name: Build project with muuk (MSVC Release)
+      run: muuk build -c msvc -p release
 
     - name: Upload built executables
       uses: actions/upload-artifact@v4
