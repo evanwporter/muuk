@@ -1,0 +1,39 @@
+name: install-and-build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Install + Build via muuk
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Download artifact from previous job
+      uses: actions/download-artifact@v4
+      with:
+        name: bin-windows
+        path: ./previous-build
+
+    - name: Install Ninja
+      uses: seanmiddleditch/gha-setup-ninja@3b1f8f94a2f8254bd26914c4ab9474d4f0015f67
+
+    - name: Set up MSVC environment
+      uses: ilammy/msvc-dev-cmd@cec98b9d092141f74527d0afa6feb2af698cfe89
+
+    - name: Install dependencies with muuk
+      run: |
+        muuk install
+
+    - name: Build project with muuk
+      run: |
+        muuk build -c msvc -p release
+
+    - name: Upload built executables
+      uses: actions/upload-artifact@v4
+      with:
+        name: muuk-release-build
+        path: build/release/**/*.exe
