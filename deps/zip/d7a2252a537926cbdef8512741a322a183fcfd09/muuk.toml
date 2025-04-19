@@ -1,8 +1,0 @@
-[package]
-name = 'zip'
-revision = 'd7a2252a537926cbdef8512741a322a183fcfd09'
-version = 'd7a2252a537926cbdef8512741a322a183fcfd09'
-
-[library]
-include = ['src']
-sources = ['src/zip.c']
