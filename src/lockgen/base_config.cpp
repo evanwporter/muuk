@@ -210,13 +210,25 @@ void Build::merge(const Package& package) {
 void Build::serialize(toml::value& out) const {
     BaseConfig<Build>::serialize(out);
 
-    toml::array dep_array;
+    // Collect dependencies and sort them by (name, version)
+    std::vector<std::shared_ptr<Dependency>> sorted_deps;
     for (const auto& dep_ptr : all_dependencies_array) {
         if (dep_ptr) {
-            toml::value dep_entry;
-            dep_ptr->serialize(dep_entry);
-            dep_array.push_back(dep_entry);
+            sorted_deps.push_back(dep_ptr);
         }
+    }
+
+    std::sort(sorted_deps.begin(), sorted_deps.end(), [](const auto& a, const auto& b) {
+        if (a->name == b->name)
+            return a->version < b->version;
+        return a->name < b->name;
+    });
+
+    toml::array dep_array;
+    for (const auto& dep_ptr : sorted_deps) {
+        toml::value dep_entry;
+        dep_ptr->serialize(dep_entry);
+        dep_array.push_back(dep_entry);
     }
 
     out["profiles"] = profiles;
