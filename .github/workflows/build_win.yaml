@@ -1,0 +1,40 @@
+name: windows-ninja
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build on Windows with Ninja
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@3b1f8f94a2f8254bd26914c4ab9474d4f0015f67
+
+      - name: Set up MSVC (Developer Command Prompt)
+        uses: ilammy/msvc-dev-cmd@cec98b9d092141f74527d0afa6feb2af698cfe89
+
+      - name: Set up Ninja build directory
+        run: |
+          mkdir build\release
+          copy build.ninja build\release\
+
+      - name: Build with Ninja
+        working-directory: build/release
+        run: ninja -f build.ninja
+
+      - name: Upload executables
+        uses: actions/upload-artifact@v3
+        with:
+          name: bin-windows
+          path: |
+            build/debug/bin/*.exe
+            build/debug/test/*.exe
+            build/debug/test_util/*.exe
