@@ -10,11 +10,6 @@
 
 #include "rustify.hpp"
 
-template <typename T>
-concept Streamable = requires(std::ostream& os, const T& value) {
-    { os << value } -> std::same_as<std::ostream&>;
-};
-
 namespace util {
 
     // File system utilities
