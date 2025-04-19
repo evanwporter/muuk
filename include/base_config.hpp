@@ -56,9 +56,9 @@ struct Dependency {
     bool system = false;
     std::vector<std::string> libs;
 
-    void load(const std::string name_, const toml::value& v);
+    Result<void> load(const std::string name_, const toml::value& v);
     static Dependency from_toml(const toml::value& data);
-    void serialize(toml::value& out) const;
+    Result<void> serialize(toml::value& out) const;
 };
 
 struct source_file {
@@ -374,6 +374,6 @@ struct Build : BaseConfig<Build> {
     static constexpr bool enable_platforms = false;
 
     void merge(const Package& package);
-    void serialize(toml::value& out) const;
+    Result<void> serialize(toml::value& out) const;
     void load(const toml::value& v, const std::string& base_path);
 };
