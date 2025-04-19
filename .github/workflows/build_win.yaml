@@ -34,6 +34,4 @@ jobs:
         with:
           name: bin-windows
           path: |
-            build/debug/bin/*.exe
-            build/debug/test/*.exe
-            build/debug/test_util/*.exe
+            build/release/bin/*.exe
