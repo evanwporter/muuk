@@ -12,14 +12,12 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Install GitHub CLI
-      uses: cli/cli-action@v2
-
     - name: Find latest successful run of windows-ninja
       id: find-run
+      shell: pwsh
       run: |
-        run_id=$(gh run list --workflow windows-ninja.yml --branch main --limit 1 --json databaseId -q '.[0].databaseId')
-        echo "run_id=$run_id" >> $GITHUB_OUTPUT
+        $run = gh run list --workflow windows-ninja.yml --branch main --limit 1 --json databaseId | ConvertFrom-Json
+        echo "run_id=$($run[0].databaseId)" >> $env:GITHUB_OUTPUT
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
