@@ -23,14 +23,13 @@ jobs:
 
     - name: Download bin-windows artifact from that run
       run: |
-        gh run download ${{ steps.find-run.outputs.run_id }} --name bin-windows --dir ./previous-build
+        gh run download ${{ steps.find-run.outputs.run_id }} --name bin-windows
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Make muuk executable available
-      run: |
-        Copy-Item .\previous-build\muuk.exe .\muuk.exe
-
+    # - name: Make muuk executable available
+    #   run: |
+    #     Copy-Item .\previous-build\muuk.exe .\muuk.exe
 
     - name: Install Ninja
       uses: seanmiddleditch/gha-setup-ninja@3b1f8f94a2f8254bd26914c4ab9474d4f0015f67
