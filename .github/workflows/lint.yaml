@@ -3,6 +3,7 @@ name: lint
 
 on: [push, pull_request]
 
+ 
 jobs:
   clang-format:
     # Skip building pull requests from the same repository
