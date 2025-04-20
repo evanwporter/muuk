@@ -12,46 +12,33 @@ Result<void> MuukLockGenerator::parse_dependencies(const toml::value& data, std:
 
     if (data.contains("dependencies") && data.at("dependencies").is_table()) {
         for (const auto& [dep_name, dep_value] : data.at("dependencies").as_table()) {
-            Dependency dependency_info;
-            auto dep_name_str = dep_name; // TODO: Remove this line
+            auto dep_entry = std::make_shared<Dependency>();
 
-            if (dep_value.is_table()) {
-                dependency_info.load(dep_name, dep_value.as_table());
-            } else if (dep_value.is_string()) {
-                dependency_info.version = dep_value.as_string(); // If just a version string
+            auto dep_result = dep_entry->load(dep_name, dep_value);
+            if (!dep_result)
+                return Err(dep_result);
+
+            // Store in our internal maps
+            auto& existing_entry = dependencies_[dep_name][dep_entry->version];
+            if (!existing_entry) {
+                // Only use the newly parsed entry if it doesn't exist
+                existing_entry = dep_entry;
             } else {
-                muuk::logger::error("Invalid dependency format for '{}'", dep_name);
-                return Err("");
+                // Merge features if already present
+                existing_entry->enabled_features.insert(
+                    dep_entry->enabled_features.begin(),
+                    dep_entry->enabled_features.end());
             }
 
-            auto& dep_entry = dependencies_[dep_name_str][dependency_info.version];
-            if (!dep_entry) {
-                // Parse dependency details if it doesn't exist yet
-                if (dep_value.is_table()) {
-                    dep_entry = std::make_shared<Dependency>();
-                    dep_entry->load(dep_name_str, dep_value.as_table());
-                } else if (dep_value.is_string()) {
-                    dep_entry = std::make_shared<Dependency>();
-                    dep_entry->version = dep_value.as_string(); // Store version
-                } else {
-                    muuk::logger::error("Invalid dependency format for '{}'", dep_name_str);
-                    return Err("");
-                }
-            } else {
-                // Merge features if dependency already exists
-                dep_entry->enabled_features.insert(
-                    dependency_info.enabled_features.begin(),
-                    dependency_info.enabled_features.end());
-            }
+            // Also add it to the package
+            package->dependencies_[dep_name][dep_entry->version] = dependencies_[dep_name][dep_entry->version];
 
-            dependencies_[dep_name_str][dep_entry->version] = dep_entry;
-            package->dependencies_[dep_name_str][dep_entry->version] = dep_entry;
-            muuk::logger::info("  → Dependency '{}' (v{}) added with details:", dep_name_str, dep_entry->version);
+            muuk::logger::info("  → Dependency '{}' (v{}) added with details:", dep_name, dep_entry->version);
         }
     }
 
     return {};
-};
+}
 
 Result<void> MuukLockGenerator::parse_profile(const toml::value& data) {
 

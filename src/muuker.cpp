@@ -17,7 +17,7 @@
 #include <filesystem>
 #include <string>
 
-#include <glob/glob.h>
+#include <glob/glob.hpp>
 
 #include "logger.h"
 #include "util.h"

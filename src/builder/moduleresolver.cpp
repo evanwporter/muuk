@@ -8,6 +8,7 @@
 
 #include "buildmanager.h"
 #include "compiler.hpp"
+#include "flags.hpp"
 #include "logger.h"
 #include "muuk.h"
 #include "util.h"

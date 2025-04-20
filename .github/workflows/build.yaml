@@ -1,61 +1,122 @@
+# CREDITS
+# I took a lot of this code from `cmkr` (developed by Duncan Ogilvie / @mrexodia)
+# https://github.com/build-cpp/cmkr/blob/main/.github/workflows/build.yml
 name: build
 
 on:
+  workflow_dispatch:
   push:
-    tags:
-      - 'v*'  # Only build on version tags (e.g. v1.0.0)
-  workflow_dispatch:  # Allows manual triggering
+    branches:
+      - main
 
 jobs:
   build:
+    name: Build via muuk (${{ matrix.os }}, ${{ matrix.compiler }})
     runs-on: ${{ matrix.os }}
+
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: windows-latest
+            compiler: msvc
+            binary_name: muuk.exe
+            artifact_name: muuk-windows
+            zip_name: muuk-windows.zip
+            gh_asset: muuk-windows.zip
+            muuk_exec: .\muuk.exe
+            copy_cmd: copy build\release\bin\bin.exe muuk.exe
 
-    env:
-      BUILD_TYPE: 'release'
-      BUILD_BACKEND: 'Ninja'
-      
+          - os: macos-latest
+            compiler: clang
+            binary_name: muuk
+            artifact_name: muuk-macos
+            zip_name: muuk-macos.zip
+            gh_asset: muuk-macos.zip
+            muuk_exec: ./muuk
+            copy_cmd: cp build/release/bin/bin muuk
+
+          - os: ubuntu-latest
+            compiler: gcc
+            binary_name: muuk
+            artifact_name: muuk-linux
+            zip_name: muuk-linux.zip
+            gh_asset: muuk-linux.zip
+            muuk_exec: ./muuk
+            copy_cmd: cp build/release/bin/bin muuk
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Install Ninja
-      uses: seanmiddleditch/gha-setup-ninja@3b1f8f94a2f8254bd26914c4ab9474d4f0015f67
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@v6
 
-    - name: Visual Studio Development Environment
-      uses: ilammy/msvc-dev-cmd@cec98b9d092141f74527d0afa6feb2af698cfe89
+      - name: Set up MSVC (Windows only)
+        if: matrix.compiler == 'msvc'
+        uses: ilammy/msvc-dev-cmd@v1
 
-    - name: Set up build environment
-      run: echo "No setup needed"
+      - name: Install LLVM (macOS only)
+        if: runner.os == 'macOS'
+        run: |
+          brew install llvm
+          echo "LLVM installed at: $(brew --prefix llvm)"
+          echo "$(brew --prefix llvm)/bin" >> $GITHUB_PATH
+      
+      - name: Install LLVM (Linux only)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential llvm clang lld
+          echo "LLVM installed at: $(llvm-config --prefix)"
+          echo "$(llvm-config --bindir)" >> $GITHUB_PATH
 
-    - name: Compile on Linux (gcc)
-      if: runner.os != 'Windows'
-      run: |
-        muuk -c gcc -p ${{ env.BUILD_TYPE }}
+      - name: Download latest release
+        shell: bash
+        run: |
+          url=$(gh release view --json assets -q ".assets[] | select(.name == \"${{ matrix.gh_asset }}\") | .url")
+          curl -L "$url" -o muuk.zip
+          unzip -o muuk.zip
+          if [[ "${{ runner.os }}" != "Windows" ]]; then
+            chmod +x muuk
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Compile on macOS (clang++)
-      if: runner.os == 'macOS'
-      run: |
-        muuk -c clang -p  ${{ env.BUILD_TYPE }}
-        
-    - name: Compile on Windows (MSVC)
-      if: runner.os == 'Windows'
-      run: |
-        muuk -c cl -p ${{ env.BUILD_TYPE }}
+      - name: Install dependencies with muuk
+        run: ${{ matrix.muuk_exec }} install
 
-    - name: Package build
-      run: |
-        cd build
-        if [[ "$RUNNER_OS" == "Windows" ]]; then
-          powershell -Command "Compress-Archive -Path ${{ env.BUILD_TYPE }}/muuk.exe -DestinationPath ../muuk-${{ runner.os }}.zip"
-        else
-          zip ../muuk-${{ runner.os }}.zip ${{ env.BUILD_TYPE }}/muuk
-        fi
+      - name: Create build/release directory
+        shell: bash
+        run: mkdir -p build/release
 
-    - name: Upload artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: muuk-${{ runner.os }}
-        path: muuk-${{ runner.os }}.zip
+      - name: Build project (Release)
+        run: ${{ matrix.muuk_exec }} build -c ${{ matrix.compiler }} -p release
+
+      - name: Copy executable
+        run: ${{ matrix.copy_cmd }}
+
+      - name: Make executable runnable (chmod +x)
+        if: runner.os != 'Windows'
+        run: chmod +x ${{ matrix.binary_name }}
+
+      - name: Upload raw binary as artifact (for internal use)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.binary_name }}
+
+      - name: Zip for GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: vimtor/action-zip@v1.1
+        with:
+          files: ${{ matrix.binary_name }}
+          dest: ${{ matrix.zip_name }}
+
+      - name: Upload Release (if tagged)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ matrix.zip_name }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}

@@ -15,7 +15,7 @@ template <typename T>
 using DependencyVersionMap = std::unordered_map<std::string, std::unordered_map<std::string, T>>;
 
 namespace muuk {
-    Result<std::string> qinit_library(
+    Result<void> qinit_library(
         const std::string& author,
         const std::string& repo,
         const std::string& version);

@@ -1,6 +1,6 @@
 #include <string>
 
-#include <glob/glob.h>
+#include <glob/glob.hpp>
 #include <toml.hpp>
 
 #include "base_config.hpp"

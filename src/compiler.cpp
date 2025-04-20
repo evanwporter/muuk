@@ -54,7 +54,11 @@ namespace muuk {
         case Type::MSVC:
             return "lib";
         case Type::Clang:
+#ifdef WIN32
             return "llvm-ar";
+#else
+            return "ar";
+#endif
         case Type::GCC:
             return "ar";
         }

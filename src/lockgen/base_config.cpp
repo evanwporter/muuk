@@ -3,7 +3,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include <glob/glob.h>
+#include <glob/glob.hpp>
 #include <toml.hpp>
 
 #include "base_config.hpp"
@@ -22,11 +22,14 @@ bool PackageType::operator==(const PackageType& other) const {
     return type_ == other.type_;
 }
 
-void Dependency::load(const std::string name_, const toml::value& v) {
+Result<void> Dependency::load(const std::string name_, const toml::value& v) {
     name = name_;
     if (v.is_string()) {
         version = v.as_string();
-        return;
+        return {};
+    }
+    if (!v.is_table()) {
+        return Err("Invalid dependency format for '{}'", name_);
     }
 
     git_url = toml::find_or<std::string>(v, "git", "");
@@ -37,17 +40,19 @@ void Dependency::load(const std::string name_, const toml::value& v) {
     enabled_features = std::unordered_set<std::string>(enabled_feats.begin(), enabled_feats.end());
 
     libs = toml::find_or<std::vector<std::string>>(v, "libs", {});
+    return {};
 }
 
-void Dependency::serialize(toml::value& out) const {
+Result<void> Dependency::serialize(toml::value& out) const {
+    if (name.empty())
+        return Err("Dependency name is empty");
+    out["name"] = name; // If name is empty then we have a problem
     if (!git_url.empty())
         out["git"] = git_url;
     if (!path.empty())
         out["path"] = path;
     if (!version.empty())
         out["version"] = version;
-    if (!name.empty())
-        out["name"] = name;
 
     if (!enabled_features.empty()) {
         toml::array features;
@@ -62,6 +67,7 @@ void Dependency::serialize(toml::value& out) const {
             lib_array.push_back(lib);
         out["libs"] = lib_array;
     }
+    return {};
 }
 
 toml::value source_file::serialize() const {
@@ -207,7 +213,7 @@ void Build::merge(const Package& package) {
         package.all_dependencies_array.end());
 }
 
-void Build::serialize(toml::value& out) const {
+Result<void> Build::serialize(toml::value& out) const {
     BaseConfig<Build>::serialize(out);
 
     // Collect dependencies and sort them by (name, version)
@@ -227,7 +233,9 @@ void Build::serialize(toml::value& out) const {
     toml::array dep_array;
     for (const auto& dep_ptr : sorted_deps) {
         toml::value dep_entry;
-        dep_ptr->serialize(dep_entry);
+        auto dep_ser = dep_ptr->serialize(dep_entry);
+        if (!dep_ser)
+            return Err(dep_ser);
         dep_array.push_back(dep_entry);
     }
 
@@ -235,6 +243,7 @@ void Build::serialize(toml::value& out) const {
 
     out["dependencies"] = dep_array;
     out.at("dependencies").as_array_fmt().fmt = toml::array_format::multiline;
+    return {};
 }
 
 void Build::load(const toml::value& v, const std::string& base_path) {

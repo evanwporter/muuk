@@ -1,4 +1,10 @@
+#ifdef _WIN32
 #include <conio.h>
+#else
+#include <termios.h>
+#include <unistd.h>
+#endif
+
 #include <iostream>
 #include <string>
 
@@ -29,9 +35,47 @@ namespace muuk {
             }
         }
 
+#ifndef _WIN32
+        // Unix/macOS equivalent to _getch()
+        int getch() {
+            struct termios oldt, newt;
+            int ch;
+            tcgetattr(STDIN_FILENO, &oldt);
+            newt = oldt;
+            newt.c_lflag &= ~(ICANON | ECHO);
+            tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+            ch = getchar();
+            tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+            return ch;
+        }
+
+        // Optional: handle escape sequences for arrow keys
+        int get_arrow_key() {
+            int c = getch();
+            if (c == 27) { // Escape
+                if (getch() == 91) { // [
+                    int dir = getch();
+                    switch (dir) {
+                    case 'A':
+                        return 72; // Up
+                    case 'B':
+                        return 80; // Down
+                    default:
+                        return dir;
+                    }
+                }
+            }
+            return c;
+        }
+#else
+        int get_arrow_key() {
+            return _getch();
+        }
+#endif
+
         int select_from_menu(const std::vector<std::string>& options) {
             int selected = 0;
-            int numChoices = options.size();
+            int numChoices = static_cast<int>(options.size());
             bool selecting = true;
 
             // Initial display
@@ -39,7 +83,7 @@ namespace muuk {
             int c;
 
             while (selecting) {
-                c = _getch(); // Capture key press
+                c = get_arrow_key(); // Capture key press
 
                 switch (c) {
                 case 72: // UP arrow key (ASCII code for UP in _getch())
@@ -56,13 +100,15 @@ namespace muuk {
                         display_menu(options, selected);
                     }
                     break;
-                case 13: // ENTER key
+                case 10: // ENTER on Unix
+                case 13: // ENTER on Windows
                     selecting = false;
                     break;
                 default:
                     break;
                 }
             }
+
             return selected;
         }
 
@@ -103,7 +149,12 @@ namespace muuk {
 
         void wait_for_key_press(const std::string& message) {
             std::cout << message;
+#ifdef _WIN32
             _getch(); // Waits for any key press
+#else
+            getch(); // Waits for any key press
+#endif
         }
+
     } // namespace terminal
 } // namespace muuk

@@ -15,7 +15,7 @@
 namespace fs = std::filesystem;
 
 namespace muuk {
-    constexpr std::string HASH_FILE_NAME = ".muuk.hash";
+    const std::string HASH_FILE_NAME = ".muuk.hash";
 
     // Determines if the package is installed by checking if `.muuk.hash` exists
     bool is_package_installed(const fs::path& target_dir) {
@@ -80,7 +80,7 @@ namespace muuk {
         // Attempt checkout if ref is provided and not "latest"
         bool did_checkout = false;
         if (!checkout_ref.empty() && checkout_ref != "latest") {
-            std::string checkout_cmd = "cd " + target_dir + " && git checkout " + checkout_ref;
+            std::string checkout_cmd = "cd " + target_dir + " && git -c advice.detachedHead=false checkout " + checkout_ref;
             muuk::logger::info("Checking out ref: {}", checkout_ref);
             int checkout_result = util::command_line::execute_command(checkout_cmd);
 

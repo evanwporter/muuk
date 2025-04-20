@@ -1,8 +1,6 @@
 [package]
 name = 'glob'
-revision = 'd025092c0e1eb1a8b226d3a799fd32680d2fd13f'
 version = 'd025092c0e1eb1a8b226d3a799fd32680d2fd13f'
 
 [library]
-include = ['include/']
-sources = ['source/glob.cpp']
+include = ['single_include/']

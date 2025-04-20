@@ -10,6 +10,8 @@ Another relevant comic:
 
 ## Features
 
+- Big three compiler support (GCC, Clang, MSVC)
+- Big three platform support (Linux, MacOS, Windows)
 - Task runner using `muuk run <script>`. Works pretty much like `npm run <script>`
 - Clean command
 - C++ Meta builder built on top of Ninja

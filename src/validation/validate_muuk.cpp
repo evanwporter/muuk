@@ -143,7 +143,7 @@ namespace muuk {
                         node,
                         node_type.error()));
 
-                bool wildcard_match = std::visit([&](auto&& expected) -> bool {
+                bool wildcard_match = std::visit([&, node = node](auto&& expected) -> bool {
                     using T = std::decay_t<decltype(expected)>;
 
                     if constexpr (std::is_same_v<T, TomlType>) {

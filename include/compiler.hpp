@@ -40,17 +40,6 @@ namespace muuk {
         Type type_;
     };
 
-    namespace compiler {
-        enum class Compiler {
-            GCC,
-            Clang,
-            MSVC
-        };
-
-        std::string to_string(Compiler compiler);
-        Compiler from_string(const std::string& compiler_str);
-    } // namespace compiler
-
     class Edition {
     public:
         enum class Year {

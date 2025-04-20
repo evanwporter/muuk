@@ -5,7 +5,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include <glob/glob.h>
+#include <glob/glob.hpp>
 #include <toml.hpp>
 
 #include "logger.h"
@@ -56,9 +56,9 @@ struct Dependency {
     bool system = false;
     std::vector<std::string> libs;
 
-    void load(const std::string name_, const toml::value& v);
+    Result<void> load(const std::string name_, const toml::value& v);
     static Dependency from_toml(const toml::value& data);
-    void serialize(toml::value& out) const;
+    Result<void> serialize(toml::value& out) const;
 };
 
 struct source_file {
@@ -66,6 +66,9 @@ struct source_file {
     std::vector<std::string> cflags;
 
     toml::value serialize() const;
+
+    source_file(std::string p, const std::vector<std::string>& f) :
+        path(std::move(p)), cflags(f) { }
 };
 
 template <typename Derived>
@@ -374,6 +377,6 @@ struct Build : BaseConfig<Build> {
     static constexpr bool enable_platforms = false;
 
     void merge(const Package& package);
-    void serialize(toml::value& out) const;
+    Result<void> serialize(toml::value& out) const;
     void load(const toml::value& v, const std::string& base_path);
 };
