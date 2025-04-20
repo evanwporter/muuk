@@ -2,6 +2,9 @@ name: install-and-build-from-artifact
 
 on:
   workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
 
 jobs:
   build:
@@ -28,8 +31,7 @@ jobs:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Make muuk executable available
-      run: |
-        Copy-Item .\bin.exe .\muuk.exe
+      run: Copy-Item .\bin.exe .\muuk.exe
 
     - name: Install Ninja
       uses: seanmiddleditch/gha-setup-ninja@3b1f8f94a2f8254bd26914c4ab9474d4f0015f67
@@ -42,13 +44,21 @@ jobs:
 
     - name: Ensure build/release directory exists
       run: New-Item -ItemType Directory -Path build/release -Force
-    
 
     - name: Build project with muuk (MSVC Release)
       run: .\muuk.exe build -c msvc -p release
 
-    - name: Upload built executables
-      uses: actions/upload-artifact@v4
+    - name: Compress built executables
+      uses: vimtor/action-zip@26a249fb00d43ca98dad77a4b3838025fc226aa1 # v1.1
       with:
-        name: muuk-release-build
-        path: build/release/**/*.exe
+        files: build/release/
+        dest: muuk-windows.zip
+
+    - name: Upload Release (if tag)
+      uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v0.1.15
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: muuk-windows.zip
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
