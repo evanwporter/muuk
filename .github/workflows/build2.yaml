@@ -31,13 +31,14 @@ jobs:
     #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Download muuk-windows.zip from latest release
-      shell: pwsh
+      shell: bash
       run: |
-        $release = gh release view --json assets -q ".assets[] | select(.name == ``muuk-windows.zip``) | .url"
-        Invoke-WebRequest -Uri $release -OutFile muuk-windows.zip
-        Expand-Archive -Path muuk-windows.zip -DestinationPath .
+        url=$(gh release view --json assets -q ".assets[] | select(.name == \"muuk-windows.zip\") | .url")
+        curl -L "$url" -o muuk-windows.zip
+        unzip -o muuk-windows.zip
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
   
 
 
