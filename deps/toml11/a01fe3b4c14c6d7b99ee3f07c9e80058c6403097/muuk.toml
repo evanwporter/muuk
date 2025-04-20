@@ -1,0 +1,11 @@
+[package]
+name = 'toml11'
+author = 'ToruNiina'
+license = 'MIT'
+version = 'a01fe3b4c14c6d7b99ee3f07c9e80058c6403097'
+git = 'https://github.com/ToruNiina/toml11.git'
+
+[library]
+include = ['include']
+sources = ["src/*.cpp"]
+cflags = ['/DTOML11_COMPILE_SOURCES']
