@@ -38,10 +38,10 @@ jobs:
       uses: ilammy/msvc-dev-cmd@cec98b9d092141f74527d0afa6feb2af698cfe89
 
     - name: Install dependencies with muuk
-      run: muuk install
+      run: .\muuk.exe install
 
     - name: Build project with muuk (MSVC Release)
-      run: muuk build -c msvc -p release
+      run: .\muuk.exe build -c msvc -p release
 
     - name: Upload built executables
       uses: actions/upload-artifact@v4
