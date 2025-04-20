@@ -15,20 +15,30 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Find latest successful run of windows-ninja
-      id: find-run
+    # - name: Find latest successful run of windows-ninja
+    #   id: find-run
+    #   shell: pwsh
+    #   run: |
+    #     $run = gh run list --workflow build_win.yaml --branch main --limit 1 --json databaseId | ConvertFrom-Json
+    #     echo "run_id=$($run[0].databaseId)" >> $env:GITHUB_OUTPUT
+    #   env:
+    #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    # - name: Download bin-windows artifact from that run
+    #   run: |
+    #     gh run download ${{ steps.find-run.outputs.run_id }} --name bin-windows
+    #   env:
+    #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Download bin-windows artifact from latest release
       shell: pwsh
       run: |
-        $run = gh run list --workflow build_win.yaml --branch main --limit 1 --json databaseId | ConvertFrom-Json
-        echo "run_id=$($run[0].databaseId)" >> $env:GITHUB_OUTPUT
+        $release = gh release view --json assets -q ".assets[] | select(.name == 'muuk-windows.zip') | .url"
+        Invoke-WebRequest -Uri $release -OutFile muuk-windows.zip
+        Expand-Archive -Path muuk-windows.zip -DestinationPath .
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Download bin-windows artifact from that run
-      run: |
-        gh run download ${{ steps.find-run.outputs.run_id }} --name bin-windows
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Make muuk executable available
       run: Copy-Item .\bin.exe .\muuk.exe
@@ -47,11 +57,14 @@ jobs:
 
     - name: Build project with muuk (MSVC Release)
       run: .\muuk.exe build -c msvc -p release
+    
+    - name: Copy muuk.exe
+      run: copy build/release/bin/bin.exe muuk.exe
 
     - name: Compress built executables
       uses: vimtor/action-zip@26a249fb00d43ca98dad77a4b3838025fc226aa1 # v1.1
       with:
-        files: build/release/
+        files: muuk.exe
         dest: muuk-windows.zip
 
     - name: Upload build artifact
