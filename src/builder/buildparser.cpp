@@ -48,7 +48,7 @@ Result<BuildProfile> extract_profile_flags(const std::string& profile, muuk::Com
     return build_profile;
 }
 
-/** Extract platform-specific FLAGS */
+// Extract platform-specific flags
 std::vector<std::string> extract_platform_flags(const toml::table& package_table) {
     std::vector<std::string> flags;
     if (!package_table.contains("platform"))
@@ -77,7 +77,7 @@ std::vector<std::string> extract_platform_flags(const toml::table& package_table
     return flags;
 }
 
-/** Extract compiler-specific FLAGS */
+// Extract compiler-specific flags
 std::vector<std::string> extract_compiler_flags(const toml::table& package_table, const muuk::Compiler compiler) {
     std::vector<std::string> flags;
     if (!package_table.contains("compiler"))
@@ -133,7 +133,7 @@ void parse_compilation_unit(BuildManager& build_manager, muuk::Compiler compiler
     }
 }
 
-void parse_compilation_targets(BuildManager& build_manager, const muuk::Compiler compiler, const std::filesystem::path& build_dir, const toml::value& muuk_file) {
+void parse_compilation_targets(BuildManager& build_manager, const muuk::Compiler compiler, const std::filesystem::path& build_dir, const toml::value& muuk_file, const std::string& profile) {
     for (const std::string& name : { "build", "library" }) {
         if (!muuk_file.contains(name))
             continue;
@@ -143,6 +143,19 @@ void parse_compilation_targets(BuildManager& build_manager, const muuk::Compiler
             const auto package_table = package.as_table();
             const auto package_name = package_table.at("name").as_string();
             const auto package_version = package_table.at("version").as_string();
+
+            // Skip if 'profiles' is present and doesn't match
+            if (name == "build" && package_table.contains("profiles")) {
+                bool matched = false;
+                for (const auto& p : package_table.at("profiles").as_array())
+                    if (p.as_string() == profile) {
+                        matched = true;
+                        break;
+                    }
+
+                if (!matched)
+                    continue;
+            }
 
             const fs::path pkg_dir = (name == "build")
                 ? build_dir / package_name
@@ -339,7 +352,7 @@ Result<void> parse(BuildManager& build_manager, muuk::Compiler compiler, const s
 
     build_manager.set_profile_flags(profile, profile_result.value());
 
-    parse_compilation_targets(build_manager, compiler, build_dir, muuk_file);
+    parse_compilation_targets(build_manager, compiler, build_dir, muuk_file, profile);
     parse_libraries(build_manager, compiler, build_dir, muuk_file);
     parse_executables(build_manager, compiler, build_dir, profile, muuk_file);
 

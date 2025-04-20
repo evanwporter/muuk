@@ -16,7 +16,7 @@
 namespace muuk {
     namespace terminal {
 
-        // ───── Styling ─────
+        // Styling
         struct style {
             static inline const std::string RESET = "\033[0m";
             static inline const std::string BOLD = "\033[1m";
