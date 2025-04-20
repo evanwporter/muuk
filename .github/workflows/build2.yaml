@@ -30,14 +30,15 @@ jobs:
     #   env:
     #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Download bin-windows artifact from latest release
+    - name: Download muuk-windows.zip from latest release
       shell: pwsh
       run: |
-        $release = gh release view --json assets -q ".assets[] | select(.name == 'muuk-windows.zip') | .url"
+        $release = gh release view --json assets -q ".assets[] | select(.name == ``muuk-windows.zip``) | .url"
         Invoke-WebRequest -Uri $release -OutFile muuk-windows.zip
         Expand-Archive -Path muuk-windows.zip -DestinationPath .
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
 
 
     - name: Make muuk executable available
