@@ -40,6 +40,10 @@ jobs:
     - name: Install dependencies with muuk
       run: .\muuk.exe install
 
+    - name: Ensure build/release directory exists
+      run: New-Item -ItemType Directory -Path build/release -Force
+    
+
     - name: Build project with muuk (MSVC Release)
       run: .\muuk.exe build -c msvc -p release
 
