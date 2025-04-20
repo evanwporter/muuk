@@ -27,15 +27,9 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-        - name: Locate and expose muuk.exe
-        shell: pwsh
-        run: |
-          $exe = Get-ChildItem -Recurse -Filter muuk.exe -Path .\previous-build | Select-Object -First 1
-          if ($null -eq $exe) {
-            Write-Error "muuk.exe not found in artifact"
-            exit 1
-          }
-          Copy-Item $exe.FullName .\muuk.exe      
+    - name: Make muuk executable available
+      run: |
+        Copy-Item .\bin.exe .\muuk.exe
 
     - name: Install Ninja
       uses: seanmiddleditch/gha-setup-ninja@3b1f8f94a2f8254bd26914c4ab9474d4f0015f67
