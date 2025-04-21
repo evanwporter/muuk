@@ -21,7 +21,7 @@ sources = [
     'src/muukfiler.cpp',
     'src/muukbuilder.cpp',
     'src/lockgen/*.cpp',
-    'src/packagemanager/*.cpp',
+    'src/package_manager/*.cpp',
     'src/muukinitializer.cpp',
     'src/flags.cpp',
     'src/builder/*.cpp',
@@ -40,7 +40,6 @@ glob = { git = 'https://github.com/p-ranav/glob.git', version = 'd025092c0e1eb1a
 json = { git = 'https://github.com/nlohmann/json.git', version = '0b6881a95f8aaf60bd2324ecdf2258a65bf33baf' }
 spdlog = { git = 'https://github.com/gabime/spdlog.git', version = '3335c380a08c5e0f5117a66622df6afdb3d74959' }
 toml11 = { git = 'https://github.com/ToruNiina/toml11.git', version = 'a01fe3b4c14c6d7b99ee3f07c9e80058c6403097' }
-zip = { git = 'https://github.com/kuba--/zip.git', version = 'd7a2252a537926cbdef8512741a322a183fcfd09' }
 
 [build.bin]
 profile = ['release', 'debug']

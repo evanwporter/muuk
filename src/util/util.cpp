@@ -19,10 +19,6 @@
 #include "logger.h"
 #include "util.h"
 
-extern "C" {
-#include "zip.h"
-}
-
 namespace fs = std::filesystem;
 
 namespace util {
@@ -76,65 +72,6 @@ namespace util {
         }
         muuk::logger::debug("Matching '{}' with pattern '{}': {}", path, pattern, matches);
         return matches;
-    }
-
-    // ZIP Extraction
-    void extract_zip(const std::string& archive, const std::string& target_dir) {
-        try {
-            ensure_directory_exists(target_dir);
-
-            if (!fs::exists(archive)) {
-                muuk::logger::error("Zip file does not exist: {}", archive);
-                throw std::runtime_error("Zip file not found: " + archive);
-            }
-
-            muuk::logger::info("Starting extraction of zip archive: {} from {}", archive, target_dir);
-
-            int result = zip_extract(
-                archive.c_str(),
-                target_dir.c_str(),
-                [](const char* filename, void* arg) -> int {
-                    // muuk::logger::info("Extracting: {}", filename);
-                    (void)filename;
-                    (void)arg;
-                    return 0;
-                },
-                nullptr);
-
-            if (result < 0) {
-                muuk::logger::error("Failed to extract zip archive '{}'. Error code: {}", archive, result);
-                throw std::runtime_error("Zip extraction failed.");
-            }
-
-            muuk::logger::info("Extraction completed successfully for: {}", archive);
-        } catch (const std::exception& ex) {
-            muuk::logger::error("Exception during zip extraction: {}", ex.what());
-            throw;
-        } catch (...) {
-            muuk::logger::error("Unknown error occurred during zip extraction.");
-            throw;
-        }
-    }
-
-    void download_file(const std::string& url, const std::string& output_path) {
-        std::string command;
-
-        if (command_line::command_exists("wget")) {
-            command = "wget --quiet --output-document=" + output_path + " --no-check-certificate " + url;
-        } else if (command_line::command_exists("curl")) {
-            command = "curl -L -o " + output_path + " " + url;
-        } else {
-            spdlog::error("Neither wget nor curl is available on the system.");
-            throw std::runtime_error("No suitable downloader found. Install wget or curl.");
-        }
-
-        spdlog::info("Executing download command: {}", command);
-
-        int result = command_line::execute_command(command);
-        if (result != 0) {
-            spdlog::error("Failed to download file from {}. Command exited with code: {}", url, result);
-            throw std::runtime_error("File download failed.");
-        }
     }
 
     // ==========================
@@ -203,6 +140,28 @@ namespace util {
             } catch (const std::exception& e) {
                 return tl::unexpected("JSON parsing failed: " + std::string(e.what()));
             }
+        }
+
+        Result<void> download_file(const std::string& url, const std::string& output_path) {
+            std::string command;
+
+            if (util::command_line::command_exists("wget")) {
+                command = "wget --quiet --output-document=" + output_path + " --no-check-certificate " + url;
+            } else if (util::command_line::command_exists("curl")) {
+                command = "curl -L -o " + output_path + " " + url;
+            } else {
+                muuk::logger::error("Neither wget nor curl is available on the system.");
+                throw std::runtime_error("No suitable downloader found. Install wget or curl.");
+            }
+
+            muuk::logger::info("Executing download command: {}", command);
+
+            int result = util::command_line::execute_command(command.c_str());
+            if (result != 0) {
+                return tl::unexpected("File download failed with exit code: " + std::to_string(result));
+            }
+
+            return {};
         }
     } // namespace network
 

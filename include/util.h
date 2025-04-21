@@ -18,10 +18,6 @@ namespace util {
     void remove_path(const std::string& path);
     bool match_pattern(const std::string& path, const std::string& pattern);
 
-    // Download and extraction utilities
-    void download_file(const std::string& url, const std::string& output_file);
-    void extract_zip(const std::string& archive, const std::string& target_dir);
-
     // Command execution
     namespace command_line {
         int execute_command(const std::string& command);
@@ -31,6 +27,7 @@ namespace util {
 
     namespace network {
         Result<nlohmann::json> fetch_json(const std::string& url);
+        Result<void> download_file(const std::string& url, const std::string& output_file);
     }
 
     std::string to_utf8(const std::wstring& wstr);
