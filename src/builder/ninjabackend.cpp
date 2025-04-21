@@ -14,12 +14,11 @@
 namespace fs = std::filesystem;
 
 NinjaBackend::NinjaBackend(
+    BuildManager& build_manager,
     muuk::Compiler compiler,
     const std::string& archiver,
     const std::string& linker) :
-    BuildBackend(compiler, archiver, linker),
-    build_manager(std::make_unique<BuildManager>()) {
-}
+    BuildBackend(build_manager, compiler, archiver, linker) { }
 
 void NinjaBackend::generate_build_file(
     const std::string& target_build,
@@ -35,12 +34,6 @@ void NinjaBackend::generate_build_file(
     }
 
     spdlog::default_logger()->flush();
-
-    parse(
-        *build_manager,
-        compiler_,
-        build_dir_,
-        profile);
 
     const std::string ninja_file_ = (build_dir_ / "build.ninja").string();
 
@@ -66,17 +59,16 @@ std::string NinjaBackend::generate_rule(const CompilationTarget& target) {
 
     if (!target.dependencies.empty()) {
         rule << " |";
-        for (const auto& dep : target.dependencies) {
+        for (const auto& dep : target.dependencies)
             rule << " " << dep;
-        }
     }
 
     rule << "\n";
     if (!target.flags.empty()) {
         rule << "  cflags =";
-        for (const auto& flag : target.flags) {
+        for (const auto& flag : target.flags)
             rule << " " << flag;
-        }
+
         rule << "\n";
     }
     return rule.str();
@@ -85,34 +77,69 @@ std::string NinjaBackend::generate_rule(const CompilationTarget& target) {
 std::string NinjaBackend::generate_rule(const ArchiveTarget& target) {
     std::ostringstream rule;
     rule << "build " << target.output << ": archive";
-    for (const auto& obj : target.inputs) {
+    for (const auto& obj : target.inputs)
         rule << " " << obj;
-    }
     rule << "\n";
 
     if (!target.flags.empty()) {
         rule << "  aflags =";
-        for (const auto& flag : target.flags) {
+        for (const auto& flag : target.flags)
             rule << " " << flag;
-        }
         rule << "\n";
     }
     return rule.str();
 }
 
+void NinjaBackend::generate_rule(const ExternalTarget& target) {
+    fs::path folder_path = fs::absolute(target.path);
+    std::string safe_id = "ext_" + target.name;
+    fs::path output_path = build_dir_ / (safe_id + ".ninja");
+
+    std::ostringstream out;
+
+    out << "# ----------------------------------------\n"
+        << "# External Project: " << target.name << "\n"
+        << "# ----------------------------------------\n\n";
+
+    // Configure args
+    std::string configure_args;
+    for (const auto& arg : target.args)
+        configure_args += " " + arg;
+
+    std::string configure_stamp = (folder_path / "build" / "build.ninja").string();
+
+    out << "build " << configure_stamp << ": configure_external " << folder_path / "CMakeLists.txt" << "\n";
+    out << "  configure_args =" << configure_args << "\n\n";
+
+    out << "build build_" << safe_id << ": build_external || " << configure_stamp << "\n";
+    out << "  description = Building " << target.name << "\n\n";
+
+    // Final alias
+    out << "build " << safe_id << ": phony build_" << safe_id << "\n";
+
+    std::ofstream fout(output_path);
+    if (!fout.is_open())
+        throw std::runtime_error("Failed to write external build file: " + output_path.string());
+
+    fout << out.str();
+    fout.close();
+
+    muuk::logger::info("Generated external Ninja file: {}", output_path.string());
+}
+
 std::string NinjaBackend::generate_rule(const LinkTarget& target) {
     std::ostringstream rule;
     rule << "build " << target.output << ": link";
-    for (const auto& obj : target.inputs) {
+    for (const auto& obj : target.inputs)
         rule << " " << obj;
-    }
+
     rule << "\n";
 
     if (!target.flags.empty()) {
         rule << "  lflags =";
-        for (const auto& flag : target.flags) {
+        for (const auto& flag : target.flags)
             rule << " " << flag;
-        }
+
         rule << "\n";
     }
     return rule.str();
@@ -139,7 +166,7 @@ void NinjaBackend::write_header(std::ostringstream& out, std::string profile) {
 
     module_dir = "../../" + module_dir;
 
-    auto [profile_cflags, profile_lflags] = get_profile_flag_strings(*build_manager, profile);
+    auto [profile_cflags, profile_lflags] = get_profile_flag_strings(build_manager, profile);
 
     out << "# Profile-Specific Flags\n"
         << "profile_cflags = " << profile_cflags << "\n"
@@ -193,6 +220,7 @@ void NinjaBackend::write_header(std::ostringstream& out, std::string profile) {
             << "rule link\n"
             << "  command = $linker $in /OUT:$out $profile_lflags $lflags $libraries\n"
             << "  description = Linking $out\n\n";
+
     } else {
         // MinGW or Clang on Windows / Unix
         out << "rule compile\n"
@@ -207,6 +235,18 @@ void NinjaBackend::write_header(std::ostringstream& out, std::string profile) {
             << "  command = $linker $in -o $out $profile_lflags $lflags $libraries\n"
             << "  description = Linking $out\n\n";
     }
+
+    out << "# ------------------------------------------------------------\n"
+        << "# Rules for External Targets\n"
+        << "# ------------------------------------------------------------\n";
+
+    out << "rule configure_external\n"
+        << "  command = cmake -B build -S . -G Ninja $configure_args\n"
+        << "  description = Configuring external project\n\n";
+
+    out << "rule build_external\n"
+        << "  command = ninja -C build\n"
+        << "  description = Building external project\n\n";
 }
 
 void NinjaBackend::generate_build_rules(std::ostringstream& out, const std::string& target_build) {
@@ -214,23 +254,20 @@ void NinjaBackend::generate_build_rules(std::ostringstream& out, const std::stri
     std::ostringstream build_rules;
 
     // Generate compilation rules
-    for (const auto& target : build_manager->get_compilation_targets()) {
+    for (const auto& target : build_manager.get_compilation_targets())
         build_rules << generate_rule(target);
-    }
 
     build_rules << "\n";
 
     // Generate archive rules
-    for (const auto& target : build_manager->get_archive_targets()) {
+    for (const auto& target : build_manager.get_archive_targets())
         build_rules << generate_rule(target);
-    }
 
     build_rules << "\n";
 
     // Generate link rules
-    for (const auto& target : build_manager->get_link_targets()) {
+    for (const auto& target : build_manager.get_link_targets())
         build_rules << generate_rule(target);
-    }
 
     // Write build rules to the file
     out << build_rules.str();

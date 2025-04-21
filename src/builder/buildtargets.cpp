@@ -21,6 +21,25 @@ ArchiveTarget::ArchiveTarget(std::string lib, std::vector<std::string> objs, std
     flags = aflags;
 }
 
+ExternalTarget::ExternalTarget(
+    const std::string& name_,
+    const std::string& version_,
+    const std::string& type_,
+    const std::string& path_,
+    const std::vector<std::string>& args_,
+    std::vector<std::string>& outputs_) :
+    BuildTarget("", "") {
+    name = name_;
+    version = version_;
+    type = type_;
+    path = path_;
+    args = args_;
+    outputs = outputs_;
+
+    output = "";
+    flags = args_;
+}
+
 LinkTarget::LinkTarget(std::string exe, std::vector<std::string> objs, std::vector<std::string> libs, std::vector<std::string> lflags) :
     BuildTarget(exe, exe) {
     inputs = objs;

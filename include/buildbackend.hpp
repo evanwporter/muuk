@@ -13,6 +13,7 @@
 
 class BuildBackend {
 protected:
+    BuildManager& build_manager;
     muuk::Compiler compiler_;
     const std::string archiver_;
     const std::string linker_;
@@ -21,9 +22,11 @@ public:
     virtual ~BuildBackend() = default;
 
     BuildBackend(
+        BuildManager& build_manager,
         muuk::Compiler compiler,
         std::string archiver,
         std::string linker) :
+        build_manager(build_manager),
         compiler_(compiler),
         archiver_(std::move(archiver)),
         linker_(std::move(linker)) {
@@ -37,12 +40,12 @@ public:
 
 class NinjaBackend : public BuildBackend {
 private:
-    std::unique_ptr<BuildManager> build_manager;
     std::string ninja_filename;
     std::filesystem::path build_dir_;
 
 public:
     NinjaBackend(
+        BuildManager& build_manager,
         muuk::Compiler compiler,
         const std::string& archiver,
         const std::string& linker);
@@ -55,6 +58,7 @@ private:
     std::string generate_rule(const CompilationTarget& target);
     std::string generate_rule(const ArchiveTarget& target);
     std::string generate_rule(const LinkTarget& target);
+    void generate_rule(const ExternalTarget& target);
 
     void generate_build_rules(std::ostringstream& out, const std::string& target_build);
     void write_header(std::ostringstream& out, std::string profile);
@@ -62,11 +66,11 @@ private:
 
 class CompileCommandsBackend : public BuildBackend {
 private:
-    std::unique_ptr<BuildManager> build_manager;
     std::filesystem::path build_dir_;
 
 public:
     CompileCommandsBackend(
+        BuildManager& build_manager,
         muuk::Compiler compiler,
         const std::string& archiver,
         const std::string& linker);

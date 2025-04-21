@@ -18,6 +18,7 @@
 #include "muuker.hpp"
 #include "muukterminal.hpp"
 #include "rustify.hpp"
+#include "version.h"
 
 inline int check_and_report(const Result<void>& result) {
     if (!result) {
@@ -31,7 +32,7 @@ inline int check_and_report(const Result<void>& result) {
 
 int main(int argc, char* argv[]) {
 
-    argparse::ArgumentParser program("muuk");
+    argparse::ArgumentParser program("muuk", VERSION);
 
     program.add_argument("--muuk-path")
         .help("Specify the path to muuk.toml")
@@ -136,8 +137,7 @@ int main(int argc, char* argv[]) {
         if (program.is_subcommand_used("remove")) {
             const auto package_name = remove_command.get<std::string>("package_name");
             muuk::logger::info("Removing dependency: {}", package_name);
-            muuk::remove_package(package_name, "muuk.toml", MUUK_CACHE_FILE);
-            return 0;
+            return check_and_report(muuk::remove_package(package_name, "muuk.toml", MUUK_CACHE_FILE));
         }
 
         if (program.is_subcommand_used("add")) {

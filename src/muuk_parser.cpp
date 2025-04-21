@@ -5,6 +5,7 @@
 
 #include <toml.hpp>
 
+#include "error_codes.hpp"
 #include "logger.h"
 #include "muuk_parser.hpp"
 #include "muukvalidator.hpp"
@@ -12,17 +13,21 @@
 
 namespace muuk {
 
-    Result<toml::value> parse_muuk_file(const std::string& path, bool is_lockfile) {
+    Result<toml::value> parse_muuk_file(const std::string& path, bool is_lockfile, bool preserve_order) {
         namespace fs = std::filesystem;
 
         if (!fs::exists(path)) {
-            return Err("File '{}' does not exist.", path);
+            return make_error<EC::FileNotFound>(path);
         }
 
         try {
             muuk::logger::info("Parsing muuk file: {}", path);
 
-            toml::value parsed = toml::parse(path);
+            toml::value parsed;
+            if (preserve_order)
+                parsed = toml::parse<toml::ordered_type_config>(path);
+            else
+                parsed = toml::parse(path);
 
             if (!parsed.is_table()) {
                 return Err("Root of '{}' must be a TOML table.", path);

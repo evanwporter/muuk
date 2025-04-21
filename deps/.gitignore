@@ -1,17 +1,5 @@
 /*
 
-!/argparse
-/argparse/*
-!/argparse/d924b84eba1f0f0adf38b20b7b4829f6f65b6570
-/argparse/d924b84eba1f0f0adf38b20b7b4829f6f65b6570/*
-!/argparse/d924b84eba1f0f0adf38b20b7b4829f6f65b6570/muuk.toml
-
-!/compile-time-regular-expressions
-/compile-time-regular-expressions/*
-!/compile-time-regular-expressions/a9418a5d8bd60afa0b71565ab95c16b1eab168e7
-/compile-time-regular-expressions/a9418a5d8bd60afa0b71565ab95c16b1eab168e7/*
-!/compile-time-regular-expressions/a9418a5d8bd60afa0b71565ab95c16b1eab168e7/muuk.toml
-
 !/expected
 /expected/*
 !/expected/41d3e1f48d682992a2230b2a715bca38b848b269
@@ -42,32 +30,27 @@
 /spdlog/3335c380a08c5e0f5117a66622df6afdb3d74959/*
 !/spdlog/3335c380a08c5e0f5117a66622df6afdb3d74959/muuk.toml
 
-!/toml11
-/toml11/*
-!/toml11/a01fe3b4c14c6d7b99ee3f07c9e80058c6403097
-/toml11/a01fe3b4c14c6d7b99ee3f07c9e80058c6403097/*
-!/toml11/a01fe3b4c14c6d7b99ee3f07c9e80058c6403097/muuk.toml
-
-!/unordered_dense
-/unordered_dense/*
-!/unordered_dense/73f3cbb237e84d483afafc743f1f14ec53e12314
-/unordered_dense/73f3cbb237e84d483afafc743f1f14ec53e12314/*
-!/unordered_dense/73f3cbb237e84d483afafc743f1f14ec53e12314/muuk.toml
-
 !/zip
 /zip/*
 !/zip/d7a2252a537926cbdef8512741a322a183fcfd09
 /zip/d7a2252a537926cbdef8512741a322a183fcfd09/*
 !/zip/d7a2252a537926cbdef8512741a322a183fcfd09/muuk.toml
 
-!/dr_libs
-/dr_libs/*
-!/dr_libs/9cb7092ac8c75a82b5c6ea72652ca8d0091d7ffa
-/dr_libs/9cb7092ac8c75a82b5c6ea72652ca8d0091d7ffa/*
-!/dr_libs/9cb7092ac8c75a82b5c6ea72652ca8d0091d7ffa/muuk.toml
+!/toml11
+/toml11/*
+!/toml11/a01fe3b4c14c6d7b99ee3f07c9e80058c6403097
+/toml11/a01fe3b4c14c6d7b99ee3f07c9e80058c6403097/*
+!/toml11/a01fe3b4c14c6d7b99ee3f07c9e80058c6403097/muuk.toml
+
+!/argparse
+/argparse/*
+!/argparse/d924b84eba1f0f0adf38b20b7b4829f6f65b6570
+/argparse/d924b84eba1f0f0adf38b20b7b4829f6f65b6570/*
+!/argparse/d924b84eba1f0f0adf38b20b7b4829f6f65b6570/muuk.toml
 
 !/googletest
 /googletest/*
 !/googletest/3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f
 /googletest/3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f/*
 !/googletest/3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f/muuk.toml
+

@@ -45,3 +45,5 @@ inline const std::unordered_set<std::string> SOURCE_FILE_EXTS {
 inline const std::unordered_set<std::string> HEADER_FILE_EXTS {
     ".h", ".h++", ".hh", ".hpp", ".hxx"
 };
+
+const std::string HASH_FILE_NAME = ".muuk.hash";

@@ -11,6 +11,7 @@
 
 #include "buildconfig.h"
 #include "compiler.hpp"
+#include "error_codes.hpp"
 #include "logger.h"
 #include "muuk.h"
 #include "muuk_parser.hpp"
@@ -40,19 +41,14 @@ Result<MuukLockGenerator> MuukLockGenerator::create(const std::string& base_path
 // Parse a single muuk.toml file representing a package
 Result<void> MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
     muuk::logger::trace("Attempting to parse muuk.toml: {}", path);
-    if (!fs::exists(path)) {
-        return Err("Failed to locate 'muuk.toml' at path '{}'. Check if the file exists.", path);
-    }
+    if (!fs::exists(path))
+        return muuk::make_error<muuk::EC::FileNotFound>(path);
 
     auto result_muuk = muuk::parse_muuk_file(path);
     if (!result_muuk)
         return Err(result_muuk.error());
 
     auto data = result_muuk.value();
-
-    if (!data.contains("package") || !data["package"].is_table()) {
-        return Err("Missing 'package' section in TOML file.");
-    }
 
     const auto package_name = data["package"]["name"].as_string();
     const auto package_version = data["package"]["version"].as_string();
@@ -128,6 +124,36 @@ Result<void> MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is
     return {};
 }
 
+void MuukLockGenerator::generate_gitignore() {
+    std::ofstream out("deps/.gitignore");
+    if (!out.is_open()) {
+        muuk::logger::warn("Failed to open deps/.gitignore for writing.");
+        return;
+    }
+
+    out << "/*\n\n";
+
+    // TODO: Probably more efficient way to do this
+    for (const auto& [name, version] : resolved_order_) {
+        // Skip base package
+        if (base_package_ && name == base_package_->name && version == base_package_->version)
+            continue;
+
+        auto pkg = find_package(name, version);
+        if (!pkg || pkg->package_type != PackageType::LIBRARY)
+            continue;
+
+        out << "!/" << name << "\n";
+        out << "/" << name << "/*\n";
+        out << "!/" << name << "/" << version << "\n";
+        out << "/" << name << "/" << version << "/*\n";
+        out << "!/" << name << "/" << version << "/muuk.toml\n\n";
+    }
+
+    out.close();
+    muuk::logger::info(".gitignore generated at deps/.gitignore");
+}
+
 Result<void> MuukLockGenerator::resolve_dependencies(const std::string& package_name, std::optional<std::string> version, std::optional<std::string> search_path) {
     if (visited.count(package_name)) {
         muuk::logger::trace("Dependency '{}' already processed. Skipping resolution.", package_name);
@@ -168,7 +194,7 @@ Result<void> MuukLockGenerator::resolve_dependencies(const std::string& package_
                     return Err("Package '{}' not found after parsing '{}'.", package_name, *search_path);
                 }
             } else {
-                return Err("Search file '{}' for '{}' does not exist.", search_file.string(), package_name);
+                return muuk::make_error<muuk::EC::FileNotFound>(search_file.string());
             }
         } else {
             // If no search path, search in dependency folders
@@ -178,9 +204,8 @@ Result<void> MuukLockGenerator::resolve_dependencies(const std::string& package_
 
             package = find_package(package_name, version.value());
 
-            if (!package) {
+            if (!package)
                 return Err("Package '{}' not found after searching the dependency folder ({}).", package_name, DEPENDENCY_FOLDER);
-            }
         }
         // muuk::logger::info("Package '{}' not found in resolved packages.", package_name);
     }
@@ -403,6 +428,8 @@ Result<void> MuukLockGenerator::load() {
         }
     }
 
+    propagate_profiles();
+
     return {};
 }
 
@@ -600,6 +627,8 @@ Result<void> MuukLockGenerator::generate_lockfile(const std::string& output_path
     }
 
     cargo_style_lock.close();
+
+    generate_gitignore();
 
     muuk::logger::info("muuk.lock.toml generation complete!");
     return {};
@@ -799,4 +828,53 @@ Result<void> MuukLockGenerator::resolve_build_dependencies(const std::string& bu
 
     resolved_order_.emplace_back(build_name, base_package_->version);
     return {};
+}
+
+void MuukLockGenerator::propagate_profiles() {
+    muuk::logger::info("Propagating profiles from builds to dependent libraries...");
+
+    // Start from builds
+    for (const auto& [build_name, build] : builds_) {
+        if (!build)
+            continue;
+
+        std::unordered_set<std::string> build_profiles = build->profiles;
+
+        for (const auto& dep_ptr : build->all_dependencies_array) {
+            if (!dep_ptr)
+                continue;
+
+            const auto& dep_name = dep_ptr->name;
+            const auto& dep_version = dep_ptr->version;
+
+            auto dep_package = find_package(dep_name, dep_version);
+            if (!dep_package)
+                continue;
+
+            if (dep_package->package_type == PackageType::LIBRARY) {
+                propagate_profiles_downward(*dep_package, build_profiles);
+            }
+        }
+    }
+}
+
+void MuukLockGenerator::propagate_profiles_downward(Package& package, const std::unordered_set<std::string>& inherited_profiles) {
+    if (package.package_type != PackageType::LIBRARY)
+        return;
+
+    // Insert inherited profiles
+    package.library_config.profiles.insert(inherited_profiles.begin(), inherited_profiles.end());
+
+    // Recursively apply to its dependencies
+    for (const auto& [dep_name, version_map] : package.dependencies_) {
+        for (const auto& [dep_version, dep_info] : version_map) {
+            if (!resolved_packages.count(dep_name) || !resolved_packages[dep_name].count(dep_version))
+                continue;
+
+            auto& dep_pkg = resolved_packages[dep_name][dep_version];
+            if (dep_pkg->package_type == PackageType::LIBRARY) {
+                propagate_profiles_downward(*dep_pkg, inherited_profiles);
+            }
+        }
+    }
 }

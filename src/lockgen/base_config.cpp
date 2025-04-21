@@ -22,6 +22,10 @@ bool PackageType::operator==(const PackageType& other) const {
     return type_ == other.type_;
 }
 
+bool PackageType::operator!=(const PackageType& other) const {
+    return !(*this == other);
+}
+
 Result<void> Dependency::load(const std::string name_, const toml::value& v) {
     name = name_;
     if (v.is_string()) {
@@ -195,6 +199,7 @@ void Library::serialize(toml::value& out) const {
     out["version"] = version;
     BaseConfig<Library>::serialize(out);
     external.serialize(out);
+    out["profiles"] = profiles;
 }
 
 void Build::merge(const Package& package) {

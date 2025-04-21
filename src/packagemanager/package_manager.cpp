@@ -8,10 +8,12 @@
 extern "C" {
 #include "zip.h"
 }
+
 #include "buildconfig.h"
 #include "commands/add.hpp"
 #include "logger.h"
 #include "muuk.h"
+#include "muuk_parser.hpp"
 #include "rustify.hpp"
 #include "util.h"
 
@@ -105,21 +107,12 @@ namespace muuk {
             version);
 
         try {
-            if (!fs::exists(toml_path)) {
-                return Err("muuk.toml file not found: {}", toml_path);
-            }
+            auto parsed = muuk::parse_muuk_file(toml_path, false, true);
+            if (!parsed)
+                return Err(parsed);
+            auto root = parsed.value();
 
-            auto root = toml::parse<toml::ordered_type_config>(toml_path);
-
-            // Get the package name
-            if (!root.contains("package") || !root.at("package").is_table())
-                return Err("Missing or invalid 'package' section.");
-            const auto& package_table = root.at("package").as_table();
-
-            if (!package_table.contains("name") || !package_table.at("name").is_string())
-                return Err("Missing 'name' field in 'package' section.");
-            const std::string package_name = package_table.at("name").as_string();
-
+            // TODO: Create the dependencies table if it doesn't exist
             if (!root.contains("dependencies") || !root.at("dependencies").is_table())
                 return Err("Missing or invalid 'dependencies' section.");
             auto& dependencies = root.at("dependencies").as_table();
@@ -169,7 +162,7 @@ namespace muuk {
                 }
             }
 
-            dependencies.emplace_back(repo_name, toml::value(version));
+            dependencies[repo_name] = toml::value(version);
 
             std::ofstream file_out(toml_path, std::ios::trunc);
             if (!file_out.is_open()) {

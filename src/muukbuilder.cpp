@@ -1,9 +1,12 @@
+#include <filesystem>
 #include <string>
 
 #include <toml.hpp>
 
 #include "buildbackend.hpp"
 #include "buildconfig.h"
+#include "buildmanager.h"
+#include "buildparser.hpp"
 #include "commands/build.hpp"
 #include "compiler.hpp"
 #include "logger.h"
@@ -11,6 +14,8 @@
 #include "muuklockgen.h"
 #include "rustify.hpp"
 #include "util.h"
+
+namespace fs = std::filesystem;
 
 namespace muuk {
 
@@ -113,9 +118,9 @@ namespace muuk {
         return {};
     }
 
-    Result<void> generate_compile_commands(const std::string& profile, const muuk::Compiler& compiler, const std::string& archiver, const std::string& linker) {
+    Result<void> generate_compile_commands(BuildManager& build_manager, const std::string& profile, const muuk::Compiler& compiler, const std::string& archiver, const std::string& linker) {
         muuk::logger::info("Generating compile_commands.json for profile '{}'", profile);
-        CompileCommandsBackend backend(compiler, archiver, linker);
+        CompileCommandsBackend backend(build_manager, compiler, archiver, linker);
         backend.generate_build_file("compile_commands", profile);
         muuk::logger::info("compile_commands.json generated successfully.");
         return {};
@@ -150,16 +155,31 @@ namespace muuk {
 
         std::string selected_profile = profile_result.value();
 
+        auto build_manager = std::make_unique<BuildManager>();
+
+        auto parse_result = parse(
+            *build_manager,
+            selected_compiler,
+            fs::path("build") / selected_profile,
+            selected_profile);
+
+        if (!parse_result) {
+            return Err(parse_result.error());
+        }
+
         NinjaBackend build_backend(
+            *build_manager, // ← Reuse external BuildManager
             selected_compiler,
             selected_archiver,
             selected_linker);
+
+        build_backend.generate_build_file(target_build, selected_profile);
 
         muuk::logger::info("Generating Ninja file for '{}'", selected_profile);
         build_backend.generate_build_file(target_build, selected_profile);
 
         execute_build(selected_profile);
-        generate_compile_commands(selected_profile, selected_compiler, selected_archiver, selected_linker);
+        generate_compile_commands(*build_manager, selected_profile, selected_compiler, selected_archiver, selected_linker);
 
         return {};
     }

@@ -17,12 +17,11 @@ namespace fs = std::filesystem;
 // make sure it only generates profile specific stuff
 
 CompileCommandsBackend::CompileCommandsBackend(
+    BuildManager& build_manager,
     muuk::Compiler compiler,
     const std::string& archiver,
     const std::string& linker) :
-    BuildBackend(compiler, archiver, linker),
-    build_manager(std::make_unique<BuildManager>()) {
-}
+    BuildBackend(build_manager, compiler, archiver, linker) { }
 
 void CompileCommandsBackend::generate_build_file(const std::string& target_build, const std::string& profile) {
     (void)target_build;
@@ -36,13 +35,7 @@ void CompileCommandsBackend::generate_build_file(const std::string& target_build
         muuk::logger::info("Created build directory: {}", build_dir_.string());
     }
 
-    parse(
-        *build_manager,
-        compiler_,
-        build_dir_,
-        profile);
-
-    auto [profile_cflags, profile_lflags] = get_profile_flag_strings(*build_manager, profile);
+    auto [profile_cflags, profile_lflags] = get_profile_flag_strings(build_manager, profile);
 
     // Generate compile_commands.json
     json compile_commands = generate_compile_commands(profile_cflags);
@@ -61,7 +54,7 @@ void CompileCommandsBackend::generate_build_file(const std::string& target_build
 json CompileCommandsBackend::generate_compile_commands(const std::string& profile_cflags) {
     json compile_commands = json::array();
 
-    for (const auto& target : build_manager->get_compilation_targets()) {
+    for (const auto& target : build_manager.get_compilation_targets()) {
         json entry;
         entry["directory"] = fs::absolute(build_dir_).string();
         entry["file"] = target.inputs[0];

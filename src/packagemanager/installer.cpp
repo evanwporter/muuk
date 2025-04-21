@@ -4,6 +4,7 @@
 
 #include <toml.hpp>
 
+#include "buildconfig.h"
 #include "commands/install.hpp"
 #include "logger.h"
 #include "muuk_parser.hpp"
@@ -15,7 +16,6 @@
 namespace fs = std::filesystem;
 
 namespace muuk {
-    const std::string HASH_FILE_NAME = ".muuk.hash";
 
     // Determines if the package is installed by checking if `.muuk.hash` exists
     bool is_package_installed(const fs::path& target_dir) {
@@ -27,13 +27,6 @@ namespace muuk {
         if (file.is_open()) {
             file << "installed";
             file.close();
-        }
-    }
-
-    void delete_hash_file(const fs::path& target_dir) {
-        fs::path hash_file = target_dir / HASH_FILE_NAME;
-        if (fs::exists(hash_file)) {
-            fs::remove(hash_file);
         }
     }
 
@@ -218,63 +211,6 @@ namespace muuk {
         }
 
         std::cout << muuk::terminal::style::GREEN << muuk::terminal::style::BOLD << "All dependencies are installed!" << muuk::terminal::style::RESET << "\n";
-        return {};
-    }
-
-    Result<void> remove_package(const std::string& package_name, const std::string& toml_path, const std::string& lockfile_path) {
-        muuk::logger::info("Removing package: {}", package_name);
-
-        try {
-            if (!fs::exists(toml_path)) {
-                muuk::logger::error("muuk.toml file not found at '{}'", toml_path);
-                return Err("");
-            }
-
-            auto parse_result = muuk::parse_muuk_file(toml_path, false);
-            if (!parse_result) {
-                muuk::logger::error("Failed to read '{}': {}", toml_path, parse_result.error());
-                return Err("");
-            }
-            toml::value muuk_toml = parse_result.value();
-
-            if (!muuk_toml.contains("dependencies")) { // TODO: Check if table too
-                muuk::logger::error("No [dependencies] section found in '{}'", toml_path);
-                return Err("");
-            }
-
-            toml::table& dependencies = muuk_toml["dependencies"].as_table();
-            if (!dependencies.contains(package_name)) {
-                muuk::logger::error("Package '{}' is not listed in '{}'", package_name, toml_path);
-                return Err("");
-            }
-
-            dependencies.erase(package_name);
-
-            std::ofstream toml_out(toml_path);
-            if (!toml_out) {
-                muuk::logger::error("Could not open '{}' for writing", toml_path);
-                return Err("");
-            }
-
-            toml_out << toml::format(muuk_toml);
-            toml_out.close();
-
-            // TODO: Generate lockfile
-
-            fs::path package_path = std::string(DEPENDENCY_FOLDER) + "/" + package_name;
-            if (fs::exists(package_path)) {
-                delete_hash_file(package_path);
-                fs::remove_all(package_path);
-                muuk::logger::info("Removed package directory: {}", package_path.string());
-            } else {
-                muuk::logger::warn("Package directory '{}' does not exist. Skipping.", package_path.string());
-            }
-
-            muuk::logger::info("Successfully removed package '{}'", package_name);
-        } catch (const std::exception& e) {
-            muuk::logger::error("Error removing package '{}': {}", package_name, e.what());
-            return Err("");
-        }
         return {};
     }
 }

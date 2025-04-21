@@ -306,6 +306,7 @@ struct ProfileConfig : BaseConfig<ProfileConfig> {
 struct Library : BaseConfig<Library> {
     std::string name;
     std::string version;
+    std::unordered_set<std::string> profiles;
 
     static constexpr bool enable_compilers = false;
     static constexpr bool enable_platforms = false;

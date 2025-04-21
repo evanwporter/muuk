@@ -113,6 +113,14 @@ private:
         const toml::value& data,
         std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_set<std::string>>>& target,
         const std::vector<std::string>& flag_categories);
+
+    void propagate_profiles();
+
+    void propagate_profiles_downward(
+        Package& package,
+        const std::unordered_set<std::string>& inherited_profiles);
+
+    void generate_gitignore();
 };
 
 #endif // MUUK_LOCK_GEN_H

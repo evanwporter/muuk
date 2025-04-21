@@ -34,7 +34,6 @@ sources = [
 ]
 
 [dependencies]
-compile-time-regular-expressions = { git = 'https://github.com/hanickadot/compile-time-regular-expressions.git', version = 'a9418a5d8bd60afa0b71565ab95c16b1eab168e7' }
 expected = { git = 'https://github.com/TartanLlama/expected.git', version = '41d3e1f48d682992a2230b2a715bca38b848b269' }
 fmt = { git = 'https://github.com/fmtlib/fmt.git', version = '577fd3be883accf8629423ed77fcca8a24bccee2' }
 glob = { git = 'https://github.com/p-ranav/glob.git', version = 'd025092c0e1eb1a8b226d3a799fd32680d2fd13f' }

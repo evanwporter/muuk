@@ -121,6 +121,7 @@ void parse_compilation_unit(BuildManager& build_manager, muuk::Compiler compiler
         unit_cflags.insert(unit_cflags.end(), platform_cflags.begin(), platform_cflags.end());
         unit_cflags.insert(unit_cflags.end(), compiler_cflags.begin(), compiler_cflags.end());
 
+        // TODO: Normalize flags in backend. Since different backends may use different compilers.
         muuk::normalize_flags_inplace(unit_cflags, compiler);
 
         // Register in build manager
@@ -145,7 +146,7 @@ void parse_compilation_targets(BuildManager& build_manager, const muuk::Compiler
             const auto package_version = package_table.at("version").as_string();
 
             // Skip if 'profiles' is present and doesn't match
-            if (name == "build" && package_table.contains("profiles")) {
+            if (package_table.contains("profiles")) {
                 bool matched = false;
                 for (const auto& p : package_table.at("profiles").as_array())
                     if (p.as_string() == profile) {
@@ -195,7 +196,7 @@ void parse_compilation_targets(BuildManager& build_manager, const muuk::Compiler
     muuk::resolve_modules(build_manager, build_dir.string());
 };
 
-void parse_libraries(BuildManager& build_manager, const muuk::Compiler compiler, const std::filesystem::path& build_dir, const toml::value& muuk_file) {
+void parse_libraries(BuildManager& build_manager, const muuk::Compiler compiler, const std::filesystem::path& build_dir, const toml::value& muuk_file, const std::string& profile) {
 
     for (const auto& library_table : muuk_file.at("library").as_array()) {
         const auto library_name = library_table.at("name").as_string();
@@ -203,6 +204,19 @@ void parse_libraries(BuildManager& build_manager, const muuk::Compiler compiler,
         const auto lib_path = util::to_linux_path(
             (build_dir / library_name / library_version / (library_name + LIB_EXT)).string(),
             "../../");
+
+        // Skip if 'profiles' is present and doesn't match
+        if (library_table.contains("profiles")) {
+            bool matched = false;
+            for (const auto& p : library_table.at("profiles").as_array())
+                if (p.as_string() == profile) {
+                    matched = true;
+                    break;
+                }
+
+            if (!matched)
+                continue;
+        }
 
         std::vector<std::string> obj_files;
         if (library_table.contains("sources")) {
@@ -230,6 +244,53 @@ void parse_libraries(BuildManager& build_manager, const muuk::Compiler compiler,
         muuk::logger::trace("  - Archive Flags: {}", fmt::join(aflags, ", "));
     }
 };
+
+Result<std::vector<ExternalTarget>> parse_external_targets(const toml::value& muuk_file) {
+    std::vector<ExternalTarget> externals;
+
+    if (!muuk_file.contains("external"))
+        return externals;
+
+    const auto& ext_array = muuk_file.at("external").as_array();
+
+    for (const auto& entry : ext_array) {
+        if (!entry.is_table())
+            continue;
+
+        const auto& ext_table = entry.as_table();
+
+        try {
+            const std::string name = ext_table.at("name").as_string();
+            const std::string version = ext_table.at("version").as_string();
+            const std::string type = ext_table.at("type").as_string();
+            const std::string path = ext_table.at("path").as_string();
+
+            std::vector<std::string> args;
+            if (ext_table.contains("args")) {
+                for (const auto& arg : ext_table.at("args").as_array()) {
+                    args.push_back(arg.as_string());
+                }
+            }
+
+            std::vector<std::string> outputs;
+            if (ext_table.contains("outputs")) {
+                for (const auto& out : ext_table.at("outputs").as_array()) {
+                    outputs.push_back(out.as_string());
+                }
+            } else {
+                return Err("Missing 'outputs' field for external target '{}'", name);
+            }
+
+            externals.emplace_back(name, version, type, path, args, outputs);
+            muuk::logger::info("Parsed external target '{}'", name);
+
+        } catch (const std::exception& e) {
+            return Err("Failed to parse [external] entry: {}", e.what());
+        }
+    }
+
+    return externals;
+}
 
 void parse_executables(
     BuildManager& build_manager, const muuk::Compiler compiler, const std::filesystem::path& build_dir, const std::string& profile_, const toml::value& muuk_file) {
@@ -353,7 +414,7 @@ Result<void> parse(BuildManager& build_manager, muuk::Compiler compiler, const s
     build_manager.set_profile_flags(profile, profile_result.value());
 
     parse_compilation_targets(build_manager, compiler, build_dir, muuk_file, profile);
-    parse_libraries(build_manager, compiler, build_dir, muuk_file);
+    parse_libraries(build_manager, compiler, build_dir, muuk_file, profile);
     parse_executables(build_manager, compiler, build_dir, profile, muuk_file);
 
     return {};

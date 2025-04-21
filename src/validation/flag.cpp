@@ -6,6 +6,7 @@
 
 namespace muuk {
     // From cabin @ github.com/cabinpkg/cabin w/ modifications
+    // Credit to Ken Matsui @ github.com/ken-matsui
     Result<bool> validate_flag(Compiler compiler_, std::string_view flag) {
         if (flag.empty()) {
             return Err("{} compiler flag must not be empty", compiler_.to_string());

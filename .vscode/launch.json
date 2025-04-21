@@ -107,5 +107,21 @@
       "symbolSearchPath": "${workspaceFolder}/build/debug/bin",
       "preLaunchTask": "Build Debug (MSVC)"
     },
+    {
+      "name": "(Windows) Remove Package",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/debug/bin/bin.exe",
+      "args": [
+        "remove",
+        "magic_enum"
+        // "aappleby/smhasher"
+      ],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "console": "integratedTerminal",
+      "symbolSearchPath": "${workspaceFolder}/build/debug/bin",
+    },
   ]
 }

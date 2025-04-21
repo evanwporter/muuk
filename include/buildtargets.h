@@ -32,6 +32,25 @@ public:
     virtual ~ArchiveTarget() = default;
 };
 
+class ExternalTarget : public BuildTarget {
+public:
+    std::string version;
+    std::string type; // "cmake", "make", etc.
+    std::string path; // Path to the external project
+    std::vector<std::string> args; // Build configuration arguments
+    std::vector<std::string> outputs; // List of produced artifacts (e.g. .a, .so, .dll)
+
+    ExternalTarget(
+        const std::string& name,
+        const std::string& version,
+        const std::string& type,
+        const std::string& path,
+        const std::vector<std::string>& args,
+        std::vector<std::string>& outputs);
+
+    virtual ~ExternalTarget() = default;
+};
+
 class LinkTarget : public BuildTarget {
 public:
     LinkTarget(std::string exe, std::vector<std::string> objs, std::vector<std::string> libs, std::vector<std::string> lflags);
