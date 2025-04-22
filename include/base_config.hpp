@@ -71,10 +71,13 @@ struct source_file {
         path(std::move(p)), cflags(f) { }
 };
 
+using module_file = source_file;
+
 template <typename Derived>
 struct BaseFields {
     std::vector<source_file> sources;
-    std::unordered_set<std::string> modules, libs, include, defines;
+    std::vector<module_file> modules;
+    std::unordered_set<std::string> libs, include, defines;
     std::unordered_set<std::string> cflags, cxxflags, aflags, lflags;
     DependencyVersionMap<Dependency> dependencies;
 
@@ -91,7 +94,7 @@ struct BaseFields {
 
     void load(const toml::value& v, const std::string& base_path) {
         if constexpr (Derived::enable_modules)
-            modules = util::muuk_toml::find_or_get<std::unordered_set<std::string>>(v, "modules", {});
+            modules = parse_sources(v, base_path, "modules");
         if constexpr (Derived::enable_sources)
             sources = parse_sources(v, base_path);
         if constexpr (Derived::enable_include) {
@@ -124,12 +127,16 @@ struct BaseFields {
     }
 
     void serialize(toml::value& out) const {
-        if constexpr (Derived::enable_modules)
-            if (!modules.empty())
-                out["modules"] = modules;
+        if constexpr (Derived::enable_modules) {
+            toml::array module_array;
+            for (const auto& s : expand_glob_sources(modules))
+                module_array.push_back(s.serialize());
+            if (!module_array.empty())
+                out["modules"] = module_array;
+        }
         if constexpr (Derived::enable_sources) {
             toml::array src_array;
-            for (const auto& s : expand_glob_sources())
+            for (const auto& s : expand_glob_sources(sources))
                 src_array.push_back(s.serialize());
             if (!src_array.empty())
                 out["sources"] = src_array;
@@ -177,12 +184,12 @@ struct BaseFields {
         merge_sets(libs, other.libs);
     }
 
-    std::vector<source_file> parse_sources(const toml::value& section, const std::string& base_path) {
+    std::vector<source_file> parse_sources(const toml::value& section, const std::string& base_path, const std::string& key = "sources") {
         std::vector<source_file> temp_sources;
-        if (!section.contains("sources"))
+        if (!section.contains(key))
             return temp_sources;
 
-        for (const auto& src : section.at("sources").as_array()) {
+        for (const auto& src : section.at(key).as_array()) {
             std::string source_entry = src.as_string();
 
             std::vector<std::string> extracted_cflags;
@@ -208,10 +215,10 @@ struct BaseFields {
         return temp_sources;
     }
 
-    std::vector<source_file> expand_glob_sources() const {
+    static std::vector<source_file> expand_glob_sources(const std::vector<source_file>& input_sources) {
         std::vector<source_file> expanded;
 
-        for (const auto& s : sources) {
+        for (const auto& s : input_sources) {
             try {
                 std::vector<std::filesystem::path> globbed_paths = glob::glob(s.path);
                 for (const auto& path : globbed_paths) {

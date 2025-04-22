@@ -26,7 +26,18 @@ namespace muuk {
 
             // Append compilation flags
             for (const auto& flag : target.flags) {
-                command += " " + muuk::normalize_flag(flag, muuk::Compiler::Clang);
+                std::string normalized = muuk::normalize_flag(flag, muuk::Compiler::Clang);
+
+                // Make -I paths absolute
+                if (normalized.starts_with("-I")) {
+                    std::string path = normalized.substr(2); // Strip -I
+                    if (!std::filesystem::path(path).is_absolute()) {
+                        std::filesystem::path abs_path = std::filesystem::absolute(build_dir + "/" + path);
+                        normalized = "-I" + abs_path.string();
+                    }
+                }
+
+                command += " " + normalized;
             }
 
             // TODO: Remove more elegantly
@@ -130,7 +141,7 @@ namespace muuk {
                         primary_target->dependencies.push_back(required_target);
                         muuk::logger::info("Added dependency: Target '{}' requires '{}'", primary_output, required_source);
                     } else {
-                        muuk::logger::warn("Warning: Could not find compilation target for required module '{}'", required_source);
+                        muuk::logger::warn("Could not find compilation target for required module '{}'", required_source);
                     }
                 }
             }

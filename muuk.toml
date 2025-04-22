@@ -14,6 +14,7 @@ patterns = ['*.obj', '*.lib', '*.pdb']
 cflags = ['/W4']
 include = ['include']
 libs = []
+# modules = ["modules/math.ixx"]
 sources = [
     'src/muuker.cpp',
     'src/util/*.cpp',
@@ -31,6 +32,7 @@ sources = [
     'src/compiler.cpp',
     'src/muuk_toml_handler.cpp',
     'src/muuk_parser.cpp',
+    # 'src/test.cpp',
 ]
 
 [dependencies]

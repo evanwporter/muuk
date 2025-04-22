@@ -23,15 +23,31 @@ class BuildManager {
     std::unordered_map<std::string, BuildProfile> profiles;
 
 public:
-    void add_compilation_target(std::string src, std::string obj, std::vector<std::string> cflags, std::vector<std::string> iflags);
-    void add_archive_target(std::string lib, std::vector<std::string> objs, std::vector<std::string> aflags);
-    void add_link_target(std::string exe, std::vector<std::string> objs, std::vector<std::string> libs, std::vector<std::string> lflags);
+    void add_compilation_target(
+        std::string src,
+        std::string obj,
+        std::vector<std::string> cflags,
+        std::vector<std::string> iflags,
+        CompilationUnitType compilation_unit_type = CompilationUnitType::Source);
+
+    void add_archive_target(
+        std::string lib,
+        std::vector<std::string> objs,
+        std::vector<std::string> aflags);
+
+    void add_link_target(
+        std::string exe,
+        std::vector<std::string> objs,
+        std::vector<std::string> libs,
+        std::vector<std::string> lflags);
 
     std::vector<CompilationTarget> get_compilation_targets() const;
     std::vector<ArchiveTarget> get_archive_targets() const;
     std::vector<LinkTarget> get_link_targets() const;
 
-    CompilationTarget* find_compilation_target(const std::string& key, const std::string& value);
+    CompilationTarget* find_compilation_target(
+        const std::string& key,
+        const std::string& value);
 
     void set_profile_flags(const std::string& profile_name, BuildProfile profile);
     const BuildProfile* get_profile(const std::string& profile_name) const;

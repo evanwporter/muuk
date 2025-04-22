@@ -5,6 +5,12 @@
 #include <string>
 #include <vector>
 
+enum class CompilationUnitType {
+    Module,
+    Source,
+    Count
+};
+
 class BuildTarget {
 public:
     std::string name; // Unique target name (e.g., obj file, archive, executable)
@@ -18,12 +24,13 @@ public:
 
 class CompilationTarget : public BuildTarget {
 public:
-    CompilationTarget(std::string src, std::string obj, std::vector<std::string> cflags, std::vector<std::string> iflags);
+    CompilationTarget(std::string src, std::string obj, std::vector<std::string> cflags, std::vector<std::string> iflags, CompilationUnitType comp_type = CompilationUnitType::Source);
     virtual ~CompilationTarget() = default;
 
     std::string input;
     std::string logical_name;
     std::vector<CompilationTarget*> dependencies; // Files that must be built first
+    CompilationUnitType compilation_unit_type; // Module or Source
 };
 
 class ArchiveTarget : public BuildTarget {

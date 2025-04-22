@@ -4,7 +4,7 @@ I don't understand how to use cmake and I liked cargo a lot, so I created my own
 
 ![meme](meme.jpg)
 
-Another relevant comic:
+Another relevant comic (all credit to xkcd):
 
 ![xkcd comic](https://imgs.xkcd.com/comics/standards_2x.png)
 

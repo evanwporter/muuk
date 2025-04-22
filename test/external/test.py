@@ -1,207 +1,145 @@
 import subprocess
-import os
-import pytest
 import tempfile
+import os
+import textwrap
+import pytest
+import pathlib
 
 
-MUUK_EXECUTABLE = "build/muuk/release/bin/muuk.exe"
+def print_directory_tree(root_path):
+    print("\nDirectory Tree")
+    for path in pathlib.Path(root_path).rglob("*"):
+        rel_path = path.relative_to(root_path)
+        if path.is_dir():
+            print(f"[DIR]  {rel_path}")
+        else:
+            print(f"       {rel_path}")
 
 
-# @pytest.mark.parametrize(
-#     "args",
-#     [
-#         [],  # No arguments
-#         ["invalid_command"],  # Invalid command
-#         ["--muuk-path", "non_existent_file.toml"],  # Non-existent config
-#         ["build", "--release", "--unknown-flag"],  # Unknown flag
-#         ["install"],  # Missing required argument
-#         ["run"],  # Missing script name
-#         ["upload-patch", "--dry-run", "--invalid"],  # Invalid flag for upload-patch
-#     ],
-# )
-# def test_invalid_arguments(args):
-#     assert True
-#     # result = subprocess.run([MUUK_EXECUTABLE] + args, capture_output=True, text=True)
-#     # assert result.returncode != 0, f"Expected failure, but got success: {result.stdout}"
+@pytest.fixture
+def simple_project_dir():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        src_dir = os.path.join(temp_dir, "src")
+        os.makedirs(src_dir, exist_ok=True)
+
+        build_path = os.path.join(temp_dir, "build")
+        os.makedirs(build_path, exist_ok=True)
+
+        with open(os.path.join(src_dir, "main.cpp"), "w") as f:
+            f.write("int main() { return 0; }")
+
+        toml_content = textwrap.dedent("""\
+            [package]
+            name = "tiny"
+            version = "0.1.0"
+            edition = "20"
+
+            [library]
+            sources = ["src/main.cpp"]
+
+            [build.tiny]
+            profile = ["debug"]
+            sources = ["src/main.cpp"]
+
+            [profile.debug]
+            cflags = ["-g", "/FS"]
+            lflags = []
+            default = true
+        """)
+
+        with open(os.path.join(temp_dir, "muuk.toml"), "w") as f:
+            f.write(toml_content)
+
+        yield temp_dir
 
 
-def test_it():
-    assert True
+@pytest.fixture
+def module_project_dir():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        src_dir = os.path.join(temp_dir, "src")
+        os.makedirs(src_dir, exist_ok=True)
+
+        build_path = os.path.join(temp_dir, "build")
+        os.makedirs(build_path, exist_ok=True)
+
+        with open(os.path.join(src_dir, "math.ixx"), "w") as f:
+            f.write(
+                textwrap.dedent("""\
+                export module math;
+
+                export int add(int a, int b) {
+                    return a + b;
+                }
+            """)
+            )
+
+        with open(os.path.join(src_dir, "main.cpp"), "w") as f:
+            f.write(
+                textwrap.dedent("""\
+                import math;
+                int main() {
+                    return add(2, 3);
+                }
+            """)
+            )
+
+        toml_content = textwrap.dedent("""\
+            [package]
+            name = "tiny"
+            version = "0.1.0"
+            edition = "20"
+
+            [library]
+            modules = ["src/math.ixx"]
+            sources = ["src/main.cpp"]
+
+            [build.tiny]
+            profile = ["debug"]
+            sources = ["src/main.cpp"]
+
+            [profile.debug]
+            cflags = ["-std:c++latest", "/EHsc", "/FS", "/Zi"]
+            lflags = []
+            default = true
+        """)
+
+        with open(os.path.join(temp_dir, "muuk.toml"), "w") as f:
+            f.write(toml_content)
+
+        yield temp_dir
 
 
-# def test_empty_muuk_toml():
-#     with tempfile.TemporaryDirectory() as temp_dir:
-#         muuk_path = os.path.join(temp_dir, "muuk.toml")
-#         open(muuk_path, "w").close()  # Create an empty file
+@pytest.mark.parametrize(
+    "project_dir_fixture", ["simple_project_dir", "module_project_dir"]
+)
+def test_muuk_build(request, project_dir_fixture):
+    project_dir = request.getfixturevalue(project_dir_fixture)
 
-#         result = subprocess.run(
-#             [MUUK_EXECUTABLE, "--muuk-path", muuk_path, "build"],
-#             capture_output=True,
-#             text=True,
-#         )
-#         assert result.returncode != 0, (
-#             "Program should fail when provided with an empty config file"
-#         )
+    result = subprocess.run(
+        ["../../build/debug/bin/bin.exe", "build", "-c", "cl", "-p", "debug"],
+        cwd=project_dir,
+        capture_output=True,
+        text=True,
+    )
 
+    print("STDOUT:\n", result.stdout)
+    print("STDERR:\n", result.stderr)
 
-# def test_invalid_toml():
-#     with tempfile.TemporaryDirectory() as temp_dir:
-#         muuk_path = os.path.join(temp_dir, "muuk.toml")
-#         with open(muuk_path, "w") as f:
-#             f.write("invalid_toml = [unclosed_string")  # Malformed TOML
+    assert result.returncode == 0, "muuk build failed"
 
-#         result = subprocess.run(
-#             [MUUK_EXECUTABLE, "--muuk-path", muuk_path, "build"],
-#             capture_output=True,
-#             text=True,
-#         )
-#         assert result.returncode != 0, (
-#             "Program should fail when provided with malformed TOML"
-#         )
+    if result.returncode == 0:
+        print_directory_tree(project_dir)
 
+        build_ninja_path = pathlib.Path(project_dir) / "build" / "debug" / "build.ninja"
+        if build_ninja_path.exists():
+            print("\n--- build.ninja content ---")
+            with open(build_ninja_path, "r") as f:
+                print(f.read())
+        else:
+            print("\n--- build.ninja not found ---")
 
-# def test_missing_muuk_toml():
-#     result = subprocess.run(
-#         [MUUK_EXECUTABLE, "--muuk-path", "non_existent.toml", "build"],
-#         capture_output=True,
-#         text=True,
-#     )
-#     assert result.returncode != 0, (
-#         "Program should fail when the configuration file is missing"
-#     )
-
-
-# def test_permission_error():
-#     with tempfile.TemporaryDirectory() as temp_dir:
-#         muuk_path = os.path.join(temp_dir, "muuk.toml")
-#         with open(muuk_path, "w") as f:
-#             f.write("[package]\nname = 'test'\nversion = '1.0.0'")  # Valid TOML
-
-#         os.chmod(muuk_path, 0o000)  # Remove all permissions
-
-#         result = subprocess.run(
-#             [MUUK_EXECUTABLE, "--muuk-path", muuk_path, "build"],
-#             capture_output=True,
-#             text=True,
-#         )
-
-#         os.chmod(muuk_path, 0o644)  # Restore permissions for cleanup
-
-#         assert result.returncode != 0, (
-#             "Program should fail when it cannot read the config file"
-#         )
-
-
-# def test_large_muuk_toml():
-#     with tempfile.TemporaryDirectory() as temp_dir:
-#         muuk_path = os.path.join(temp_dir, "muuk.toml")
-#         with open(muuk_path, "w") as f:
-#             f.write("[package]\nname = 'test'\nversion = '1.0.0'\n")
-#             for i in range(100000):
-#                 f.write(
-#                     f"entry{i} = '{''.join(random.choices(string.ascii_letters, k=50))}'\n"
-#                 )
-
-#         result = subprocess.run(
-#             [MUUK_EXECUTABLE, "--muuk-path", muuk_path, "build"],
-#             capture_output=True,
-#             text=True,
-#         )
-#         assert result.returncode != 0, (
-#             "Program should fail or handle large TOML files correctly"
-#         )
-
-
-# def test_random_binary_input():
-#     with tempfile.TemporaryDirectory() as temp_dir:
-#         muuk_path = os.path.join(temp_dir, "muuk.toml")
-#         with open(muuk_path, "wb") as f:
-#             f.write(os.urandom(1024))  # Write random binary data
-
-#         result = subprocess.run(
-#             [MUUK_EXECUTABLE, "--muuk-path", muuk_path, "build"],
-#             capture_output=True,
-#             text=True,
-#         )
-#         assert result.returncode != 0, (
-#             "Program should fail when given a binary input file"
-#         )
-
-
-# def test_circular_dependency():
-#     with tempfile.TemporaryDirectory() as temp_dir:
-#         muuk_path = os.path.join(temp_dir, "muuk.toml")
-#         with open(muuk_path, "w") as f:
-#             f.write(
-#                 """
-#             [package]
-#             name = "test"
-#             version = "1.0.0"
-
-#             [library.test]
-#             dependencies = { test = "1.0.0" }  # Circular dependency
-#             """
-#             )
-
-#         result = subprocess.run(
-#             [MUUK_EXECUTABLE, "--muuk-path", muuk_path, "build"],
-#             capture_output=True,
-#             text=True,
-#         )
-#         assert result.returncode != 0, (
-#             "Program should detect and handle circular dependencies"
-#         )
-
-
-# @pytest.mark.parametrize(
-#     "garbage_input",
-#     [
-#         "???",
-#         "!!invalid!!",
-#         "DROP TABLE users;",
-#         '{"key": "value"}',  # JSON instead of TOML
-#         "<xml><error></xml>",  # XML instead of TOML
-#     ],
-# )
-# def test_garbage_inputs(garbage_input):
-#     with tempfile.TemporaryDirectory() as temp_dir:
-#         muuk_path = os.path.join(temp_dir, "muuk.toml")
-#         with open(muuk_path, "w") as f:
-#             f.write(garbage_input)
-
-#         result = subprocess.run(
-#             [MUUK_EXECUTABLE, "--muuk-path", muuk_path, "build"],
-#             capture_output=True,
-#             text=True,
-#         )
-#         assert result.returncode != 0, (
-#             f"Program should fail with garbage input: {garbage_input}"
-#         )
-
-
-# def test_no_disk_space():
-#     with tempfile.TemporaryDirectory() as temp_dir:
-#         muuk_path = os.path.join(temp_dir, "muuk.toml")
-#         with open(muuk_path, "w") as f:
-#             f.write("[package]\nname = 'test'\nversion = '1.0.0'")
-
-#         # Mock "no disk space" by mounting a full tmpfs (Linux only)
-#         if shutil.which("mount"):
-#             subprocess.run(
-#                 ["mount", "-t", "tmpfs", "-o", "size=1K", "tmpfs", temp_dir],
-#                 check=False,
-#             )
-
-#         result = subprocess.run(
-#             [MUUK_EXECUTABLE, "--muuk-path", muuk_path, "build"],
-#             capture_output=True,
-#             text=True,
-#         )
-
-#         if shutil.which("umount"):
-#             subprocess.run(["umount", temp_dir], check=False)
-
-#         assert result.returncode != 0, "Program should fail when there is no disk space"
+    expected_bin = os.path.join(project_dir, "build", "debug", "tiny", "tiny.exe")
+    assert os.path.isfile(expected_bin), f"Expected binary not found: {expected_bin}"
 
 
 if __name__ == "__main__":

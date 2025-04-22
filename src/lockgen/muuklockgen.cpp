@@ -435,14 +435,10 @@ Result<void> MuukLockGenerator::load() {
 
 Result<void> MuukLockGenerator::generate_cache(const std::string& output_path) {
 
-    // ─────────────────────────────────────────────
     //   Write to cache file
-    // ─────────────────────────────────────────────
     toml::value root = toml::table {};
 
-    // ─────────────────────────────────────────────
     // Write Libraries
-    // ─────────────────────────────────────────────
     toml::value library_array = toml::array {};
     for (const auto& [package_name, version] : resolved_order_) {
         const auto package = find_package(package_name, version);
@@ -458,6 +454,9 @@ Result<void> MuukLockGenerator::generate_cache(const std::string& output_path) {
         if (lib_table.contains("sources"))
             lib_table.at("sources").as_array_fmt().fmt = toml::array_format::multiline;
 
+        if (lib_table.contains("modules"))
+            lib_table.at("modules").as_array_fmt().fmt = toml::array_format::multiline;
+
         library_array.as_array().push_back(lib_table);
 
         muuk::logger::info("Written package '{}' to lockfile.", package_name);
@@ -466,9 +465,7 @@ Result<void> MuukLockGenerator::generate_cache(const std::string& output_path) {
     library_array.as_array_fmt().fmt = toml::array_format::array_of_tables;
     root["library"] = library_array;
 
-    // ─────────────────────────────────────────────
     // Write builds
-    // ─────────────────────────────────────────────
     toml::value build_array = toml::array {};
     for (const auto& [build_name, build_ptr] : builds_) {
         if (!build_ptr)
@@ -492,9 +489,7 @@ Result<void> MuukLockGenerator::generate_cache(const std::string& output_path) {
 
     root["build"] = build_array;
 
-    // ─────────────────────────────────────────────
     // Write Profiles
-    // ─────────────────────────────────────────────
     // if (base_package_ && !base_package_->profiles_config.empty()) {
     //     toml::value profile_section = toml::table {};
 
@@ -507,9 +502,7 @@ Result<void> MuukLockGenerator::generate_cache(const std::string& output_path) {
     //     root["profile"] = profile_section;
     // }
 
-    // ─────────────────────────────────────────────
     // Write To Cachefile
-    // ─────────────────────────────────────────────
     std::ofstream lockfile(output_path);
     if (!lockfile) {
         muuk::logger::error("Failed to open lockfile: {}", output_path);
@@ -543,9 +536,7 @@ Result<void> MuukLockGenerator::generate_cache(const std::string& output_path) {
 // and writing the resolved packages and profiles to the lockfile.
 Result<void> MuukLockGenerator::generate_lockfile(const std::string& output_path) {
 
-    // ─────────────────────────────────────────────
     //   Write to cargo-style muuk.lock
-    // ─────────────────────────────────────────────
     std::ofstream cargo_style_lock(output_path);
     if (!cargo_style_lock) {
         muuk::logger::error("Failed to open muuk.lock for writing.");
@@ -670,7 +661,7 @@ void MuukLockGenerator::resolve_system_dependency(const std::string& package_nam
     //         muuk::logger::info("Using custom path '{}' for system dependency '{}'", *custom_path, package_name);
     //     }
 
-    //     // ───────────── Check custom path ─────────────
+    //     // Check custom path
     //     if (custom_path && fs::exists(*custom_path)) {
     //         muuk::logger::info("Checking custom path for '{}': {}", package_name, *custom_path);
 
@@ -684,7 +675,7 @@ void MuukLockGenerator::resolve_system_dependency(const std::string& package_nam
     //             lib_path = lib_dir.string();
     //     }
 
-    //     // ───────────── Fallback to pkg-config or system tools ─────────────
+    //     // Fallback to pkg-config or system tools
     //     if (include_path.empty() || lib_path.empty()) {
     // #ifdef _WIN32
     //         muuk::logger::warn("System dependency '{}' resolution on Windows is limited. Ensure proper path is provided.", package_name);
@@ -695,7 +686,7 @@ void MuukLockGenerator::resolve_system_dependency(const std::string& package_nam
     // #endif
     //     }
 
-    //     // ───────────── Save resolved paths ─────────────
+    //     // Save resolved paths
     //     if (!include_path.empty() && util::path_exists(include_path)) {
     //         system_include_paths_.insert(include_path);
     //         if (package)
@@ -714,7 +705,7 @@ void MuukLockGenerator::resolve_system_dependency(const std::string& package_nam
     //         muuk::logger::warn("  - Library path for '{}' not found.", package_name);
     //     }
 
-    //     // ───────────── Add specified libs to package ─────────────
+    //     // Add specified libs to package
     //     if (package && dep_info && !dep_info->libs.empty()) {
     //         muuk::logger::info("  - Linking specified libs for '{}': {}", package_name, fmt::join(dep_info->libs, ", "));
     //         for (const auto& lib : dep_info->libs) {

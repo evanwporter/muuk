@@ -10,6 +10,7 @@
 #include "buildconfig.h"
 #include "buildmanager.h"
 #include "buildparser.hpp"
+#include "buildtargets.h"
 #include "logger.h"
 #include "moduleresolver.hpp"
 #include "muuk.h"
@@ -19,7 +20,14 @@
 
 namespace fs = std::filesystem;
 
-Result<BuildProfile> extract_profile_flags(const std::string& profile, muuk::Compiler compiler, const toml::value& muuk_file) {
+static constexpr std::string_view to_string(CompilationUnitType value) {
+    constexpr std::array<std::string_view, static_cast<size_t>(CompilationUnitType::Count)> names = {
+        "module", "source"
+    };
+    return names.at(static_cast<size_t>(value));
+}
+
+static Result<BuildProfile> extract_profile_flags(const std::string& profile, muuk::Compiler compiler, const toml::value& muuk_file) {
     muuk::logger::info("Extracting profile-specific flags for profile '{}'", profile);
 
     if (!muuk_file.contains("profile"))
@@ -96,7 +104,7 @@ std::vector<std::string> extract_compiler_flags(const toml::table& package_table
     return flags;
 }
 
-void parse_compilation_unit(BuildManager& build_manager, muuk::Compiler compiler, const toml::array& unit_array, const std::string& name, const std::filesystem::path& pkg_dir, const std::vector<std::string>& base_cflags, const std::vector<std::string>& platform_cflags, const std::vector<std::string>& compiler_cflags, const std::vector<std::string>& iflags) {
+void parse_compilation_unit(BuildManager& build_manager, muuk::Compiler compiler, const toml::array& unit_array, const CompilationUnitType compilation_unit_type, const std::filesystem::path& pkg_dir, const std::vector<std::string>& base_cflags, const std::vector<std::string>& platform_cflags, const std::vector<std::string>& compiler_cflags, const std::vector<std::string>& iflags) {
 
     for (const auto& unit_entry : unit_array) {
         if (!unit_entry.is_table())
@@ -125,16 +133,18 @@ void parse_compilation_unit(BuildManager& build_manager, muuk::Compiler compiler
         muuk::normalize_flags_inplace(unit_cflags, compiler);
 
         // Register in build manager
-        build_manager.add_compilation_target(src_path, obj_path, unit_cflags, iflags);
+        build_manager.add_compilation_target(src_path, obj_path, unit_cflags, iflags, compilation_unit_type);
 
         // Logging
-        muuk::logger::info("Added {} compilation target: {} -> {}", name, src_path, obj_path);
-        muuk::logger::trace("  - {} CFLAGS: {}", name, fmt::join(unit_cflags, ", "));
-        muuk::logger::trace("  - {} Include Flags: {}", name, fmt::join(iflags, ", "));
+        muuk::logger::info("Added {} compilation target: {} -> {}", to_string(compilation_unit_type), src_path, obj_path);
+        muuk::logger::trace("  - {} CFLAGS: {}", to_string(compilation_unit_type), fmt::join(unit_cflags, ", "));
+        muuk::logger::trace("  - {} Include Flags: {}", to_string(compilation_unit_type), fmt::join(iflags, ", "));
     }
 }
 
 void parse_compilation_targets(BuildManager& build_manager, const muuk::Compiler compiler, const std::filesystem::path& build_dir, const toml::value& muuk_file, const std::string& profile) {
+    bool has_modules = false;
+
     for (const std::string& name : { "build", "library" }) {
         if (!muuk_file.contains(name))
             continue;
@@ -182,18 +192,37 @@ void parse_compilation_targets(BuildManager& build_manager, const muuk::Compiler
             // Parse Modules
             if (package_table.contains("modules")) {
                 auto modules = package_table.at("modules").as_array();
-                parse_compilation_unit(build_manager, compiler, modules, "module", pkg_dir, cflags, platform_cflags, compiler_cflags, iflags);
+                parse_compilation_unit(
+                    build_manager,
+                    compiler,
+                    modules,
+                    CompilationUnitType::Module,
+                    pkg_dir,
+                    cflags,
+                    platform_cflags,
+                    compiler_cflags,
+                    iflags);
+                has_modules = true;
             }
 
             // Parse Sources
             if (package_table.contains("sources")) {
                 auto sources = package_table.at("sources").as_array();
-                parse_compilation_unit(build_manager, compiler, sources, "source", pkg_dir, cflags, platform_cflags, compiler_cflags, iflags);
+                parse_compilation_unit(
+                    build_manager,
+                    compiler,
+                    sources,
+                    CompilationUnitType::Source,
+                    pkg_dir,
+                    cflags,
+                    platform_cflags,
+                    compiler_cflags,
+                    iflags);
             }
         }
     }
-
-    muuk::resolve_modules(build_manager, build_dir.string());
+    if (has_modules)
+        muuk::resolve_modules(build_manager, build_dir.string());
 };
 
 void parse_libraries(BuildManager& build_manager, const muuk::Compiler compiler, const std::filesystem::path& build_dir, const toml::value& muuk_file, const std::string& profile) {
@@ -292,8 +321,7 @@ Result<std::vector<ExternalTarget>> parse_external_targets(const toml::value& mu
     return externals;
 }
 
-void parse_executables(
-    BuildManager& build_manager, const muuk::Compiler compiler, const std::filesystem::path& build_dir, const std::string& profile_, const toml::value& muuk_file) {
+void parse_executables(BuildManager& build_manager, const muuk::Compiler compiler, const std::filesystem::path& build_dir, const std::string& profile_, const toml::value& muuk_file) {
     if (!muuk_file.contains("build") || !muuk_file.contains("library"))
         return;
 

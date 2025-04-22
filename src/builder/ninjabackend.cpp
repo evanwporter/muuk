@@ -55,12 +55,37 @@ void NinjaBackend::generate_build_file(
 
 std::string NinjaBackend::generate_rule(const CompilationTarget& target) {
     std::ostringstream rule;
+
+    const bool is_module = target.compilation_unit_type == CompilationUnitType::Module;
+    std::string module_output;
+    if (is_module) {
+        // Use logical_name or derive .ifc file name
+        module_output = "../../" + (build_dir_ / "modules" / (target.logical_name + ".ifc")).string();
+        module_output = util::to_linux_path(module_output);
+    }
+
+    if (is_module) {
+        rule << "build " << module_output << ": compile_module " << target.inputs[0] << "\n";
+
+        if (!target.flags.empty()) {
+            rule << "  cflags =";
+            for (const auto& flag : target.flags)
+                rule << " " << flag;
+            rule << "\n";
+        }
+
+        rule << "\n";
+    }
+
     rule << "build " << target.output << ": compile " << target.inputs[0];
+
+    if (is_module)
+        rule << " | " << module_output; // Ensure dependency on module rule
 
     if (!target.dependencies.empty()) {
         rule << " |";
         for (const auto& dep : target.dependencies)
-            rule << " " << dep;
+            rule << " ../../" << dep;
     }
 
     rule << "\n";
@@ -108,7 +133,8 @@ void NinjaBackend::generate_rule(const ExternalTarget& target) {
 
     std::string configure_stamp = (folder_path / "build" / "build.ninja").string();
 
-    out << "build " << configure_stamp << ": configure_external " << folder_path / "CMakeLists.txt" << "\n";
+    out << "build " << configure_stamp << ": configure_external " << folder_path / "CMakeLists.txt"
+        << "\n";
     out << "  configure_args =" << configure_args << "\n\n";
 
     out << "build build_" << safe_id << ": build_external || " << configure_stamp << "\n";
@@ -179,8 +205,8 @@ void NinjaBackend::write_header(std::ostringstream& out, std::string profile) {
     if (compiler_ == muuk::Compiler::MSVC) {
         // MSVC Compiler
         out << "rule compile_module\n"
-            << "  command = $cxx /std:c++20 /utf-8 /c /interface $in /Fo$out /IFC:"
-            << module_dir << " /ifcOutput "
+            << "  command = $cxx /std:c++20 /utf-8 /c $in /ifcOnly"
+            << " /ifcOutput "
             << module_dir << " /ifcSearchDir "
             << module_dir << " $cflags $profile_cflags\n"
             << "  description = Compiling C++ module $in\n\n";
@@ -209,7 +235,8 @@ void NinjaBackend::write_header(std::ostringstream& out, std::string profile) {
         // MSVC (cl)
         out << "rule compile\n"
             << "  command = $cxx /c $in"
-            << " /Fo$out $profile_cflags $platform_cflags $cflags /showIncludes\n"
+            << " /Fo$out $profile_cflags $platform_cflags $cflags /showIncludes "
+            << "/ifcSearchDir " << module_dir << "\n"
             << "  deps = msvc\n"
             << "  description = Compiling $in\n\n"
 

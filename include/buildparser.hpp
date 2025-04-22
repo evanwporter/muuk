@@ -45,7 +45,7 @@ void parse_compilation_unit(
     BuildManager& build_manager,
     const muuk::Compiler compiler,
     const toml::array& unit_array,
-    const std::string& name,
+    const CompilationUnitType compilation_unit_type,
     const std::filesystem::path& pkg_dir,
     const std::vector<std::string>& base_cflags,
     const std::vector<std::string>& platform_cflags,
