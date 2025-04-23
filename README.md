@@ -1,6 +1,6 @@
 # muuk
 
-I don't understand how to use cmake and I liked cargo a lot, so I created my own cargo-like build system.
+I don't like CMake very much but I do like cargo a lot, so I created my own cargo-like build system.
 
 ![meme](meme.jpg)
 
@@ -8,7 +8,7 @@ Another relevant comic (all credit to xkcd):
 
 ![xkcd comic](https://imgs.xkcd.com/comics/standards_2x.png)
 
-## Features
+## features
 
 - Big three compiler support (GCC, Clang, MSVC)
 - Big three platform support (Linux, MacOS, Windows)
@@ -19,70 +19,51 @@ Another relevant comic (all credit to xkcd):
 - Able to define Platform, Compiler & Profile Specific Flags
 - All flags are automatically applied to dependencies
 
+# setup
+
+`muuk` requires the following programs to be installed and available on the PATH:
+
+* `git`
+* `ninja` (you probably have this since I believe it bundled with most CMake distributions.)
+* `wget`
+
+Thats it!
+
 # guide
 
-## **Basic Structure**
+A typical `muuk.toml` file looks like the one contained within this repo [muuk.toml](https://github.com/evanwporter/muuk/blob/20f4c740d704398914c65f4549eb513da97ef326/muuk.toml)
 
-A typical `muuk.toml` file consists of the following sections:
+Lets break it apart:
 
-```toml
-[package]
-name = "my_project"
-version = "1.0.0"
-
-[library.my_project]
-include = ["include"]
-sources = ["src/main.cpp", "src/utils.cpp"]
-cflags = ["-Wall", "-Wextra"]
-dependencies = { boost = { version = "1.75.0", muuk_path = "../boost" } }
-
-[build.my_executable]
-profiles = ["release", "debug"]
-sources = ["src/main.cpp"]
-dependencies = { "my_library" = { version = "X.Y.Z" } }
-
-[profile.debug]
-cflags = ["-g", "-O0"]
-lflags = []
-
-[profile.release]
-cflags = ["-O2"]
-lflags = []
-
-[platform.windows]
-cflags = ["-DWIN32"]
-lflags = ["-lkernel32"]
-
-[platform.linux]
-cflags = ["-DLINUX"]
-lflags = ["-pthread"]
-
-[compiler.gcc]
-cflags = ["-std=c++20"]
-lflags = ["-lstdc++"]
-
-[scripts]
-run = "build/debug/my_executable"
-```
-
----
-
-## **1. `[package]`**
+## **`[package]`**
 
 This section defines the package's **metadata** (name and version).
 
 ```toml
 [package]
-name = "my_project"
+name = "muuk"
 version = "1.0.0"
+edition = "20"
 ```
 
 - `name` → The name of the project.
 - `version` → The project version.
+- `edition` → Doesn't do anything (yet)
 
 ---
 
-## **2. `[library]`**
+## **`[clean]`**
+
+Specify glob patterns for what gets cleaned.
+
+```toml
+[clean]
+patterns = ["*.obj", "*.lib", "*.pdb"]
+```
+
+This will be changed in the future to clean up the build artifacts. Will likley call
+
+## **`[library]`**
 
 The `[library]` section defines **libraries** that can be compiled separately and linked into other targets.
 
@@ -90,7 +71,6 @@ The `[library]` section defines **libraries** that can be compiled separately an
 
 ```toml
 [library]
-[library.my_project]
 include = ["include"]
 sources = ["src/library.cpp"]
 cflags = ["-Wall", "-Wextra"]
@@ -110,7 +90,7 @@ dependencies = { boost = { version = "1.75.0", muuk_path = "../boost" } }
 dependencies = { dep_name = { version = "X.Y.Z", git = "https://example.com/author/repo.git", muuk_path = "path/to/dep" } }
 ```
 
-## **3. `[build]`**
+## **`[build]`**
 
 This section defines **build targets**, which can be executables or other build artifacts.
 
@@ -130,7 +110,7 @@ dependencies = ["my_library"]
 
 Note that this build artifact will include the compiler specific rules.
 
-## **4. `[profile]`**
+## **`[profile]`**
 
 Profiles define **build configurations**, such as `debug` and `release`, but they can be whatever.
 
@@ -156,7 +136,7 @@ lflags = []
 - `cflags` → Compiler flags for the profile.
 - `lflags` → Linker flags for the profile.
 
-## **5. `[platform]`**
+## **`[platform]`**
 
 The `[platform]` section defines platform-specific flags. Acceptable platforms are `windows`, `linux`, `apple`.
 
@@ -177,7 +157,7 @@ lflags = ["-pthread"]
 - `cflags` → Compiler flags for this platform.
 - `lflags` → Linker flags for this platform.
 
-## **6. `[compiler]`**
+## **`[compiler]`**
 
 This section defines compiler-specific flags. Acceptable compilers are `gcc`, `msvc` or `clang`
 
@@ -194,7 +174,7 @@ lflags = ["-lstdc++"]
 - `cflags` → Compiler flags specific to this compiler.
 - `lflags` → Linker flags specific to this compiler.
 
-## **7. `[scripts]`**
+## **`[scripts]`**
 
 This section defines build-related scripts, such as running an executable. This works like `npm run <script>`. Also muuk will add the name of your built executable so you can easily run it.
 
@@ -204,8 +184,8 @@ This section defines build-related scripts, such as running an executable. This 
 [scripts]
 do = "something.exe"
 ```
-- `run` → Defines how to run the built executable.
 
+- `run` → Defines how to run the built executable.
 
 # todo
 
@@ -215,8 +195,8 @@ Little Extra Stuff I have Planned So I don't Forget
 
 ```
 [library.external]
-type = "cmake", 
-path = "../some_cmake_lib", 
+type = "cmake",
+path = "../some_cmake_lib",
 args = ["-DBUILD_SHARED_LIBS=ON"]
 outputs = ["build/cmake_some_cmake_lib/libmylib.a"]
 ```
