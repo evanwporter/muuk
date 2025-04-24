@@ -21,6 +21,7 @@ using Profiles = std::unordered_map<std::string, std::unordered_map<std::string,
 
 struct Feature {
     std::unordered_set<std::string> defines;
+    std::unordered_set<std::string> undefines;
     std::unordered_set<std::string> dependencies;
 };
 
@@ -77,7 +78,7 @@ template <typename Derived>
 struct BaseFields {
     std::vector<source_file> sources;
     std::vector<module_file> modules;
-    std::unordered_set<std::string> libs, include, defines;
+    std::unordered_set<std::string> libs, include, defines, undefines;
     std::unordered_set<std::string> cflags, cxxflags, aflags, lflags;
     DependencyVersionMap<Dependency> dependencies;
 
@@ -85,6 +86,7 @@ struct BaseFields {
     static constexpr bool enable_sources = true;
     static constexpr bool enable_include = true;
     static constexpr bool enable_defines = true;
+    static constexpr bool enable_undefines = true;
     static constexpr bool enable_cflags = true;
     static constexpr bool enable_cxxflags = true;
     static constexpr bool enable_aflags = true;
@@ -104,6 +106,8 @@ struct BaseFields {
         }
         if constexpr (Derived::enable_defines)
             defines = util::muuk_toml::find_or_get<std::unordered_set<std::string>>(v, "defines", {});
+        if constexpr (Derived::enable_undefines)
+            defines = util::muuk_toml::find_or_get<std::unordered_set<std::string>>(v, "undefines", {});
         if constexpr (Derived::enable_cflags)
             cflags = util::muuk_toml::find_or_get<std::unordered_set<std::string>>(v, "cflags", {});
         if constexpr (Derived::enable_cxxflags)
@@ -147,6 +151,9 @@ struct BaseFields {
         if constexpr (Derived::enable_defines)
             if (!defines.empty())
                 out["defines"] = defines;
+        if constexpr (Derived::enable_undefines)
+            if (!undefines.empty())
+                out["undefines"] = undefines;
         if constexpr (Derived::enable_cflags)
             if (!cflags.empty())
                 out["cflags"] = cflags;
@@ -181,6 +188,7 @@ struct BaseFields {
         merge_sets(aflags, other.aflags);
         merge_sets(lflags, other.lflags);
         merge_sets(defines, other.defines);
+        merge_sets(undefines, other.undefines);
         merge_sets(libs, other.libs);
     }
 
@@ -352,22 +360,33 @@ public:
     std::string base_path;
     PackageType package_type; // "library" or "build"
 
-    std::string source; // git url or path or whatever
+    /// Git URL or local path
+    std::string source;
 
-    // Reference the dependency held in the MuukLockGen
+    /// Map of dependencies by package name and version.
     DependencyVersionMap<std::shared_ptr<Dependency>> dependencies_;
 
     std::unordered_set<std::shared_ptr<Dependency>> all_dependencies_array;
 
+    /// Features enabled automatically unless overridden.
+    std::unordered_set<std::string> default_features;
+
+    /// Map of available features and their properties (defines, deps, etc.).
     std::unordered_map<std::string, Feature> features;
 
+    /// Preferred link type for the package.
     LinkType link_type = LinkType::STATIC;
 
+    /// Compiler-specific settings parsed from `[compiler]`.
     Compilers compilers_config;
+
+    /// Platform-specific settings parsed from `[platform]`.
     Platforms platforms_config;
 
+    /// Library build settings (cflags, sources, modules, etc.) `[library]`.
     Library library_config;
 
+    /// (BUILD ONLY) profiles parsed from [profile.*] sections.
     std::unordered_map<std::string, ProfileConfig> profiles_config;
 
 private:

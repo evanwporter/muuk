@@ -22,3 +22,13 @@ sources = [
     'src/bundled_fmtlib_format.cpp',
     'src/file_sinks.cpp',
 ]
+
+[features]
+default = ["fmt", "compiled_lib"] # Use fmtlib by default
+fmt = ["D:SPDLOG_FMT_EXTERNAL", "dep:fmt"] # Link against fmtlib
+std_format = [
+    "D:SPDLOG_USE_STD_FORMAT",
+    "U:SPDLOG_FMT_EXTERNAL",
+    # "no_dep:fmt" # Or maybe I do this in the future?
+]
+compiled_lib = ["D:SPDLOG_COMPILED_LIB"]

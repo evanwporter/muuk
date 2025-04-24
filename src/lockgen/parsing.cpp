@@ -90,37 +90,50 @@ Result<void> MuukLockGenerator::parse_features(const toml::value& data, std::sha
     for (const auto& [feature_name, feature_value] : data.at("features").as_table()) {
         Feature feature_data;
 
+        // handle [features].default
+        if (feature_name == "default") {
+            if (!feature_value.is_array()) {
+                muuk::logger::warn("Feature 'default' must be an array of strings.");
+                continue;
+            }
+
+            for (const auto& default_feat : feature_value.as_array()) {
+                if (default_feat.is_string()) {
+                    package->default_features.insert(default_feat.as_string());
+                    muuk::logger::info(" → Default feature enabled: {}", default_feat.as_string());
+                }
+            }
+            continue;
+        }
+
         if (feature_value.is_array()) { // List Syntax
             for (const auto& item : feature_value.as_array()) {
                 if (item.is_string()) {
                     std::string value = item.as_string();
 
-                    if (value.rfind("D:", 0) == 0) {
+                    if (value.rfind("D:", 0) == 0)
                         feature_data.defines.insert(value.substr(2)); // Remove "D:"
-                    } else if (value.rfind("dep:", 0) == 0) {
+                    if (value.rfind("U:", 0) == 0)
+                        feature_data.undefines.insert(value.substr(2)); // Remove "U:"
+                    else if (value.rfind("dep:", 0) == 0)
                         feature_data.dependencies.insert(value.substr(4)); // Remove "dep:"
-                    } else {
-                        std::cerr << "Warning: Unrecognized feature syntax: " << value << "\n";
-                    }
+                    else
+                        muuk::logger::warn("Unrecognized feature syntax: {}", value);
                 }
             }
         } else if (feature_value.is_table()) { // Table Syntax
 
-            if (feature_value.contains("define") && feature_value.at("define").is_array()) {
-                for (const auto& def : feature_value.at("define").as_array()) {
-                    if (def.is_string()) {
+            if (feature_value.contains("define") && feature_value.at("define").is_array())
+                for (const auto& def : feature_value.at("define").as_array())
+                    if (def.is_string())
                         feature_data.defines.insert(def.as_string());
-                    }
-                }
-            }
 
-            if (feature_value.contains("dependencies") && feature_value.at("dependencies").is_array()) {
-                for (const auto& dep : feature_value.at("dependencies").as_array()) {
-                    if (dep.is_string()) {
+            if (feature_value.contains("dependencies") && feature_value.at("dependencies").is_array())
+                for (const auto& dep : feature_value.at("dependencies").as_array())
+                    if (dep.is_string())
                         feature_data.dependencies.insert(dep.as_string());
-                    }
-                }
-            }
+
+            // Support `defines`
         } else {
             // TODO: This eventually will be unnecessary
             muuk::logger::warn("Invalid format for feature '{}'. Must be either a table or a array", std::string(feature_name));
@@ -129,5 +142,11 @@ Result<void> MuukLockGenerator::parse_features(const toml::value& data, std::sha
 
         package->features[std::string(feature_name)] = feature_data;
     }
+
+    // Validate all default features exist
+    for (const std::string& feat : package->default_features)
+        if (package->features.find(feat) == package->features.end())
+            muuk::logger::warn("Default feature '{}' is not defined in the [features] table.", feat);
+
     return {};
 }

@@ -5,6 +5,7 @@
 
 #include "base_config.hpp"
 #include "logger.h"
+#include "util.h"
 
 const PackageType PackageType::LIBRARY(PackageType::Type::LIBRARY);
 const PackageType PackageType::BUILD(PackageType::Type::BUILD);
@@ -37,7 +38,8 @@ void Package::enable_features(const std::unordered_set<std::string>& feature_set
             const auto& feature_data = features.at(feature);
 
             // Apply feature defines
-            library_config.defines.insert(feature_data.defines.begin(), feature_data.defines.end());
+            util::array_ops::merge_sets(library_config.defines, feature_data.defines);
+            util::array_ops::merge_sets(library_config.undefines, feature_data.undefines);
 
             // TODO Fix
             // Add feature dependencies

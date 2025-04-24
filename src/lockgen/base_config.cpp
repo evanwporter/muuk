@@ -7,6 +7,7 @@
 #include <toml.hpp>
 
 #include "base_config.hpp"
+#include "try_expected.h"
 
 // TODO: Put inside namespace muuk::lockgen
 // namespace muuk {
@@ -223,11 +224,9 @@ Result<void> Build::serialize(toml::value& out) const {
 
     // Collect dependencies and sort them by (name, version)
     std::vector<std::shared_ptr<Dependency>> sorted_deps;
-    for (const auto& dep_ptr : all_dependencies_array) {
-        if (dep_ptr) {
+    for (const auto& dep_ptr : all_dependencies_array)
+        if (dep_ptr)
             sorted_deps.push_back(dep_ptr);
-        }
-    }
 
     std::sort(sorted_deps.begin(), sorted_deps.end(), [](const auto& a, const auto& b) {
         if (a->name == b->name)
@@ -238,9 +237,7 @@ Result<void> Build::serialize(toml::value& out) const {
     toml::array dep_array;
     for (const auto& dep_ptr : sorted_deps) {
         toml::value dep_entry;
-        auto dep_ser = dep_ptr->serialize(dep_entry);
-        if (!dep_ser)
-            return Err(dep_ser);
+        TRYV(dep_ptr->serialize(dep_entry));
         dep_array.push_back(dep_entry);
     }
 

@@ -362,9 +362,7 @@ Result<void> MuukLockGenerator::generate_cache(const std::string& output_path) {
             continue;
 
         toml::value build_table;
-        auto build_serial = build_ptr->serialize(build_table);
-        if (!build_serial)
-            return Err(build_serial);
+        TRYV(build_ptr->serialize(build_table));
 
         build_table["name"] = build_name;
         build_table["version"] = base_package_->version;
