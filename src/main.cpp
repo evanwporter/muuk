@@ -125,7 +125,9 @@ int main(int argc, char* argv[]) {
         program.parse_args(argc, argv);
         std::string muuk_path = program.get<std::string>("--muuk-path");
 
-        // Command execution logic
+        // ===================================================
+        // Commands that don't require `muuk.toml`
+        // ===================================================
         if (program.is_subcommand_used("init")) {
             return check_and_report(muuk::init_project());
         }
@@ -174,15 +176,17 @@ int main(int argc, char* argv[]) {
             return 0;
         }
 
+        // ===================================================
         // Commands that require `muuk.toml`
-        // The reason I define `muukfiler` here is so I can define the manifest location
+        // ===================================================
         muuk::logger::info("[muuk] Using configuration from: {}", muuk_path);
 
         auto parse_result = muuk::parse_muuk_file(muuk_path, false);
         if (!parse_result) {
-            muuk::logger::error("Failed to parse muuk.toml: {}", parse_result.error());
+            muuk::logger::error(parse_result.error());
             return 1;
         }
+
         toml::table muuk_config = parse_result.value().as_table();
 
         if (program.is_subcommand_used("clean")) {
@@ -205,13 +209,6 @@ int main(int argc, char* argv[]) {
             std::string profile = build_command.get<std::string>("--profile");
             return check_and_report(muuk::build(target_build, compiler, profile, muuk_config));
         }
-
-#ifdef DEBUG
-        // if (program.get<bool>("--repl")) {
-        //     start_repl(command_map);
-        //     return 0;
-        // }
-#endif
     } catch (const std::runtime_error& err) {
         muuk::logger::error(std::string(err.what()) + "\n");
         return 1;

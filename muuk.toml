@@ -14,7 +14,7 @@ patterns = ['*.obj', '*.lib', '*.pdb']
 cflags = ['/W4']
 include = ['include']
 libs = []
-modules = ["modules/math.ixx"]
+# modules = ["modules/math.ixx"]
 sources = [
     'src/muuker.cpp',
     'src/util/*.cpp',

@@ -21,7 +21,6 @@ typedef DependencyVersionMap<Dependency> DependencyInfoMap;
 
 // Maps dependencies to their respective versions and associated packages.
 typedef DependencyVersionMap<std::shared_ptr<Package>> DependencyMap;
-typedef DependencyVersionMap<std::shared_ptr<Package>> DependencyMap;
 
 class MuukLockGenerator {
 public:
@@ -93,10 +92,16 @@ private:
 
     Result<void> parse_muuk_toml(const std::string& path, bool is_base = false);
 
-    tl::expected<void, std::string> resolve_dependencies(
+    Result<void> resolve_dependencies(
         const std::string& package_name,
         std::optional<std::string> version = std::nullopt,
         std::optional<std::string> search_path = std::nullopt);
+
+    Result<void> locate_and_parse_package(
+        const std::string& package_name,
+        std::optional<std::string> version,
+        std::shared_ptr<Package>& package,
+        const std::optional<std::string> search_path);
 
     Result<void> resolve_build_dependencies(const std::string& build_name);
 

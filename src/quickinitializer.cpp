@@ -6,12 +6,12 @@
 
 #include <fmt/core.h>
 #include <nlohmann/json.hpp>
-#include <tl/expected.hpp>
 
 #include "buildconfig.h"
 #include "logger.h"
 #include "muuk.h"
 #include "muukterminal.hpp"
+#include "rustify.hpp"
 #include "util.h"
 
 namespace fs = std::filesystem;
@@ -26,9 +26,9 @@ namespace muuk {
         "src", "source", "sources"
     };
 
-    tl::expected<fs::path, std::string> select_directory(const std::vector<fs::path>& directories, const std::string& type) {
+    Result<fs::path> select_directory(const std::vector<fs::path>& directories, const std::string& type) {
         if (directories.empty()) {
-            return tl::unexpected("No directories found for " + type);
+            return Err("No directories found for {}");
         }
         if (directories.size() == 1) {
             return directories[0];
@@ -140,7 +140,7 @@ namespace muuk {
         // Get default branch
         auto branch_result = util::git::get_default_branch(author, repo);
         if (!branch_result) {
-            return tl::unexpected("Failed to get default branch: " + branch_result.error());
+            return Err("Failed to get default branch: " + branch_result.error());
         }
         std::string branch = branch_result.value();
 

@@ -88,6 +88,10 @@ jobs:
         shell: bash
         run: mkdir -p build/release
 
+      - name: Create build/debug directory
+        shell: bash
+        run: mkdir -p build/debug
+
       - name: Build project (Release)
         run: ${{ matrix.muuk_exec }} build -c ${{ matrix.compiler }} -p release
 
@@ -97,6 +101,9 @@ jobs:
       - name: Make executable runnable (chmod +x)
         if: runner.os != 'Windows'
         run: chmod +x ${{ matrix.binary_name }}
+
+      - name: Test whether it can build itself
+        run: ./${{ matrix.binary_name }} build -c ${{ matrix.compiler }} -p debug
 
       - name: Upload raw binary as artifact (for internal use)
         uses: actions/upload-artifact@v4
