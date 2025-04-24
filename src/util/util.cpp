@@ -78,13 +78,22 @@ namespace util {
     //  Command Line Utilities
     // ==========================
     namespace command_line {
-        // TODO: Check if command exists
         int execute_command(const std::string& command) {
             muuk::logger::info("Executing command: {}", command);
+            if (!command_exists(command)) {
+                muuk::logger::error("Command does not exist: {}", command);
+                return -1;
+            }
             return system(command.c_str());
         }
 
         std::string execute_command_get_out(const std::string& command) {
+
+            if (!command_exists(command)) {
+                muuk::logger::error("Command does not exist: {}", command);
+                return "";
+            }
+
             muuk::logger::info("Executing command: {}", command);
 
             std::array<char, 128> buffer;
@@ -110,10 +119,14 @@ namespace util {
         }
 
         bool command_exists(const std::string& command) {
+            size_t space_pos = command.find(' ');
+            std::string base_command = (space_pos == std::string::npos)
+                ? command
+                : command.substr(0, space_pos);
 #ifdef _WIN32
-            std::string check_command = "where " + command + " >nul 2>&1";
+            std::string check_command = "where " + base_command + " >nul 2>&1";
 #else
-            std::string check_command = "which " + command + " >/dev/null 2>&1";
+            std::string check_command = "which " + base_command + " >/dev/null 2>&1";
 #endif
             return (std::system(check_command.c_str()) == 0);
         }

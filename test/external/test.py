@@ -3,6 +3,7 @@ import tempfile
 import os
 import textwrap
 import pytest
+import shutil
 import pathlib
 
 
@@ -14,6 +15,12 @@ def print_directory_tree(root_path):
             print(f"[DIR]  {rel_path}")
         else:
             print(f"       {rel_path}")
+
+
+def setup_clean_dir(path):
+    if os.path.exists(path):
+        shutil.rmtree(path)
+    os.makedirs(path, exist_ok=True)
 
 
 @pytest.fixture
@@ -55,58 +62,58 @@ def simple_project_dir():
 
 @pytest.fixture
 def module_project_dir():
-    with tempfile.TemporaryDirectory() as temp_dir:
-        src_dir = os.path.join(temp_dir, "src")
-        os.makedirs(src_dir, exist_ok=True)
+    base_dir = pathlib.Path("tests/projects/module_project")
+    src_dir = base_dir / "src"
+    build_dir = base_dir / "build"
 
-        build_path = os.path.join(temp_dir, "build")
-        os.makedirs(build_path, exist_ok=True)
+    setup_clean_dir(src_dir)
+    setup_clean_dir(build_dir)
 
-        with open(os.path.join(src_dir, "math.ixx"), "w") as f:
-            f.write(
-                textwrap.dedent("""\
+    with open(src_dir / "math.ixx", "w") as f:
+        f.write(
+            textwrap.dedent("""\
                 export module math;
 
                 export int add(int a, int b) {
                     return a + b;
                 }
             """)
-            )
+        )
 
-        with open(os.path.join(src_dir, "main.cpp"), "w") as f:
-            f.write(
-                textwrap.dedent("""\
+    with open(src_dir / "main.cpp", "w") as f:
+        f.write(
+            textwrap.dedent("""\
                 import math;
                 int main() {
                     return add(2, 3);
                 }
             """)
-            )
+        )
 
-        toml_content = textwrap.dedent("""\
-            [package]
-            name = "tiny"
-            version = "0.1.0"
-            edition = "20"
+    toml_content = textwrap.dedent("""\
+        [package]
+        name = "tiny"
+        version = "0.1.0"
+        edition = "20"
 
-            [library]
-            modules = ["src/math.ixx"]
-            sources = ["src/main.cpp"]
+        [library]
+        modules = ["src/math.ixx"]
+        sources = ["src/main.cpp"]
 
-            [build.tiny]
-            profile = ["debug"]
-            sources = ["src/main.cpp"]
+        [build.tiny]
+        profile = ["debug"]
+        sources = ["src/main.cpp"]
 
-            [profile.debug]
-            cflags = ["-std:c++latest", "/EHsc", "/FS", "/Zi"]
-            lflags = []
-            default = true
-        """)
+        [profile.debug]
+        cflags = ["-std:c++20", "/EHsc", "/FS", "/Zi"]
+        lflags = []
+        default = true
+    """)
 
-        with open(os.path.join(temp_dir, "muuk.toml"), "w") as f:
-            f.write(toml_content)
+    with open(base_dir / "muuk.toml", "w") as f:
+        f.write(toml_content)
 
-        yield temp_dir
+    return str(base_dir)
 
 
 @pytest.mark.parametrize(

@@ -24,7 +24,7 @@ Another relevant comic (all credit to xkcd):
 `muuk` requires the following programs to be installed and available on the PATH:
 
 * `git`
-* `ninja` (you probably have this since I believe it bundled with most CMake distributions.)
+* `ninja` (you probably have this since I believe its bundled with most CMake distributions.)
 * `wget`
 
 Thats it!

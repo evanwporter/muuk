@@ -41,9 +41,14 @@ public:
         std::vector<std::string> libs,
         std::vector<std::string> lflags);
 
-    std::vector<CompilationTarget> get_compilation_targets() const;
-    std::vector<ArchiveTarget> get_archive_targets() const;
-    std::vector<LinkTarget> get_link_targets() const;
+    std::vector<CompilationTarget>& get_compilation_targets();
+    const std::vector<CompilationTarget>& get_compilation_targets() const;
+
+    std::vector<ArchiveTarget>& get_archive_targets();
+    const std::vector<ArchiveTarget>& get_archive_targets() const;
+
+    std::vector<LinkTarget>& get_link_targets();
+    const std::vector<LinkTarget>& get_link_targets() const;
 
     CompilationTarget* find_compilation_target(
         const std::string& key,

@@ -19,7 +19,7 @@ namespace muuk {
     nlohmann::json generate_compilation_database(BuildManager& build_manager, const std::string& build_dir) {
         nlohmann::json compdb = nlohmann::json::array();
 
-        auto compilation_targets = build_manager.get_compilation_targets();
+        auto& compilation_targets = build_manager.get_compilation_targets();
 
         for (const auto& target : compilation_targets) {
             std::string command = "clang++ -x c++-module --std=c++23";
@@ -170,7 +170,7 @@ namespace muuk {
             return;
 
         std::unordered_map<std::string, CompilationTarget*> target_map;
-        auto compilation_targets = build_manager.get_compilation_targets();
+        auto& compilation_targets = build_manager.get_compilation_targets();
         for (auto& target : compilation_targets) {
             target_map[target.output] = &target;
         }

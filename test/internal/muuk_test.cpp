@@ -2,6 +2,7 @@
 
 #include "test_build_manager.hpp"
 #include "test_buildparser.hpp"
+#include "test_module_resolver.hpp"
 #include "test_muukfiler.hpp"
 #include "test_muukvalidator.hpp"
 #include "test_toml_handler.hpp"

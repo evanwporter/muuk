@@ -37,15 +37,27 @@ void BuildManager::add_link_target(std::string exe, std::vector<std::string> obj
     link_targets.emplace_back(exe, objs, libs, lflags);
 }
 
-std::vector<CompilationTarget> BuildManager::get_compilation_targets() const {
+std::vector<CompilationTarget>& BuildManager::get_compilation_targets() {
     return compilation_targets;
 }
 
-std::vector<ArchiveTarget> BuildManager::get_archive_targets() const {
+const std::vector<CompilationTarget>& BuildManager::get_compilation_targets() const {
+    return compilation_targets;
+}
+
+std::vector<ArchiveTarget>& BuildManager::get_archive_targets() {
     return archive_targets;
 }
 
-std::vector<LinkTarget> BuildManager::get_link_targets() const {
+const std::vector<ArchiveTarget>& BuildManager::get_archive_targets() const {
+    return archive_targets;
+}
+
+std::vector<LinkTarget>& BuildManager::get_link_targets() {
+    return link_targets;
+}
+
+const std::vector<LinkTarget>& BuildManager::get_link_targets() const {
     return link_targets;
 }
 

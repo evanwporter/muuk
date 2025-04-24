@@ -23,6 +23,12 @@ namespace util {
         int execute_command(const std::string& command);
         std::string execute_command_get_out(const std::string& command);
         bool command_exists(const std::string& command);
+
+        template <typename... Args>
+        int execute_command(fmt::format_string<Args...> fmt_str, Args&&... args) {
+            std::string command = fmt::format(fmt_str, std::forward<Args>(args)...);
+            return execute_command(command);
+        }
     }
 
     namespace network {

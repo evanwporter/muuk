@@ -10,12 +10,13 @@
 #include "buildconfig.h"
 #include "commands/add.hpp"
 #include "commands/build.hpp"
+#include "commands/clean.hpp"
 #include "commands/init.hpp"
 #include "commands/install.hpp"
 #include "commands/remove.hpp"
+#include "commands/run.hpp"
 #include "logger.h"
 #include "muuk_parser.hpp"
-#include "muuker.hpp"
 #include "muukterminal.hpp"
 #include "rustify.hpp"
 #include "version.h"
@@ -182,22 +183,20 @@ int main(int argc, char* argv[]) {
             muuk::logger::error("Failed to parse muuk.toml: {}", parse_result.error());
             return 1;
         }
-        toml::value muuk_config = parse_result.value();
+        toml::table muuk_config = parse_result.value().as_table();
 
         if (program.is_subcommand_used("clean")) {
-            muuk::clean();
-            return 0;
+            return check_and_report(muuk::clean(muuk_config));
         }
 
         if (program.is_subcommand_used("run")) {
             const auto script = run_command.present<std::string>("script");
             const auto extra_args = run_command.get<std::vector<std::string>>("extra_args");
             if (!script.has_value()) {
-                muuk::logger::error("Error: No script name provided for 'run'.\n");
+                muuk::logger::error("No script name provided for 'run'.");
                 return 1;
             }
-            muuk::run_script(script.value(), extra_args);
-            return 0;
+            return check_and_report(muuk::run_script(muuk_config, script.value(), extra_args));
         }
 
         if (program.is_subcommand_used("build")) {

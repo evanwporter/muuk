@@ -18,7 +18,7 @@ TEST_F(BuildManagerTest, Initialization) {
 TEST_F(BuildManagerTest, AddCompilationTarget) {
     build_manager.add_compilation_target("source.cpp", "source.o", { "-O2" }, { "-Iinclude" });
 
-    auto compilation_targets = build_manager.get_compilation_targets();
+    auto& compilation_targets = build_manager.get_compilation_targets();
     ASSERT_EQ(compilation_targets.size(), 1);
     EXPECT_EQ(compilation_targets[0].inputs[0], "source.cpp");
     EXPECT_EQ(compilation_targets[0].output, "source.o");
@@ -30,7 +30,7 @@ TEST_F(BuildManagerTest, AddDuplicateCompilationTarget) {
     build_manager.add_compilation_target("source.cpp", "source.o", { "-O2" }, { "-Iinclude" });
     build_manager.add_compilation_target("source.cpp", "source.o", { "-O3" }, { "-Ilib" });
 
-    auto compilation_targets = build_manager.get_compilation_targets();
+    auto& compilation_targets = build_manager.get_compilation_targets();
     EXPECT_EQ(compilation_targets.size(), 1); // Should only contain one entry
 }
 
@@ -111,7 +111,7 @@ TEST_F(BuildManagerTest, ConflictingObjectFiles) {
     build_manager.add_compilation_target("source1.cpp", "shared.o", { "-O2" }, {});
     build_manager.add_compilation_target("source2.cpp", "shared.o", { "-O2" }, {});
 
-    auto compilation_targets = build_manager.get_compilation_targets();
+    auto& compilation_targets = build_manager.get_compilation_targets();
 
     // Only one should exist because they produce the same .o file
     EXPECT_EQ(compilation_targets.size(), 1);
