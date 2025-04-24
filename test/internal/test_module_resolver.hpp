@@ -11,6 +11,7 @@
 #include <nlohmann/json.hpp>
 
 #include "buildmanager.h"
+#include "buildtargets.h"
 #include "logger.h"
 #include "moduleresolver.hpp"
 
@@ -85,8 +86,17 @@ int main() {
 
         for (const auto& [file, output] : entries) {
             std::vector<std::string> cflags = { "-std=c++20" };
-            CompilationUnitType type = file.ends_with(".cppm") ? CompilationUnitType::Module : CompilationUnitType::Source;
-            manager.add_compilation_target(file, output, cflags, {}, type);
+            CompilationUnitType type = file.ends_with(".cppm")
+                ? CompilationUnitType::Module
+                : CompilationUnitType::Source;
+
+            CompilationFlags compilation_flags;
+            compilation_flags.cflags = cflags;
+            manager.add_compilation_target(
+                file,
+                output,
+                compilation_flags,
+                type);
         }
     }
 };

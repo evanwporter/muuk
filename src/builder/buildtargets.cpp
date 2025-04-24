@@ -7,12 +7,17 @@ BuildTarget::BuildTarget(std::string target_name, std::string target_output) :
     name(std::move(target_name)), output(std::move(target_output)) {
 }
 
-CompilationTarget::CompilationTarget(std::string src, std::string obj, std::vector<std::string> cflags, std::vector<std::string> iflags, CompilationUnitType compilation_unit_type_) :
+CompilationTarget::CompilationTarget(std::string src, std::string obj, CompilationFlags compilation_flags, CompilationUnitType compilation_unit_type_) :
     BuildTarget(obj, obj) {
     input = src;
     inputs = { src };
-    flags.insert(flags.end(), cflags.begin(), cflags.end());
-    flags.insert(flags.end(), iflags.begin(), iflags.end());
+
+    flags.insert(flags.end(), compilation_flags.cflags.begin(), compilation_flags.cflags.end());
+    flags.insert(flags.end(), compilation_flags.iflags.begin(), compilation_flags.iflags.end());
+    flags.insert(flags.end(), compilation_flags.defines.begin(), compilation_flags.defines.end());
+    flags.insert(flags.end(), compilation_flags.platform_cflags.begin(), compilation_flags.platform_cflags.end());
+    flags.insert(flags.end(), compilation_flags.compiler_cflags.begin(), compilation_flags.compiler_cflags.end());
+
     compilation_unit_type = compilation_unit_type_;
 }
 

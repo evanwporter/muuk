@@ -1,4 +1,5 @@
 #include "../include/buildmanager.h"
+#include "buildtargets.h"
 #include <algorithm>
 #include <gtest/gtest.h>
 
@@ -16,7 +17,11 @@ TEST_F(BuildManagerTest, Initialization) {
 
 // Test adding a compilation target
 TEST_F(BuildManagerTest, AddCompilationTarget) {
-    build_manager.add_compilation_target("source.cpp", "source.o", { "-O2" }, { "-Iinclude" });
+    CompilationFlags compilation_flags;
+    compilation_flags.cflags = { "-O2" };
+    compilation_flags.iflags = { "-Iinclude" };
+
+    build_manager.add_compilation_target("source.cpp", "source.o", compilation_flags);
 
     auto& compilation_targets = build_manager.get_compilation_targets();
     ASSERT_EQ(compilation_targets.size(), 1);
@@ -25,10 +30,18 @@ TEST_F(BuildManagerTest, AddCompilationTarget) {
     EXPECT_EQ(compilation_targets[0].flags, std::vector<std::string>({ "-O2", "-Iinclude" }));
 }
 
+// TODO: Raise Err for double adding?
 // Test adding a duplicate compilation target (should not add it twice)
 TEST_F(BuildManagerTest, AddDuplicateCompilationTarget) {
-    build_manager.add_compilation_target("source.cpp", "source.o", { "-O2" }, { "-Iinclude" });
-    build_manager.add_compilation_target("source.cpp", "source.o", { "-O3" }, { "-Ilib" });
+    CompilationFlags compilation_flags1, compilation_flags2;
+    compilation_flags1.cflags = { "-O2" };
+    compilation_flags1.iflags = { "-Iinclude" };
+
+    compilation_flags1.cflags = { "-O3" };
+    compilation_flags1.iflags = { "-Ilib" };
+
+    build_manager.add_compilation_target("source.cpp", "source.o", compilation_flags1);
+    build_manager.add_compilation_target("source.cpp", "source.o", compilation_flags2);
 
     auto& compilation_targets = build_manager.get_compilation_targets();
     EXPECT_EQ(compilation_targets.size(), 1); // Should only contain one entry
@@ -108,8 +121,12 @@ TEST_F(BuildManagerTest, ArchiveTargetWithInvalidFiles) {
 
 // Test adding two compilation targets with the same object file but different sources
 TEST_F(BuildManagerTest, ConflictingObjectFiles) {
-    build_manager.add_compilation_target("source1.cpp", "shared.o", { "-O2" }, {});
-    build_manager.add_compilation_target("source2.cpp", "shared.o", { "-O2" }, {});
+    CompilationFlags compilation_flags;
+    compilation_flags.cflags = { "-O2" };
+    compilation_flags.iflags = { "-Iinclude" };
+
+    build_manager.add_compilation_target("source1.cpp", "shared.o", compilation_flags);
+    build_manager.add_compilation_target("source2.cpp", "shared.o", compilation_flags);
 
     auto& compilation_targets = build_manager.get_compilation_targets();
 

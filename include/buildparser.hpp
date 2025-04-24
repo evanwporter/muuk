@@ -43,14 +43,10 @@ void parse_executables(
 
 void parse_compilation_unit(
     BuildManager& build_manager,
-    const muuk::Compiler compiler,
     const toml::array& unit_array,
     const CompilationUnitType compilation_unit_type,
     const std::filesystem::path& pkg_dir,
-    const std::vector<std::string>& base_cflags,
-    const std::vector<std::string>& platform_cflags,
-    const std::vector<std::string>& compiler_cflags,
-    const std::vector<std::string>& iflags);
+    CompilationFlags compilation_flags);
 
 std::vector<std::string> extract_platform_flags(
     const toml::table& package_table,

@@ -11,6 +11,14 @@ enum class CompilationUnitType {
     Count
 };
 
+struct CompilationFlags {
+    std::vector<std::string> cflags;
+    std::vector<std::string> iflags;
+    std::vector<std::string> defines;
+    std::vector<std::string> platform_cflags;
+    std::vector<std::string> compiler_cflags;
+};
+
 class BuildTarget {
 public:
     std::string name; // Unique target name (e.g., obj file, archive, executable)
@@ -24,7 +32,12 @@ public:
 
 class CompilationTarget : public BuildTarget {
 public:
-    CompilationTarget(std::string src, std::string obj, std::vector<std::string> cflags, std::vector<std::string> iflags, CompilationUnitType comp_type = CompilationUnitType::Source);
+    CompilationTarget(
+        std::string src,
+        std::string obj,
+        CompilationFlags compilation_flags,
+        CompilationUnitType comp_type = CompilationUnitType::Source);
+
     virtual ~CompilationTarget() = default;
 
     std::string input;

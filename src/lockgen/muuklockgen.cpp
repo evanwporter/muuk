@@ -307,6 +307,18 @@ Result<void> MuukLockGenerator::load() {
                     auto package_dep = resolved_packages[dep_name][dep_version];
                     package_dep->enable_features(dep->enabled_features);
                 }
+
+        muuk::logger::info("Applying default features for all resolved packages...");
+        for (const auto& [pkg_name, versions] : resolved_packages)
+            for (const auto& [pkg_version, pkg_ptr] : versions) {
+                if (!pkg_ptr)
+                    continue;
+
+                if (!pkg_ptr->default_features.empty()) {
+                    muuk::logger::info("Applying default features for package '{}': {}", pkg_name, fmt::join(pkg_ptr->default_features, ", "));
+                    pkg_ptr->enable_features(pkg_ptr->default_features);
+                }
+            }
     }
 
     merge_resolved_dependencies(base_package_name, base_package_version);

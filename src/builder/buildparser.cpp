@@ -104,7 +104,7 @@ std::vector<std::string> extract_compiler_flags(const toml::table& package_table
     return flags;
 }
 
-void parse_compilation_unit(BuildManager& build_manager, muuk::Compiler compiler, const toml::array& unit_array, const CompilationUnitType compilation_unit_type, const std::filesystem::path& pkg_dir, const std::vector<std::string>& base_cflags, const std::vector<std::string>& platform_cflags, const std::vector<std::string>& compiler_cflags, const std::vector<std::string>& iflags) {
+void parse_compilation_unit(BuildManager& build_manager, const toml::array& unit_array, const CompilationUnitType compilation_unit_type, const std::filesystem::path& pkg_dir, CompilationFlags compilation_flags) {
 
     for (const auto& unit_entry : unit_array) {
         if (!unit_entry.is_table())
@@ -123,22 +123,20 @@ void parse_compilation_unit(BuildManager& build_manager, muuk::Compiler compiler
             (pkg_dir / std::filesystem::path(src_path).stem()).string() + OBJ_EXT,
             "../../");
 
-        // Merge flags
-        std::vector<std::string> unit_cflags = muuk::parse_array_as_vec(unit_entry, "cflags");
-        unit_cflags.insert(unit_cflags.end(), base_cflags.begin(), base_cflags.end());
-        unit_cflags.insert(unit_cflags.end(), platform_cflags.begin(), platform_cflags.end());
-        unit_cflags.insert(unit_cflags.end(), compiler_cflags.begin(), compiler_cflags.end());
-
-        // TODO: Normalize flags in backend. Since different backends may use different compilers.
-        muuk::normalize_flags_inplace(unit_cflags, compiler);
-
         // Register in build manager
-        build_manager.add_compilation_target(src_path, obj_path, unit_cflags, iflags, compilation_unit_type);
+        build_manager.add_compilation_target(
+            src_path,
+            obj_path,
+            compilation_flags,
+            compilation_unit_type);
 
         // Logging
         muuk::logger::info("Added {} compilation target: {} -> {}", to_string(compilation_unit_type), src_path, obj_path);
-        muuk::logger::trace("  - {} CFLAGS: {}", to_string(compilation_unit_type), fmt::join(unit_cflags, ", "));
-        muuk::logger::trace("  - {} Include Flags: {}", to_string(compilation_unit_type), fmt::join(iflags, ", "));
+        muuk::logger::trace("  - CFlags: {}", fmt::join(compilation_flags.cflags, ", "));
+        muuk::logger::trace("  - Defines: {}", fmt::join(compilation_flags.defines, ", "));
+        muuk::logger::trace("  - Include Flags: {}", fmt::join(compilation_flags.iflags, ", "));
+        muuk::logger::trace("  - Platform CFlags: {}", fmt::join(compilation_flags.platform_cflags, ", "));
+        muuk::logger::trace("  - Compiler CFlags: {}", fmt::join(compilation_flags.compiler_cflags, ", "));
     }
 }
 
@@ -189,19 +187,23 @@ void parse_compilation_targets(BuildManager& build_manager, const muuk::Compiler
             muuk::normalize_flags_inplace(platform_cflags, compiler);
             muuk::normalize_flags_inplace(compiler_cflags, compiler);
 
+            CompilationFlags compilation_flags = {
+                cflags,
+                iflags,
+                defines,
+                platform_cflags,
+                compiler_cflags
+            };
+
             // Parse Modules
             if (package_table.contains("modules")) {
                 auto modules = package_table.at("modules").as_array();
                 parse_compilation_unit(
                     build_manager,
-                    compiler,
                     modules,
                     CompilationUnitType::Module,
                     pkg_dir,
-                    cflags,
-                    platform_cflags,
-                    compiler_cflags,
-                    iflags);
+                    compilation_flags);
                 has_modules = true;
             }
 
@@ -210,14 +212,10 @@ void parse_compilation_targets(BuildManager& build_manager, const muuk::Compiler
                 auto sources = package_table.at("sources").as_array();
                 parse_compilation_unit(
                     build_manager,
-                    compiler,
                     sources,
                     CompilationUnitType::Source,
                     pkg_dir,
-                    cflags,
-                    platform_cflags,
-                    compiler_cflags,
-                    iflags);
+                    compilation_flags);
             }
         }
     }

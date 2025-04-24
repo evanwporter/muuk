@@ -1,10 +1,15 @@
 #include <iostream>
+#include <vector>
 
 #include "buildmanager.h"
 #include "buildtargets.h"
 #include "logger.h"
 
-void BuildManager::add_compilation_target(std::string src, std::string obj, std::vector<std::string> cflags, std::vector<std::string> iflags, CompilationUnitType compilation_unit_type) {
+void BuildManager::add_compilation_target(
+    std::string src,
+    std::string obj,
+    CompilationFlags compilation_flags,
+    CompilationUnitType compilation_unit_type) {
     // Prevent empty inputs
     if (src.empty() || obj.empty()) {
         std::cerr << "Error: Compilation target must have a source file and an object file.\n";
@@ -12,7 +17,7 @@ void BuildManager::add_compilation_target(std::string src, std::string obj, std:
     }
 
     if (object_registry.find(obj) == object_registry.end()) {
-        compilation_targets.emplace_back(src, obj, cflags, iflags, compilation_unit_type);
+        compilation_targets.emplace_back(src, obj, compilation_flags, compilation_unit_type);
         object_registry[obj] = obj;
     }
 }

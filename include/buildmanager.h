@@ -26,8 +26,7 @@ public:
     void add_compilation_target(
         std::string src,
         std::string obj,
-        std::vector<std::string> cflags,
-        std::vector<std::string> iflags,
+        CompilationFlags compilation_flags,
         CompilationUnitType compilation_unit_type = CompilationUnitType::Source);
 
     void add_archive_target(
