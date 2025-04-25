@@ -61,7 +61,7 @@ std::string NinjaBackend::generate_rule(const CompilationTarget& target) {
     if (is_module) {
         // Use logical_name or derive .ifc file name
         module_output = "../../" + (build_dir_ / "modules" / (target.logical_name + ".ifc")).string();
-        module_output = util::to_linux_path(module_output);
+        module_output = util::file_system::to_linux_path(module_output);
     }
 
     if (is_module) {
@@ -185,9 +185,9 @@ void NinjaBackend::write_header(std::ostringstream& out, std::string profile) {
         << "ar = " << archiver_ << "\n"
         << "linker = " << linker_ << "\n\n";
 
-    std::string module_dir = util::to_linux_path((build_dir_ / "modules/").string());
+    std::string module_dir = util::file_system::to_linux_path((build_dir_ / "modules/").string());
 
-    util::ensure_directory_exists(module_dir);
+    util::file_system::ensure_directory_exists(module_dir);
     muuk::logger::info("Created module build directory: {}", module_dir);
 
     module_dir = "../../" + module_dir;

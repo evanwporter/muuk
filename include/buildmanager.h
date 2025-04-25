@@ -24,21 +24,21 @@ class BuildManager {
 
 public:
     void add_compilation_target(
-        std::string src,
-        std::string obj,
-        CompilationFlags compilation_flags,
+        const std::string src,
+        const std::string obj,
+        const CompilationFlags compilation_flags,
         CompilationUnitType compilation_unit_type = CompilationUnitType::Source);
 
     void add_archive_target(
-        std::string lib,
-        std::vector<std::string> objs,
-        std::vector<std::string> aflags);
+        const std::string lib,
+        const std::vector<std::string> objs,
+        const std::vector<std::string> aflags);
 
     void add_link_target(
-        std::string exe,
-        std::vector<std::string> objs,
-        std::vector<std::string> libs,
-        std::vector<std::string> lflags);
+        const std::string exe,
+        const std::vector<std::string> objs,
+        const std::vector<std::string> libs,
+        const std::vector<std::string> lflags);
 
     std::vector<CompilationTarget>& get_compilation_targets();
     const std::vector<CompilationTarget>& get_compilation_targets() const;
@@ -53,7 +53,10 @@ public:
         const std::string& key,
         const std::string& value);
 
-    void set_profile_flags(const std::string& profile_name, BuildProfile profile);
+    void set_profile_flags(
+        const std::string& profile_name,
+        const BuildProfile profile);
+
     const BuildProfile* get_profile(const std::string& profile_name) const;
 };
 

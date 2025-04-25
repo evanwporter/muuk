@@ -2,26 +2,28 @@
 #include <vector>
 
 #include "buildtargets.h"
+#include "util.h"
 
-BuildTarget::BuildTarget(std::string target_name, std::string target_output) :
+BuildTarget::BuildTarget(const std::string target_name, const std::string target_output) :
     name(std::move(target_name)), output(std::move(target_output)) {
 }
 
-CompilationTarget::CompilationTarget(std::string src, std::string obj, CompilationFlags compilation_flags, CompilationUnitType compilation_unit_type_) :
+CompilationTarget::CompilationTarget(const std::string src, const std::string obj, const CompilationFlags compilation_flags, CompilationUnitType compilation_unit_type_) :
     BuildTarget(obj, obj) {
     input = src;
     inputs = { src };
 
-    flags.insert(flags.end(), compilation_flags.cflags.begin(), compilation_flags.cflags.end());
-    flags.insert(flags.end(), compilation_flags.iflags.begin(), compilation_flags.iflags.end());
-    flags.insert(flags.end(), compilation_flags.defines.begin(), compilation_flags.defines.end());
-    flags.insert(flags.end(), compilation_flags.platform_cflags.begin(), compilation_flags.platform_cflags.end());
-    flags.insert(flags.end(), compilation_flags.compiler_cflags.begin(), compilation_flags.compiler_cflags.end());
+    using util::array_ops::merge;
+    merge(flags, compilation_flags.cflags);
+    merge(flags, compilation_flags.iflags);
+    merge(flags, compilation_flags.defines);
+    merge(flags, compilation_flags.platform_cflags);
+    merge(flags, compilation_flags.compiler_cflags);
 
     compilation_unit_type = compilation_unit_type_;
 }
 
-ArchiveTarget::ArchiveTarget(std::string lib, std::vector<std::string> objs, std::vector<std::string> aflags) :
+ArchiveTarget::ArchiveTarget(const std::string lib, const std::vector<std::string> objs, const std::vector<std::string> aflags) :
     BuildTarget(lib, lib) {
     inputs = objs;
     flags = aflags;
@@ -46,7 +48,7 @@ ExternalTarget::ExternalTarget(
     flags = args_;
 }
 
-LinkTarget::LinkTarget(std::string exe, std::vector<std::string> objs, std::vector<std::string> libs, std::vector<std::string> lflags) :
+LinkTarget::LinkTarget(const std::string exe, const std::vector<std::string> objs, const std::vector<std::string> libs, const std::vector<std::string> lflags) :
     BuildTarget(exe, exe) {
     inputs = objs;
     inputs.insert(inputs.end(), libs.begin(), libs.end());

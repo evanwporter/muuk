@@ -5,7 +5,6 @@
 #include <ctime>
 #include <filesystem>
 #include <fstream>
-#include <regex>
 #include <set>
 #include <string>
 #include <vector>
@@ -23,56 +22,72 @@ namespace fs = std::filesystem;
 
 namespace util {
 
-    // Ensure directory exists and optionally create .gitignore
-    void ensure_directory_exists(const std::string& dir_path, bool gitignore) {
-        if (!fs::exists(dir_path)) {
-            fs::create_directories(dir_path);
-            muuk::logger::info("Created directory: {}", dir_path);
-        } else {
-            muuk::logger::debug("Directory already exists: {}", dir_path);
-        }
+    // ==========================
+    //  File System Utilities
+    // ==========================
+    namespace file_system {
+        void ensure_directory_exists(const std::string& dir_path, const bool gitignore) {
+            if (!fs::exists(dir_path)) {
+                fs::create_directories(dir_path);
+                muuk::logger::info("Created directory: {}", dir_path);
+            } else {
+                muuk::logger::debug("Directory already exists: {}", dir_path);
+            }
 
-        if (gitignore) {
-            std::string gitignore_file = dir_path + "/.gitignore";
-            if (!fs::exists(gitignore_file)) {
-                std::ofstream gitignore_stream(gitignore_file);
-                if (gitignore_stream.is_open()) {
-                    gitignore_stream << "*\n";
-                    gitignore_stream.close();
-                    muuk::logger::info("Created .gitignore file in directory: {}", dir_path);
-                } else {
-                    muuk::logger::error("Failed to create .gitignore file in directory: {}", dir_path);
+            if (gitignore) {
+                std::string gitignore_file = dir_path + "/.gitignore";
+                if (!fs::exists(gitignore_file)) {
+                    std::ofstream gitignore_stream(gitignore_file);
+                    if (gitignore_stream.is_open()) {
+                        gitignore_stream << "*\n";
+                        gitignore_stream.close();
+                        muuk::logger::info("Created .gitignore file in directory: {}", dir_path);
+                    } else {
+                        muuk::logger::error("Failed to create .gitignore file in directory: {}", dir_path);
+                    }
                 }
             }
         }
-    }
 
-    bool path_exists(const std::string& path) {
-        bool exists = fs::exists(path);
-        muuk::logger::debug("Checked existence of '{}': {}", path, exists);
-        return exists;
-    }
-
-    void remove_path(const std::string& path) {
-        if (fs::exists(path)) {
-            fs::remove_all(path);
-            muuk::logger::info("Removed path: {}", path);
-        } else {
-            muuk::logger::warn("Attempted to remove non-existent path: {}", path);
+        bool path_exists(const std::string& path) {
+            bool exists = fs::exists(path);
+            muuk::logger::debug("Checked existence of '{}': {}", path, exists);
+            return exists;
         }
-    }
 
-    bool match_pattern(const std::string& path, const std::string& pattern) {
-        bool matches = false;
-        if (pattern[0] == '!') {
-            std::string inner_pattern = pattern.substr(1);
-            matches = !std::regex_match(path, std::regex(".*" + std::regex_replace(inner_pattern, std::regex("\\*"), ".*") + "$"));
-        } else {
-            matches = std::regex_match(path, std::regex(".*" + std::regex_replace(pattern, std::regex("\\*"), ".*") + "$"));
+        std::vector<std::string> to_linux_path(const std::vector<std::string>& paths, const std::string& prefix) {
+            std::vector<std::string> new_paths;
+            new_paths.reserve(paths.size()); // Reserve space for efficiency
+
+            std::transform(paths.begin(), paths.end(), std::back_inserter(new_paths), [&prefix](const std::string& path) { return to_linux_path(path, prefix); });
+
+            return new_paths;
         }
-        muuk::logger::debug("Matching '{}' with pattern '{}': {}", path, pattern, matches);
-        return matches;
-    }
+
+        std::set<std::string> to_linux_path(const std::set<std::string>& paths, const std::string& prefix) {
+            std::set<std::string> new_paths;
+            for (const auto& path : paths) {
+                new_paths.insert(to_linux_path(path, prefix));
+            }
+            return new_paths;
+        }
+
+        std::string to_linux_path(const std::string& path, const std::string& prefix) {
+            std::string new_path = path;
+            std::replace(new_path.begin(), new_path.end(), '\\', '/');
+
+            // Check if the path is absolute
+            bool is_absolute = fs::path(new_path).is_absolute();
+
+#ifdef _WIN32 // Get rid of drive letter
+            if (new_path.length() > 2 && new_path[1] == ':') {
+                new_path = new_path.substr(0, 1) + "$:" + new_path.substr(2);
+            }
+#endif
+
+            return (is_absolute ? "" : prefix) + new_path;
+        }
+    } // namespace file_system
 
     // ==========================
     //  Command Line Utilities
@@ -177,74 +192,6 @@ namespace util {
             return {};
         }
     } // namespace network
-
-    std::string to_utf8(const std::wstring& wstr) {
-#ifdef _WIN32
-        if (wstr.empty())
-            return "";
-
-        int size_needed = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, nullptr, 0, nullptr, nullptr);
-        std::string utf8_str(size_needed - 1, 0);
-        WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, &utf8_str[0], size_needed, nullptr, nullptr);
-        return utf8_str;
-#else
-        std::mbstate_t state {};
-        const wchar_t* src = wstr.c_str();
-        size_t len = 1 + std::wcsrtombs(nullptr, &src, 0, &state);
-        std::string dest(len, '\0');
-        std::wcsrtombs(&dest[0], &src, len, &state);
-        return dest;
-#endif
-    }
-
-    std::string normalize_path(const std::string& path) {
-        try {
-            std::filesystem::path fs_path = std::filesystem::absolute(std::filesystem::path(path));
-            std::string normalized = fs_path.lexically_normal().string();
-            std::replace(normalized.begin(), normalized.end(), '\\', '/');
-
-            return normalized;
-        } catch (const std::exception& e) {
-            muuk::logger::warn("Exception during path normalizing {}", e.what());
-            return path;
-        } catch (...) {
-            muuk::logger::error("Unknown error occurred during normalize path.");
-            throw;
-        }
-    }
-
-    std::vector<std::string> to_linux_path(const std::vector<std::string>& paths, const std::string& prefix) {
-        std::vector<std::string> new_paths;
-        new_paths.reserve(paths.size()); // Reserve space for efficiency
-
-        std::transform(paths.begin(), paths.end(), std::back_inserter(new_paths), [&prefix](const std::string& path) { return to_linux_path(path, prefix); });
-
-        return new_paths;
-    }
-
-    std::set<std::string> to_linux_path(const std::set<std::string>& paths, const std::string& prefix) {
-        std::set<std::string> new_paths;
-        for (const auto& path : paths) {
-            new_paths.insert(to_linux_path(path, prefix));
-        }
-        return new_paths;
-    }
-
-    std::string to_linux_path(const std::string& path, const std::string& prefix) {
-        std::string new_path = path;
-        std::replace(new_path.begin(), new_path.end(), '\\', '/');
-
-        // Check if the path is absolute
-        bool is_absolute = fs::path(new_path).is_absolute();
-
-#ifdef _WIN32 // Get rid of drive letter
-        if (new_path.length() > 2 && new_path[1] == ':') {
-            new_path = new_path.substr(0, 1) + "$:" + new_path.substr(2);
-        }
-#endif
-
-        return (is_absolute ? "" : prefix) + new_path;
-    }
 
     std::string trim_whitespace(const std::string& str) {
         auto start = str.begin();

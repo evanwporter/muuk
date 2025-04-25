@@ -30,16 +30,10 @@ MuukLockGenerator::MuukLockGenerator(const std::string& base_path) :
 
 Result<MuukLockGenerator> MuukLockGenerator::create(const std::string& base_path) {
     auto lockgen = MuukLockGenerator(base_path);
-
-    auto result = lockgen.load();
-    if (!result) {
-        return Err(result);
-    }
-
+    TRYV(lockgen.load());
     return lockgen;
 }
 
-// Parse a single muuk.toml file representing a package
 Result<void> MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
     muuk::logger::trace("Attempting to parse muuk.toml: {}", path);
     if (!fs::exists(path))
@@ -126,7 +120,7 @@ Result<void> MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is
 }
 
 void MuukLockGenerator::generate_gitignore() {
-    std::ofstream out("deps/.gitignore");
+    std::ofstream out(std::string(DEPENDENCY_FOLDER) + "/.gitignore");
     if (!out.is_open()) {
         muuk::logger::warn("Failed to open deps/.gitignore for writing.");
         return;
@@ -308,6 +302,7 @@ Result<void> MuukLockGenerator::load() {
                     package_dep->enable_features(dep->enabled_features);
                 }
 
+        // Apply default features
         muuk::logger::info("Applying default features for all resolved packages...");
         for (const auto& [pkg_name, versions] : resolved_packages)
             for (const auto& [pkg_version, pkg_ptr] : versions) {
@@ -315,7 +310,7 @@ Result<void> MuukLockGenerator::load() {
                     continue;
 
                 if (!pkg_ptr->default_features.empty()) {
-                    muuk::logger::info("Applying default features for package '{}': {}", pkg_name, fmt::join(pkg_ptr->default_features, ", "));
+                    muuk::logger::info("  -> Applied default features for package '{}': {}", pkg_name, fmt::join(pkg_ptr->default_features, ", "));
                     pkg_ptr->enable_features(pkg_ptr->default_features);
                 }
             }
@@ -325,9 +320,8 @@ Result<void> MuukLockGenerator::load() {
 
     for (const auto& [build_name, build] : builds_) {
         auto build_result = merge_build_dependencies(build_name, build, base_package_dep);
-        if (!build_result) {
+        if (!build_result)
             muuk::logger::error("Failed to merge build dependencies for '{}': {}", build_name, build_result.error());
-        }
     }
 
     propagate_profiles();

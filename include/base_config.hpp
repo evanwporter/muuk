@@ -102,7 +102,7 @@ struct BaseFields {
         if constexpr (Derived::enable_include) {
             auto raw_includes = util::muuk_toml::find_or_get<std::unordered_set<std::string>>(v, "include", {});
             for (const auto& inc : raw_includes)
-                include.insert(util::to_linux_path((std::filesystem::path(base_path) / inc).lexically_normal().string()));
+                include.insert(util::file_system::to_linux_path((std::filesystem::path(base_path) / inc).lexically_normal().string()));
         }
         if constexpr (Derived::enable_defines)
             defines = util::muuk_toml::find_or_get<std::unordered_set<std::string>>(v, "defines", {});
@@ -181,15 +181,15 @@ struct BaseFields {
     }
 
     void merge(const Derived& other) {
-        using util::array_ops::merge_sets;
-        merge_sets(include, other.include);
-        merge_sets(cflags, other.cflags);
-        merge_sets(cxxflags, other.cxxflags);
-        merge_sets(aflags, other.aflags);
-        merge_sets(lflags, other.lflags);
-        merge_sets(defines, other.defines);
-        merge_sets(undefines, other.undefines);
-        merge_sets(libs, other.libs);
+        using util::array_ops::merge;
+        merge(include, other.include);
+        merge(cflags, other.cflags);
+        merge(cxxflags, other.cxxflags);
+        merge(aflags, other.aflags);
+        merge(lflags, other.lflags);
+        merge(defines, other.defines);
+        merge(undefines, other.undefines);
+        merge(libs, other.libs);
     }
 
     std::vector<source_file> parse_sources(const toml::value& section, const std::string& base_path, const std::string& key = "sources") {
@@ -217,7 +217,7 @@ struct BaseFields {
             }
 
             std::filesystem::path full_path = std::filesystem::path(base_path) / file_path;
-            temp_sources.emplace_back(util::to_linux_path(full_path.lexically_normal().string()), extracted_cflags);
+            temp_sources.emplace_back(util::file_system::to_linux_path(full_path.lexically_normal().string()), extracted_cflags);
         }
 
         return temp_sources;
@@ -230,7 +230,7 @@ struct BaseFields {
             try {
                 std::vector<std::filesystem::path> globbed_paths = glob::glob(s.path);
                 for (const auto& path : globbed_paths) {
-                    expanded.emplace_back(util::to_linux_path(path.string()), s.cflags);
+                    expanded.emplace_back(util::file_system::to_linux_path(path.string()), s.cflags);
                 }
             } catch (const std::exception& e) {
                 muuk::logger::warn("Error while globbing '{}': {}", s.path, e.what());

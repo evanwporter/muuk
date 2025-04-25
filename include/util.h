@@ -12,18 +12,33 @@
 
 namespace util {
 
-    // File system utilities
-    void ensure_directory_exists(const std::string& dir_path, bool gitignore = false);
-    bool path_exists(const std::string& path);
-    void remove_path(const std::string& path);
-    bool match_pattern(const std::string& path, const std::string& pattern);
+    // ==========================
+    //  File System Utilities
+    // ==========================
+    namespace file_system {
+        /// Ensure directory exists and optionally create .gitignore
+        void ensure_directory_exists(const std::string& dir_path, const bool gitignore = false);
 
-    // Command execution
+        /// Check if a path exists
+        bool path_exists(const std::string& path);
+
+        std::string to_linux_path(const std::string& path, const std::string& prefix = "");
+        std::set<std::string> to_linux_path(const std::set<std::string>& paths, const std::string& prefix = "");
+        std::vector<std::string> to_linux_path(const std::vector<std::string>& paths, const std::string& prefix = "");
+    }
+
+    // ==========================
+    //  Command Line Utilities
+    // ==========================
     namespace command_line {
-        int execute_command(const std::string& command);
+        /// Execute a command and return the output as a string
         std::string execute_command_get_out(const std::string& command);
         bool command_exists(const std::string& command);
 
+        /// Execute a command and return the exit code
+        int execute_command(const std::string& command);
+
+        /// Execute a command with nice formatting of arguments
         template <typename... Args>
         int execute_command(fmt::format_string<Args...> fmt_str, Args&&... args) {
             std::string command = fmt::format(fmt_str, std::forward<Args>(args)...);
@@ -31,21 +46,19 @@ namespace util {
         }
     }
 
+    // ==========================
+    //  Network Utilities
+    // ==========================
     namespace network {
         Result<nlohmann::json> fetch_json(const std::string& url);
         Result<void> download_file(const std::string& url, const std::string& output_file);
     }
 
-    std::string to_utf8(const std::wstring& wstr);
-    bool is_valid_utf8(const std::string& str);
-
-    std::string to_linux_path(const std::string& path, const std::string& prefix = "");
-    std::set<std::string> to_linux_path(const std::set<std::string>& paths, const std::string& prefix = "");
-    std::string normalize_path(const std::string& path);
-    std::vector<std::string> to_linux_path(const std::vector<std::string>& paths, const std::string& prefix = "");
-
     std::string trim_whitespace(const std::string& str);
 
+    // ==========================
+    //  Git Utilities
+    // ==========================
     namespace git {
         std::string get_latest_revision(const std::string& git_url);
 
@@ -60,10 +73,16 @@ namespace util {
 
     }
 
+    // ==========================
+    //  Time Utilities
+    // ==========================
     namespace time {
         int current_year();
     }
 
+    // ==========================
+    //  Muuk Toml Utilities
+    // ==========================
     namespace muuk_toml {
         template <typename T, typename TC, typename K>
         T find_or_get(const toml::basic_value<TC>& v, const K& key, T&& fallback) {
@@ -75,9 +94,19 @@ namespace util {
         }
     }
 
+    // ==========================
+    //  Array Utilities
+    // ==========================
     namespace array_ops {
+        /// Merge std::vector with another std::vector
         template <typename T>
-        inline void merge_sets(std::unordered_set<T>& dest, const std::unordered_set<T>& src) {
+        inline void merge(std::vector<T>& dest, const std::vector<T>& src) {
+            dest.insert(dest.end(), src.begin(), src.end());
+        }
+
+        /// Merge std::unordered_set with another std::unordered_set
+        template <typename T>
+        inline void merge(std::unordered_set<T>& dest, const std::unordered_set<T>& src) {
             dest.insert(src.begin(), src.end());
         }
     }

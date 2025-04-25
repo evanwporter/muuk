@@ -149,7 +149,7 @@ namespace muuk {
 
         muuk::logger::info("Found {} source file(s) in '{}'", source_files.size(), source_dir.string());
 
-        util::ensure_directory_exists((root / version).string());
+        util::file_system::ensure_directory_exists((root / version).string());
 
         // Construct the TOML file content
         std::stringstream toml_content;

@@ -81,8 +81,8 @@ namespace muuk {
             std::string target_dir = std::string(DEPENDENCY_FOLDER) + "/" + repo_name + "/" + version;
 
             // Ensure dependency folder exists
-            util::ensure_directory_exists(DEPENDENCY_FOLDER, true);
-            util::ensure_directory_exists(target_dir);
+            util::file_system::ensure_directory_exists(DEPENDENCY_FOLDER, true);
+            util::file_system::ensure_directory_exists(target_dir);
 
             if (muuk_path.empty()) {
                 muuk_path = target_dir + "/muuk.toml";

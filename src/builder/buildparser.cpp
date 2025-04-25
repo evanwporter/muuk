@@ -113,13 +113,13 @@ void parse_compilation_unit(BuildManager& build_manager, const toml::array& unit
         if (!unit_entry.contains("path"))
             continue;
 
-        std::string src_path = util::to_linux_path(
+        std::string src_path = util::file_system::to_linux_path(
             std::filesystem::absolute(
                 std::filesystem::path(unit_entry.at("path").as_string()))
                 .string(),
             "../../");
 
-        std::string obj_path = util::to_linux_path(
+        std::string obj_path = util::file_system::to_linux_path(
             (pkg_dir / std::filesystem::path(src_path).stem()).string() + OBJ_EXT,
             "../../");
 
@@ -228,7 +228,7 @@ void parse_libraries(BuildManager& build_manager, const muuk::Compiler compiler,
     for (const auto& library_table : muuk_file.at("library").as_array()) {
         const auto library_name = library_table.at("name").as_string();
         const auto library_version = library_table.at("version").as_string();
-        const auto lib_path = util::to_linux_path(
+        const auto lib_path = util::file_system::to_linux_path(
             (build_dir / library_name / library_version / (library_name + LIB_EXT)).string(),
             "../../");
 
@@ -255,7 +255,7 @@ void parse_libraries(BuildManager& build_manager, const muuk::Compiler compiler,
                 if (!source_table.contains("path"))
                     continue;
 
-                const auto obj_file = util::to_linux_path(
+                const auto obj_file = util::file_system::to_linux_path(
                     (build_dir / library_name / library_version / std::filesystem::path(source_table.at("path").as_string()).stem()).string() + OBJ_EXT,
                     "../../");
                 obj_files.push_back(obj_file);
@@ -353,7 +353,7 @@ void parse_executables(BuildManager& build_manager, const muuk::Compiler compile
         }
 
         // Prepare build paths
-        const auto exe_path = util::to_linux_path(
+        const auto exe_path = util::file_system::to_linux_path(
             (build_dir / executable_name / (executable_name + EXE_EXT)).string(), "../../");
 
         std::vector<std::string> obj_files;
@@ -371,11 +371,11 @@ void parse_executables(BuildManager& build_manager, const muuk::Compiler compile
                 if (!src_table.contains("path"))
                     continue;
 
-                std::string src_path = util::to_linux_path(
+                std::string src_path = util::file_system::to_linux_path(
                     std::filesystem::absolute(std::filesystem::path(src_table.at("path").as_string())).string(),
                     "../../");
 
-                std::string obj_path = util::to_linux_path(
+                std::string obj_path = util::file_system::to_linux_path(
                     (build_dir / executable_name / std::filesystem::path(src_path).stem()).string() + OBJ_EXT,
                     "../../");
 
@@ -394,7 +394,7 @@ void parse_executables(BuildManager& build_manager, const muuk::Compiler compile
                     const auto& lib_table = lib_map.at(lib_name).at(version).as_table();
 
                     if (lib_table.contains("sources")) {
-                        std::string lib_path = util::to_linux_path(
+                        std::string lib_path = util::file_system::to_linux_path(
                             (build_dir / lib_name / version / (lib_name + LIB_EXT)).string(), "../../");
                         libs.push_back(lib_path);
                     }

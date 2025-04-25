@@ -108,18 +108,16 @@ Result<void> MuukLockGenerator::parse_features(const toml::value& data, std::sha
 
         if (feature_value.is_array()) { // List Syntax
             for (const auto& item : feature_value.as_array()) {
-                if (item.is_string()) {
-                    std::string value = item.as_string();
+                std::string value = item.as_string();
 
-                    if (value.rfind("D:", 0) == 0)
-                        feature_data.defines.insert(value.substr(2)); // Remove "D:"
-                    else if (value.rfind("U:", 0) == 0)
-                        feature_data.undefines.insert(value.substr(2)); // Remove "U:"
-                    else if (value.rfind("dep:", 0) == 0)
-                        feature_data.dependencies.insert(value.substr(4)); // Remove "dep:"
-                    else
-                        muuk::logger::warn("Unrecognized feature syntax: {}", value);
-                }
+                if (value.rfind("D:", 0) == 0)
+                    feature_data.defines.insert(value.substr(2)); // Remove "D:"
+                else if (value.rfind("U:", 0) == 0)
+                    feature_data.undefines.insert(value.substr(2)); // Remove "U:"
+                else if (value.rfind("dep:", 0) == 0)
+                    feature_data.dependencies.insert(value.substr(4)); // Remove "dep:"
+                else
+                    muuk::logger::warn("Unrecognized feature syntax: {}", value);
             }
         } else if (feature_value.is_table()) { // Table Syntax
 

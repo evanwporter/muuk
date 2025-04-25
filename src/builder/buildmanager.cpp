@@ -1,4 +1,3 @@
-#include <iostream>
 #include <vector>
 
 #include "buildmanager.h"
@@ -6,13 +5,14 @@
 #include "logger.h"
 
 void BuildManager::add_compilation_target(
-    std::string src,
-    std::string obj,
-    CompilationFlags compilation_flags,
+    const std::string src,
+    const std::string obj,
+    const CompilationFlags compilation_flags,
     CompilationUnitType compilation_unit_type) {
+
     // Prevent empty inputs
     if (src.empty() || obj.empty()) {
-        std::cerr << "Error: Compilation target must have a source file and an object file.\n";
+        muuk::logger::error("Compilation target must have a source file and an object file.");
         return;
     }
 
@@ -22,7 +22,7 @@ void BuildManager::add_compilation_target(
     }
 }
 
-void BuildManager::add_archive_target(std::string lib, std::vector<std::string> objs, std::vector<std::string> aflags) {
+void BuildManager::add_archive_target(const std::string lib, const std::vector<std::string> objs, const std::vector<std::string> aflags) {
     if (lib.empty() || objs.empty()) {
         muuk::logger::trace("Skipping since Archive target must have a library name and at least one object file.\n");
         return;
@@ -33,9 +33,9 @@ void BuildManager::add_archive_target(std::string lib, std::vector<std::string> 
     }
 }
 
-void BuildManager::add_link_target(std::string exe, std::vector<std::string> objs, std::vector<std::string> libs, std::vector<std::string> lflags) {
+void BuildManager::add_link_target(const std::string exe, const std::vector<std::string> objs, const std::vector<std::string> libs, const std::vector<std::string> lflags) {
     if (exe.empty() || objs.empty()) {
-        std::cerr << "Error: Link target must have an executable name and at least one object file.\n";
+        muuk::logger::error("Link target must have an executable name and at least one object file.");
         return;
     }
 
@@ -74,10 +74,12 @@ CompilationTarget* BuildManager::find_compilation_target(const std::string& key,
             return (key == "input" && target.input == value) || (key == "output" && target.output == value);
         });
 
-    return (it != compilation_targets.end()) ? &(*it) : nullptr;
+    return (it != compilation_targets.end())
+        ? &(*it)
+        : nullptr;
 }
 
-void BuildManager::set_profile_flags(const std::string& profile_name, BuildProfile profile) {
+void BuildManager::set_profile_flags(const std::string& profile_name, const BuildProfile profile) {
     profiles[profile_name] = std::move(profile);
 }
 

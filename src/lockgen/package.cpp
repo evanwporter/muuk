@@ -21,7 +21,7 @@ void Package::merge(const Package& child_pkg) {
 
     muuk::logger::info("[MuukLockGenerator] Merging {} into {}", child_pkg.name, name);
 
-    util::array_ops::merge_sets(
+    util::array_ops::merge(
         all_dependencies_array,
         child_pkg.all_dependencies_array);
 
@@ -38,8 +38,8 @@ void Package::enable_features(const std::unordered_set<std::string>& feature_set
             const auto& feature_data = features.at(feature);
 
             // Apply feature defines
-            util::array_ops::merge_sets(library_config.defines, feature_data.defines);
-            util::array_ops::merge_sets(library_config.undefines, feature_data.undefines);
+            util::array_ops::merge(library_config.defines, feature_data.defines);
+            util::array_ops::merge(library_config.undefines, feature_data.undefines);
 
             // TODO Fix
             // Add feature dependencies

@@ -170,7 +170,7 @@ void MuukLockGenerator::resolve_system_dependency(const std::string& package_nam
     //     }
 
     //     // Save resolved paths
-    //     if (!include_path.empty() && util::path_exists(include_path)) {
+    //     if (!include_path.empty() && util::file_system::path_exists(include_path)) {
     //         system_include_paths_.insert(include_path);
     //         if (package)
     //             package->add_include_path(include_path);

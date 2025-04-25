@@ -5,9 +5,6 @@
 #include <gtest/gtest.h>
 
 namespace fs = std::filesystem;
-using ::testing::_;
-using ::testing::Invoke;
-using ::testing::Return;
 
 class UtilTest : public ::testing::Test {
 protected:
@@ -31,9 +28,9 @@ protected:
 // **Test Case: Ensure Directory Exists**
 TEST_F(UtilTest, EnsureDirectoryExists_CreatesDirectory) {
     std::string test_dir = test_directory + "/new_dir";
-    ASSERT_FALSE(fs::exists(test_dir)) << "Test directory should not exist before calling ensure_directory_exists";
-    util::ensure_directory_exists(test_dir, false);
-    EXPECT_TRUE(fs::exists(test_dir)) << "Test directory should be created by ensure_directory_exists";
+    ASSERT_FALSE(fs::exists(test_dir)) << "Test directory should not exist before calling file_system::ensure_directory_exists";
+    util::file_system::ensure_directory_exists(test_dir, false);
+    EXPECT_TRUE(fs::exists(test_dir)) << "Test directory should be created by file_system::ensure_directory_exists";
     fs::remove_all(test_dir);
 }
 
@@ -41,7 +38,7 @@ TEST_F(UtilTest, EnsureDirectoryExists_CreatesDirectory) {
 TEST_F(UtilTest, EnsureDirectoryExists_WithGitignore) {
     std::string gitignore_file = test_directory + "/.gitignore";
 
-    util::ensure_directory_exists(test_directory, true);
+    util::file_system::ensure_directory_exists(test_directory, true);
 
     EXPECT_TRUE(fs::exists(test_directory));
     EXPECT_TRUE(fs::exists(gitignore_file));
@@ -56,26 +53,8 @@ TEST_F(UtilTest, EnsureDirectoryExists_WithGitignore) {
 // **Test Case: Path Exists**
 TEST_F(UtilTest, PathExists) {
     fs::create_directories(test_directory);
-    EXPECT_TRUE(util::path_exists(test_directory));
-    EXPECT_FALSE(util::path_exists("non_existent_path"));
-}
-
-// **Test Case: Remove Path**
-TEST_F(UtilTest, RemovePath) {
-    fs::create_directories(test_directory);
-    EXPECT_TRUE(fs::exists(test_directory));
-
-    util::remove_path(test_directory);
-
-    EXPECT_FALSE(fs::exists(test_directory));
-}
-
-// **Test Case: Pattern Matching**
-TEST(UtilPatternTest, MatchPattern) {
-    EXPECT_TRUE(util::match_pattern("build/main.o", "build/*"));
-    EXPECT_TRUE(util::match_pattern("src/file.cpp", "src/*.cpp"));
-    EXPECT_FALSE(util::match_pattern("docs/readme.md", "src/*.cpp"));
-    EXPECT_FALSE(util::match_pattern("src/main.cpp", "!src/*.cpp"));
+    EXPECT_TRUE(util::file_system::path_exists(test_directory));
+    EXPECT_FALSE(util::file_system::path_exists("non_existent_path"));
 }
 
 // **Test Case: Execute System Command**
@@ -84,64 +63,17 @@ TEST(UtilCommandTest, ExecuteCommand) {
     EXPECT_EQ(result, 0); // System commands return 0 on success
 }
 
-// **Test Case: UTF-8 Validation**
-// TEST(UtilStringTest, IsValidUTF8) {
-//     EXPECT_TRUE(util::is_valid_utf8("Hello World"));
-//     EXPECT_FALSE(util::is_valid_utf8(std::string("\xFF\xFF\xFF")));  // Invalid UTF-8
-// }
-
-// **Test Case: Convert to UTF-8**
-TEST(UtilStringTest, ConvertToUTF8) {
-    std::wstring wide_str = L"Hello, 世界";
-    std::string utf8_str = util::to_utf8(wide_str);
-    EXPECT_FALSE(utf8_str.empty());
-}
-
-// ** Test Case: Normalize Paths **
-TEST(UtilPathTest, NormalizePath) {
-    std::string path = "C:\\Users\\Test\\..\\Project\\file.txt";
-    std::string normalized = util::normalize_path(path);
-
-#ifdef _WIN32
-    EXPECT_EQ(normalized, "C:/Users/Project/file.txt");
-#else
-    EXPECT_EQ(normalized, "/Users/Project/file.txt");
-#endif
-}
-
 // ** Test Case: Execute Non-Existent Command **
 TEST(UtilCommandTest, ExecuteInvalidCommand) {
     int result = util::command_line::execute_command("invalid_command_that_does_not_exist");
     EXPECT_NE(result, 0); // Expect a failure result
 }
 
-// ** Test Case: Remove Non-Existent Path **
-TEST(UtilPathTest, RemoveNonExistentPath) {
-    std::string path = "non_existent_folder";
-    EXPECT_NO_THROW(util::remove_path(path));
-}
-
-// ** Test Case: Ensure UTF-8 Validity Check Handles Edge Cases **
-// TEST(UtilStringTest, UTF8EdgeCases) {
-//     std::string valid_utf8 = "Hello, 世界";
-//     std::string invalid_utf8 = std::string("\xFF\xFF\xFF");
-
-//     EXPECT_TRUE(util::is_valid_utf8(valid_utf8));
-//     EXPECT_FALSE(util::is_valid_utf8(invalid_utf8));
-// }
-
-// ** Test Case: Match Wildcards with Edge Cases **
-TEST(UtilPatternTest, WildcardMatchingEdgeCases) {
-    EXPECT_TRUE(util::match_pattern("src/main.cpp", "src/*.cpp"));
-    EXPECT_FALSE(util::match_pattern("src/main.cpp", "build/*.cpp"));
-    EXPECT_TRUE(util::match_pattern("build/debug/file.log", "build/**/*.log"));
-}
-
 // ** Test Case: Ensure .gitignore Exists With Edge Cases **
 TEST_F(UtilTest, EnsureGitignoreCreationEdgeCases) {
     std::string path = test_directory + "/subfolder";
 
-    util::ensure_directory_exists(path, true);
+    util::file_system::ensure_directory_exists(path, true);
     std::string gitignore_path = path + "/.gitignore";
 
     EXPECT_TRUE(fs::exists(gitignore_path));

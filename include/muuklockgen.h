@@ -90,6 +90,7 @@ private:
         const std::string& base_profile,
         const std::string& inherited_profile);
 
+    /// Parse a single muuk.toml file representing a package
     Result<void> parse_muuk_toml(const std::string& path, bool is_base = false);
 
     Result<void> resolve_dependencies(
