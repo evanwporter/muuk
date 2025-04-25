@@ -15,7 +15,7 @@
 #include "commands/install.hpp"
 #include "commands/remove.hpp"
 #include "commands/run.hpp"
-#include "logger.h"
+#include "logger.hpp"
 #include "muuk_parser.hpp"
 #include "muukterminal.hpp"
 #include "rustify.hpp"

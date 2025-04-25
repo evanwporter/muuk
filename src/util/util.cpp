@@ -15,8 +15,8 @@
 
 #include <tl/expected.hpp>
 
-#include "logger.h"
-#include "util.h"
+#include "logger.hpp"
+#include "util.hpp"
 
 namespace fs = std::filesystem;
 

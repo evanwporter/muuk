@@ -1,7 +1,7 @@
 // #include "../../include/buildparser.hpp"
-// #include "../../include/buildmanager.h"
+// #include "../../include/buildmanager.hpp"
 // #include "../../include/buildconfig.h"
-// #include "../../include/muukfiler.h"
+// #include "../../include/muukfiler.hpp"
 // #include "./mocks/mockfileop.hpp"
 
 // #include <gtest/gtest.h>

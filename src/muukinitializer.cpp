@@ -5,7 +5,7 @@
 #include <fmt/core.h>
 #include <toml.hpp>
 
-#include "logger.h"
+#include "logger.hpp"
 #include "rustify.hpp"
 
 namespace fs = std::filesystem;
@@ -123,7 +123,7 @@ int main() {
         }
 
         // Header
-        std::ofstream header_file("include/" + project_name + ".h");
+        std::ofstream header_file("include/" + project_name + ".hpp");
         if (header_file) {
             header_file << R"(#pragma once
 

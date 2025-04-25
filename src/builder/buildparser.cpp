@@ -8,15 +8,15 @@
 #include <toml.hpp>
 
 #include "buildconfig.h"
-#include "buildmanager.h"
+#include "buildmanager.hpp"
 #include "buildparser.hpp"
-#include "buildtargets.h"
-#include "logger.h"
+#include "buildtargets.hpp"
+#include "logger.hpp"
 #include "moduleresolver.hpp"
-#include "muuk.h"
+#include "muuk.hpp"
 #include "muuk_parser.hpp"
 #include "rustify.hpp"
-#include "util.h"
+#include "util.hpp"
 
 namespace fs = std::filesystem;
 

@@ -7,7 +7,7 @@
 #include <toml.hpp>
 
 #include "base_config.hpp"
-#include "try_expected.h"
+#include "try_expected.hpp"
 
 // TODO: Put inside namespace muuk::lockgen
 // namespace muuk {

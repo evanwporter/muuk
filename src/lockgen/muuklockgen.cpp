@@ -12,12 +12,12 @@
 #include "buildconfig.h"
 #include "compiler.hpp"
 #include "error_codes.hpp"
-#include "logger.h"
-#include "muuk.h"
+#include "logger.hpp"
+#include "muuk.hpp"
 #include "muuk_parser.hpp"
-#include "muuklockgen.h"
+#include "muuklockgen.hpp"
 #include "rustify.hpp"
-#include "try_expected.h"
+#include "try_expected.hpp"
 
 namespace fs = std::filesystem;
 

@@ -1,8 +1,8 @@
 #include <string>
 #include <vector>
 
-#include "buildtargets.h"
-#include "util.h"
+#include "buildtargets.hpp"
+#include "util.hpp"
 
 BuildTarget::BuildTarget(const std::string target_name, const std::string target_output) :
     name(std::move(target_name)), output(std::move(target_output)) {

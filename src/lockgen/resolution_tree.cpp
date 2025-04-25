@@ -7,10 +7,10 @@
 
 #include "buildconfig.h"
 #include "error_codes.hpp"
-#include "logger.h"
-#include "muuklockgen.h"
+#include "logger.hpp"
+#include "muuklockgen.hpp"
 #include "rustify.hpp"
-#include "try_expected.h"
+#include "try_expected.hpp"
 
 namespace fs = std::filesystem;
 

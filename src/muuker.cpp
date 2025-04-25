@@ -20,8 +20,8 @@
 #include <toml.hpp>
 
 #include "commands/clean.hpp"
-#include "logger.h"
-#include "util.h"
+#include "logger.hpp"
+#include "util.hpp"
 
 namespace muuk {
     // TODO: allow specific profiles to be cleaned

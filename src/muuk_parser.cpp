@@ -6,7 +6,7 @@
 #include <toml.hpp>
 
 #include "error_codes.hpp"
-#include "logger.h"
+#include "logger.hpp"
 #include "muuk_parser.hpp"
 #include "muukvalidator.hpp"
 #include "rustify.hpp"

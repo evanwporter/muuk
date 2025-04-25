@@ -8,11 +8,11 @@
 #include <nlohmann/json.hpp>
 
 #include "buildconfig.h"
-#include "logger.h"
-#include "muuk.h"
+#include "logger.hpp"
+#include "muuk.hpp"
 #include "muukterminal.hpp"
 #include "rustify.hpp"
-#include "util.h"
+#include "util.hpp"
 
 namespace fs = std::filesystem;
 

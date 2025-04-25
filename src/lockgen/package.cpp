@@ -4,8 +4,8 @@
 #include <toml.hpp>
 
 #include "base_config.hpp"
-#include "logger.h"
-#include "util.h"
+#include "logger.hpp"
+#include "util.hpp"
 
 const PackageType PackageType::LIBRARY(PackageType::Type::LIBRARY);
 const PackageType PackageType::BUILD(PackageType::Type::BUILD);

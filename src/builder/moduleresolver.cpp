@@ -6,12 +6,12 @@
 #include <fmt/core.h>
 #include <nlohmann/json.hpp>
 
-#include "buildmanager.h"
+#include "buildmanager.hpp"
 #include "compiler.hpp"
 #include "flags.hpp"
-#include "logger.h"
-#include "muuk.h"
-#include "util.h"
+#include "logger.hpp"
+#include "muuk.hpp"
+#include "util.hpp"
 
 namespace muuk {
 

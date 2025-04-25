@@ -5,11 +5,11 @@
 #include <string>
 
 #include "buildbackend.hpp"
-#include "buildmanager.h"
+#include "buildmanager.hpp"
 #include "buildparser.hpp"
-#include "buildtargets.h"
-#include "logger.h"
-#include "util.h"
+#include "buildtargets.hpp"
+#include "logger.hpp"
+#include "util.hpp"
 
 namespace fs = std::filesystem;
 

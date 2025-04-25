@@ -1,8 +1,8 @@
 #include <vector>
 
-#include "buildmanager.h"
-#include "buildtargets.h"
-#include "logger.h"
+#include "buildmanager.hpp"
+#include "buildtargets.hpp"
+#include "logger.hpp"
 
 void BuildManager::add_compilation_target(
     const std::string src,

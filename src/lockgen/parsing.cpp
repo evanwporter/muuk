@@ -4,8 +4,8 @@
 #include <fmt/ranges.h>
 #include <toml.hpp>
 
-#include "logger.h"
-#include "muuklockgen.h"
+#include "logger.hpp"
+#include "muuklockgen.hpp"
 #include "rustify.hpp"
 
 Result<void> MuukLockGenerator::parse_dependencies(const toml::value& data, std::shared_ptr<Package> package) {

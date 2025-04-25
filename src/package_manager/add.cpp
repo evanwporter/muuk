@@ -6,11 +6,11 @@
 
 #include "buildconfig.h"
 #include "commands/add.hpp"
-#include "logger.h"
-#include "muuk.h"
+#include "logger.hpp"
+#include "muuk.hpp"
 #include "muuk_parser.hpp"
 #include "rustify.hpp"
-#include "util.h"
+#include "util.hpp"
 
 #ifdef SEARCH_FOR_MUUK_PATCHES
 constexpr const char* MUUK_PATCH_UTL = "https://raw.githubusercontent.com/evanwporter/muuk/main/muuk-patches/";

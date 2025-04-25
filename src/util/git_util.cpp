@@ -4,9 +4,9 @@
 
 #include <nlohmann/json.hpp>
 
-#include "logger.h"
+#include "logger.hpp"
 #include "rustify.hpp"
-#include "util.h"
+#include "util.hpp"
 
 namespace util {
     // ==========================

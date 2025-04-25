@@ -8,9 +8,9 @@
 #include <glob/glob.hpp>
 #include <toml.hpp>
 
-#include "logger.h"
-#include "muuk.h"
-#include "util.h"
+#include "logger.hpp"
+#include "muuk.hpp"
+#include "util.hpp"
 
 enum class LinkType {
     STATIC,

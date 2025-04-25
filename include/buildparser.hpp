@@ -8,7 +8,7 @@
 
 #include <toml.hpp>
 
-#include "buildmanager.h"
+#include "buildmanager.hpp"
 #include "compiler.hpp"
 
 std::pair<std::string, std::string> get_profile_flag_strings(

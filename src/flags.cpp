@@ -3,8 +3,8 @@
 
 #include "compiler.hpp"
 #include "flags.hpp"
-#include "logger.h"
-#include "muuk.h"
+#include "logger.hpp"
+#include "muuk.hpp"
 #include "muukvalidator.hpp"
 
 namespace muuk {

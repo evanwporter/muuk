@@ -5,10 +5,10 @@
 #include <nlohmann/json.hpp>
 
 #include "buildbackend.hpp"
-#include "buildmanager.h"
+#include "buildmanager.hpp"
 #include "buildparser.hpp"
-#include "buildtargets.h"
-#include "logger.h"
+#include "buildtargets.hpp"
+#include "logger.hpp"
 
 using json = nlohmann::json;
 namespace fs = std::filesystem;

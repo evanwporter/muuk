@@ -6,12 +6,12 @@
 
 #include "buildconfig.h"
 #include "commands/install.hpp"
-#include "logger.h"
+#include "logger.hpp"
 #include "muuk_parser.hpp"
-#include "muuklockgen.h"
+#include "muuklockgen.hpp"
 #include "muukterminal.hpp"
 #include "rustify.hpp"
-#include "util.h"
+#include "util.hpp"
 
 namespace fs = std::filesystem;
 

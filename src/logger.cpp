@@ -4,7 +4,7 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
-#include "logger.h"
+#include "logger.hpp"
 
 namespace muuk {
 
@@ -18,12 +18,9 @@ namespace muuk {
             file_sink->set_level(spdlog::level::trace);
             file_sink->set_pattern("[%Y-%m-%d %H:%M:%S] [%l] %v");
 
-            // // Console sink (logs to console)
-            // auto console_sink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();
-            // console_sink->set_level(spdlog::level::warn); // Only log warnings and above
-            // console_sink->set_pattern("%^%l%$ %v");
+            // Note this is where I would create a console sink if needed
+            // But I decided to do so with a custom function in logger.h
 
-            // logger_ = std::make_shared<spdlog::logger>("multi_sink", spdlog::sinks_init_list{ file_sink, console_sink });
             logger_ = std::make_shared<spdlog::logger>("multi_sink", file_sink);
 
 #ifdef DEBUG

@@ -12,7 +12,7 @@
 
 #include "base_config.hpp"
 #include "compiler.hpp"
-#include "muuk.h"
+#include "muuk.hpp"
 #include "rustify.hpp"
 
 // { Dependency { Versioning { Dependency Info } } }
