@@ -39,7 +39,8 @@ namespace muuk {
     };
 
     using TomlTypeVariantOneType = std::variant<TomlType, TomlArray>;
-    using TomlTypeVariant = std::variant<TomlType, TomlArray, std::vector<TomlType>>;
+    using TomlUnionTypes = std::vector<TomlTypeVariantOneType>;
+    using TomlTypeVariant = std::variant<TomlType, TomlArray, TomlUnionTypes>;
 
     // Helper to represent multiple possible types
     struct SchemaNode {
@@ -104,8 +105,8 @@ namespace muuk {
             {"keywords", {false, TomlArray{TomlType::String}}}
         }}},
 
-        {"dependencies", {false, std::vector<TomlType>{TomlType::String, TomlType::Table}, {
-            {"*", {false, std::vector<TomlType>{TomlType::Table, TomlType::String}, dependency_schema}}
+        {"dependencies", {false, TomlUnionTypes{TomlType::String, TomlType::Table}, {
+            {"*", {false, TomlUnionTypes{TomlType::String, TomlType::Table}, dependency_schema}}
         }}},
 
         {"library", {false, TomlType::Table, base_package_schema}},
@@ -131,7 +132,6 @@ namespace muuk {
         {"platform", {false, TomlType::Table, {
             {"*", {false, TomlType::Table, {
                 {"default", {false, TomlType::Boolean}},
-                // {"inherits", {false, TomlArray{TomlType::String}}},
                 {"include", {false, TomlArray{TomlType::String}}},
                 {"cflags", {false, TomlArray{TomlType::String}}},
                 {"lflags", {false, TomlArray{TomlType::String}}}
@@ -142,12 +142,19 @@ namespace muuk {
         {"compiler", {false, TomlType::Table, {
             {"*", {false, TomlType::Table, {
                 {"default", {false, TomlType::Boolean}},
-                // {"inherits", {false, TomlArray{TomlType::String}}},
                 {"include", {false, TomlArray{TomlType::String}}},
                 {"cflags", {false, TomlArray{TomlType::String}}},
                 {"lflags", {false, TomlArray{TomlType::String}}}
 
             }}}
+        }}},
+
+        {"features", {false, TomlType::Table, {
+            {"default", {false, TomlArray{TomlType::String}}},
+            {"*", {false, TomlUnionTypes{TomlArray{TomlType::String}, TomlType::Table}, {
+                {"dependencies", {false, TomlArray{TomlType::String}}},
+                {"defines", {false, TomlArray{TomlType::String}}}
+            }}},
         }}},
     };
 
@@ -176,7 +183,7 @@ namespace muuk {
             base_package_schema
         ))}},
 
-        {"dependencies", {false, std::vector<TomlType>{TomlType::String, TomlType::Table}, {
+        {"dependencies", {false, TomlUnionTypes{TomlType::String, TomlType::Table}, {
             {"*", {false, TomlType::Table, dependency_schema}}
         }}},
     };

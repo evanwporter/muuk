@@ -131,7 +131,6 @@ Result<void> MuukLockGenerator::parse_features(const toml::value& data, std::sha
                     if (dep.is_string())
                         feature_data.dependencies.insert(dep.as_string());
 
-            // Support `defines`
         } else {
             // TODO: This eventually will be unnecessary
             muuk::logger::warn("Invalid format for feature '{}'. Must be either a table or a array", std::string(feature_name));

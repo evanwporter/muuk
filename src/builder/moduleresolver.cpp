@@ -157,7 +157,7 @@ namespace muuk {
         // Write to output file (dependency-db.json)
         std::ofstream out_file(dependency_db);
         if (!out_file) {
-            muuk::logger::error("Could not open output file {} for writing!", dependency_db);
+            muuk::logger::warn("Could not open output file {} for writing!", dependency_db);
             return;
         }
         out_file << compdb.dump(4); // Pretty-print JSON with 4-space indentation
@@ -171,9 +171,8 @@ namespace muuk {
 
         std::unordered_map<std::string, CompilationTarget*> target_map;
         auto& compilation_targets = build_manager.get_compilation_targets();
-        for (auto& target : compilation_targets) {
+        for (auto& target : compilation_targets)
             target_map[target.output] = &target;
-        }
 
         resolve_provided_modules(dependencies, target_map);
         resolve_required_modules(dependencies, build_manager, target_map);

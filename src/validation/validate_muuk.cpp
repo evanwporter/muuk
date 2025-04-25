@@ -59,10 +59,44 @@ namespace muuk {
         }
     }
 
+    // clang-format off
+
+    /// Helper to match a TOML value against a schema variant
+    bool match_type(const toml::value& node, const TomlTypeVariantOneType& expected_type, const std::string& path, std::function<Result<void>(const toml::value&, const SchemaMap&, const std::string&)> recurse) {
+        auto node_type = get_toml_type(node);
+        if (!node_type) return false;
+
+        return std::visit([&](auto&& expected) -> bool {
+            using T = std::decay_t<decltype(expected)>;
+
+            if constexpr (std::is_same_v<T, TomlType>) {
+                return *node_type == expected;
+            } else if constexpr (std::is_same_v<T, TomlArray>) {
+                if (*node_type != TomlType::Array) return false;
+
+                const auto& arr = node.as_array();
+                for (const auto& item : arr) {
+                    auto item_type = get_toml_type(item);
+                    if (!item_type || *item_type != expected.element_type) return false;
+
+                    if (expected.element_type == TomlType::Table && expected.table_schema) {
+                        if (!item.is_table()) return false;
+                        auto result = recurse(item, *expected.table_schema, path + "[]");
+                        if (!result) return false;
+                    }
+                }
+                return true;
+            }
+        }, expected_type);
+    }
+
+    /// Function to validate TOML data against a schema
     Result<void> validate_toml_(const toml::value& toml_data, const SchemaMap& schema, const std::string& parent_path = "") {
         bool has_wildcard = schema.contains("*");
         const SchemaNode* wildcard_schema = has_wildcard ? &schema.at("*") : nullptr;
-
+    
+        auto recurse = validate_toml_; // Allow reuse in lambdas
+    
         for (const auto& [key, schema_node] : schema) {
             if (key == "*")
                 continue; // Wildcards handled separately
@@ -76,53 +110,34 @@ namespace muuk {
             }
 
             const auto& node = toml_data.at(key);
-            auto node_type = get_toml_type(node);
-            if (!node_type)
-                return Err(toml::format_error(
-                    "Could not determine type",
-                    node,
-                    node_type.error()));
-
-            if (std::holds_alternative<TomlType>(schema_node.type)) {
-                TomlType expected = std::get<TomlType>(schema_node.type);
-                if (*node_type != expected)
-                    return Err(toml::format_error(
-                        "Validation failed due to a type mismatch",
-                        node,
-                        "Expected type: " + to_string(expected) + ", but got: " + to_string(*node_type)));
-
-            } else if (std::holds_alternative<TomlArray>(schema_node.type)) {
-                if (*node_type != TomlType::Array)
-                    return Err(toml::format_error(
-                        "Validation failed due to a type mismatch",
-                        node,
-                        "Expected an array at '" + full_path + "'"));
-
-                const auto& arr = node.as_array();
-                const TomlArray& expected_array = std::get<TomlArray>(schema_node.type);
-
-                for (const auto& item : arr) {
-                    auto item_type = get_toml_type(item);
-                    if (!item_type || *item_type != expected_array.element_type)
-                        return Err(toml::format_error(
-                            "Validation failed due to a array item type mismatch",
-                            item,
-                            "Expected element type: " + to_string(expected_array.element_type) + ", but got: " + to_string(*item_type)));
-
-                    // If it's an array of tables, validate each table
-                    if (expected_array.element_type == TomlType::Table && expected_array.table_schema)
-                        if (!item.is_table())
-                            return Err(toml::format_error(
-                                "Validation failed due to a type mismatch",
-                                item,
-                                "Expected a table in array at '" + full_path + "'"));
+    
+            bool valid = std::visit([&](auto&& expected) -> bool {
+                using T = std::decay_t<decltype(expected)>;
+    
+                if constexpr (std::is_same_v<T, TomlType>) {
+                    return get_toml_type(node) == expected;
+                } else if constexpr (std::is_same_v<T, TomlArray>) {
+                    return match_type(node, expected, full_path, recurse);
+                } else if constexpr (std::is_same_v<T, std::vector<TomlTypeVariantOneType>>) {
+                    for (const auto& variant : expected)
+                        if (match_type(node, variant, full_path, recurse))
+                            return true;
+                    return false;
                 }
+            }, schema_node.type);
+    
+            if (!valid) {
+                auto type_str = get_toml_type(node) ? to_string(*get_toml_type(node)) : "Unknown";
+                return Err(toml::format_error(
+                    "Validation failed due to a type mismatch",
+                    node,
+                    "Type mismatch at '" + full_path + "' (got: " + type_str + ")"
+                ));
             }
-
+    
             if (node.is_table() && !schema_node.children.empty()) {
                 auto result = validate_toml_(node, schema_node.children, full_path);
-                if (!result)
-                    return result;
+                if (!result) return result;
             }
         }
 
@@ -131,46 +146,34 @@ namespace muuk {
             const auto& tbl = toml_data.as_table();
 
             for (const auto& [k, node] : tbl) {
-                std::string key_str = k;
-                if (schema.contains(key_str))
-                    continue;
+                if (schema.contains(k)) continue;
+                std::string full_path = parent_path.empty() ? k : parent_path + "." + k;
 
-                std::string full_path = parent_path.empty() ? key_str : parent_path + "." + key_str;
-                auto node_type = get_toml_type(node);
-                if (!node_type)
-                    return Err(toml::format_error(
-                        "Unknown type",
-                        node,
-                        node_type.error()));
-
-                bool wildcard_match = std::visit([&, node = node](auto&& expected) -> bool {
+                bool matched = std::visit([&](auto&& expected) -> bool {
                     using T = std::decay_t<decltype(expected)>;
 
                     if constexpr (std::is_same_v<T, TomlType>) {
-                        return *node_type == expected;
+                        return get_toml_type(node) == expected;
                     } else if constexpr (std::is_same_v<T, TomlArray>) {
-                        if (*node_type != TomlType::Array)
-                            return false;
-                        const auto& arr = node.as_array();
-                        for (const auto& item : arr) {
-                            auto item_type = get_toml_type(item);
-                            if (!item_type || *item_type != expected.element_type) {
-                                return false;
-                            }
-                        }
-                        return true;
-                    } else if constexpr (std::is_same_v<T, std::vector<TomlType>>) {
-                        return std::find(expected.begin(), expected.end(), *node_type) != expected.end();
+                        return match_type(node, expected, full_path, recurse);
+                    } else if constexpr (std::is_same_v<T, std::vector<TomlTypeVariantOneType>>) {
+                        for (const auto& variant : expected)
+                            if (match_type(node, variant, full_path, recurse))
+                                return true;
+                        return false;
                     }
-                    // clang-format off
                 }, wildcard_schema->type);
 
-                if (!wildcard_match) 
+                if (!matched) {
+                    auto type_str = get_toml_type(node) 
+                        ? to_string(*get_toml_type(node)) 
+                        : "Unknown";
                     return Err(toml::format_error(
-                        "Validation failed due to a type mismatch",
+                        "Wildcard type mismatch",
                         node,
-                        "Type mismatch at key '" + full_path + "'"
+                        "Unexpected type at '" + full_path + "' (got: " + type_str + ")"
                     ));
+                }
 
                 if (node.is_table() && !wildcard_schema->children.empty()) {
                     auto result = validate_toml_(node, wildcard_schema->children, full_path);
@@ -181,6 +184,7 @@ namespace muuk {
         }
         return {}; // Success
     }
+    // clang-format on
 
     Result<void> validate_muuk_toml(const toml::value& toml_data) {
         return validate_toml_(toml_data, muuk_schema);

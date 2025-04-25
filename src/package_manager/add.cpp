@@ -12,7 +12,9 @@
 #include "rustify.hpp"
 #include "util.h"
 
+#ifdef SEARCH_FOR_MUUK_PATCHES
 constexpr const char* MUUK_PATCH_UTL = "https://raw.githubusercontent.com/evanwporter/muuk/main/muuk-patches/";
+#endif
 
 namespace muuk {
 
@@ -89,13 +91,17 @@ namespace muuk {
                 std::string muuk_toml_url = "https://raw.githubusercontent.com/" + author + "/" + repo_name + "/" + version + "/muuk.toml";
 
                 if (!util::network::download_file(muuk_toml_url, muuk_path)) {
-                    muuk::logger::warn("Failed to download muuk.toml from repo, checking patch...");
+#ifdef SEARCH_FOR_MUUK_PATCHES
+                    muuk::logger::warn("Failed to download muuk.toml from repo, searching for patches...");
                     std::string patch_muuk_toml_url = MUUK_PATCH_UTL + repo_name + "/muuk.toml";
                     if (!util::network::download_file(patch_muuk_toml_url, muuk_path)) {
                         muuk::logger::warn("No valid patch found. Generating a default `muuk.toml`.");
                         if (!qinit_library(author, repo_name, version))
                             return Err("Failed to generate default muuk.toml.");
                     }
+#else
+                    muuk::logger::warn("Failed to download muuk.toml from repo. Generating a default `muuk.toml`.");
+#endif
                 }
             }
 
