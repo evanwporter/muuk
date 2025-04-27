@@ -85,7 +85,6 @@ std::vector<std::string> extract_platform_flags(const toml::table& package_table
     return flags;
 }
 
-// Extract compiler-specific flags
 std::vector<std::string> extract_compiler_flags(const toml::table& package_table, const muuk::Compiler compiler) {
     std::vector<std::string> flags;
     if (!package_table.contains("compiler"))
@@ -104,6 +103,7 @@ std::vector<std::string> extract_compiler_flags(const toml::table& package_table
     return flags;
 }
 
+/// Parses compilation units (modules or sources) from the TOML array
 void parse_compilation_unit(BuildManager& build_manager, const toml::array& unit_array, const CompilationUnitType compilation_unit_type, const std::filesystem::path& pkg_dir, CompilationFlags compilation_flags) {
 
     for (const auto& unit_entry : unit_array) {
@@ -113,11 +113,11 @@ void parse_compilation_unit(BuildManager& build_manager, const toml::array& unit
         if (!unit_entry.contains("path"))
             continue;
 
-        std::string src_path = util::file_system::to_linux_path(
-            std::filesystem::absolute(
-                std::filesystem::path(unit_entry.at("path").as_string()))
-                .string(),
-            "../../");
+        std::string src_path
+            = util::file_system::to_linux_path(
+                std::filesystem::absolute(
+                    std::filesystem::path(unit_entry.at("path").as_string()))
+                    .string());
 
         std::string obj_path = util::file_system::to_linux_path(
             (pkg_dir / std::filesystem::path(src_path).stem()).string() + OBJ_EXT,
@@ -246,20 +246,30 @@ void parse_libraries(BuildManager& build_manager, const muuk::Compiler compiler,
         }
 
         std::vector<std::string> obj_files;
-        if (library_table.contains("sources")) {
-            auto sources = library_table.at("sources").as_array();
-            for (const auto& src_entry : sources) {
-                if (!src_entry.is_table())
+
+        auto parse_entries = [&build_dir, &library_name, &library_version, &obj_files](const toml::array& entries) {
+            for (const auto& entry : entries) {
+                if (!entry.is_table())
                     continue;
-                auto source_table = src_entry.as_table();
-                if (!source_table.contains("path"))
+                auto entry_table = entry.as_table();
+                if (!entry_table.contains("path"))
                     continue;
 
                 const auto obj_file = util::file_system::to_linux_path(
-                    (build_dir / library_name / library_version / std::filesystem::path(source_table.at("path").as_string()).stem()).string() + OBJ_EXT,
+                    (build_dir / library_name / library_version / std::filesystem::path(entry_table.at("path").as_string()).stem()).string() + OBJ_EXT,
                     "../../");
                 obj_files.push_back(obj_file);
             }
+        };
+
+        // Parse modules
+        if (library_table.contains("modules")) {
+            parse_entries(library_table.at("modules").as_array());
+        }
+
+        // Parse sources
+        if (library_table.contains("sources")) {
+            parse_entries(library_table.at("sources").as_array());
         }
 
         auto aflags = muuk::parse_array_as_vec(library_table.as_table(), "aflags");
@@ -393,7 +403,8 @@ void parse_executables(BuildManager& build_manager, const muuk::Compiler compile
                 if (lib_map.contains(lib_name) && lib_map.at(lib_name).contains(version)) {
                     const auto& lib_table = lib_map.at(lib_name).at(version).as_table();
 
-                    if (lib_table.contains("sources")) {
+                    // If it doesn't have these keys, then its an empty library so we should skip it
+                    if (lib_table.contains("sources") || lib_table.contains("modules")) {
                         std::string lib_path = util::file_system::to_linux_path(
                             (build_dir / lib_name / version / (lib_name + LIB_EXT)).string(), "../../");
                         libs.push_back(lib_path);
@@ -417,10 +428,10 @@ void parse_executables(BuildManager& build_manager, const muuk::Compiler compile
         build_manager.add_link_target(exe_path, obj_files, libs, lflags);
 
         muuk::logger::info("Added link target: {}", exe_path);
-        muuk::logger::trace("  - Object Files: {}", fmt::join(obj_files, ", "));
-        muuk::logger::trace("  - Libraries: {}", fmt::join(libs, ", "));
-        muuk::logger::trace("  - Include Flags: {}", fmt::join(iflags, ", "));
-        muuk::logger::trace("  - Linker Flags: {}", fmt::join(lflags, ", "));
+        muuk::logger::trace("  - Object Files: '{}'", fmt::join(obj_files, "', '"));
+        muuk::logger::trace("  - Libraries: '{}'", fmt::join(libs, "', '"));
+        muuk::logger::trace("  - Include Flags: '{}'", fmt::join(iflags, "', '"));
+        muuk::logger::trace("  - Linker Flags: '{}'", fmt::join(lflags, "', '"));
     }
 }
 

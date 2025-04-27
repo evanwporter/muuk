@@ -31,6 +31,35 @@ namespace muuk {
             static inline const std::string WHITE = "\033[37m";
         };
 
+        inline constexpr fmt::color color_from_name(std::string_view name) {
+            if (name == "red")
+                return fmt::color::red;
+            if (name == "green")
+                return fmt::color::green;
+            if (name == "yellow")
+                return fmt::color::yellow;
+            if (name == "blue")
+                return fmt::color::blue;
+            if (name == "magenta")
+                return fmt::color::magenta;
+            if (name == "cyan")
+                return fmt::color::cyan;
+            if (name == "white")
+                return fmt::color::white;
+            if (name == "black")
+                return fmt::color::black;
+
+            return fmt::color::white; // Default fallback
+        }
+
+        template <typename... Args>
+        inline void info(std::string_view color_name, fmt::format_string<Args...> format_str, Args&&... args) {
+            fmt::print(
+                fg(color_from_name(color_name)),
+                format_str,
+                std::forward<Args>(args)...);
+        }
+
         static int current_indent_level = 0;
 
         std::string get_indent();

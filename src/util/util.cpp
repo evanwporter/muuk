@@ -79,13 +79,19 @@ namespace util {
             // Check if the path is absolute
             bool is_absolute = fs::path(new_path).is_absolute();
 
-#ifdef _WIN32 // Get rid of drive letter
+            return (is_absolute ? "" : prefix) + new_path;
+        }
+
+        /// Modify Windows drive letter (e.g., C:) to a format that can be used in build files (e.g., C$:)
+        std::string escape_drive_letter(const std::string& path) {
+            std::string new_path = path;
+#ifdef _WIN32
+            // Check if path has a drive letter (e.g., C:\)
             if (new_path.length() > 2 && new_path[1] == ':') {
                 new_path = new_path.substr(0, 1) + "$:" + new_path.substr(2);
             }
 #endif
-
-            return (is_absolute ? "" : prefix) + new_path;
+            return new_path;
         }
     } // namespace file_system
 
@@ -95,19 +101,19 @@ namespace util {
     namespace command_line {
         int execute_command(const std::string& command) {
             muuk::logger::info("Executing command: {}", command);
-            if (!command_exists(command)) {
-                muuk::logger::error("Command does not exist: {}", command);
-                return -1;
-            }
+            // if (!command_exists(command)) {
+            //     muuk::logger::error("Command does not exist: {}", command);
+            //     return -1;
+            // }
             return system(command.c_str());
         }
 
         std::string execute_command_get_out(const std::string& command) {
 
-            if (!command_exists(command)) {
-                muuk::logger::error("Command does not exist: {}", command);
-                return "";
-            }
+            // if (!command_exists(command)) {
+            //     muuk::logger::error("Command does not exist: {}", command);
+            //     return "";
+            // }
 
             muuk::logger::info("Executing command: {}", command);
 
@@ -133,19 +139,29 @@ namespace util {
             return result;
         }
 
-        bool command_exists(const std::string& command) {
-            size_t space_pos = command.find(' ');
+        bool command_exists(const std::string& full_command) {
+            // Extract only the first word (program name)
+            size_t space_pos = full_command.find(' ');
             std::string base_command = (space_pos == std::string::npos)
-                ? command
-                : command.substr(0, space_pos);
+                ? full_command
+                : full_command.substr(0, space_pos);
+
+            muuk::logger::info("Checking if command exists: '{}'", base_command);
+
 #ifdef _WIN32
             std::string check_command = "where " + base_command + " >nul 2>&1";
 #else
             std::string check_command = "which " + base_command + " >/dev/null 2>&1";
 #endif
-            return (std::system(check_command.c_str()) == 0);
-        }
 
+            bool exists = (std::system(check_command.c_str()) == 0);
+
+            if (!exists) {
+                muuk::logger::error("Command not found: '{}'", base_command);
+            }
+
+            return exists;
+        }
     } // namespace command_line
 
     // ==========================

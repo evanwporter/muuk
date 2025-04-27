@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <argparse/argparse.hpp>
+#include <fmt/ostream.h>
 #include <nlohmann/json.hpp>
 #include <tl/expected.hpp>
 
@@ -17,7 +18,6 @@
 #include "commands/run.hpp"
 #include "logger.hpp"
 #include "muuk_parser.hpp"
-#include "muukterminal.hpp"
 #include "rustify.hpp"
 #include "version.h"
 
@@ -117,7 +117,7 @@ int main(int argc, char* argv[]) {
     program.add_subparser(add_command);
 
     if (argc < 2) {
-        muuk::terminal::error("Usage: {} <command> [--muuk-path <path>] [other options]", std::string(argv[0]));
+        fmt::print("Usage: {} <command> [--muuk-path <path>] [other options]", std::string(argv[0]));
         return 1;
     }
 

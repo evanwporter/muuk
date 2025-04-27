@@ -65,7 +65,9 @@ std::string NinjaBackend::generate_rule(const CompilationTarget& target) {
     }
 
     if (is_module) {
-        rule << "build " << module_output << ": compile_module " << target.inputs[0] << "\n";
+        rule << "build " << module_output << ": compile_module "
+             << util::file_system::escape_drive_letter(target.inputs[0])
+             << "\n";
 
         if (!target.flags.empty()) {
             rule << "  cflags =";
@@ -77,7 +79,11 @@ std::string NinjaBackend::generate_rule(const CompilationTarget& target) {
         rule << "\n";
     }
 
-    rule << "build " << target.output << ": compile " << target.inputs[0];
+    if (compiler_ == muuk::Compiler::Clang && is_module) {
+        rule << "build " << target.output << ": compile " << util::file_system::escape_drive_letter(module_output);
+    } else {
+        rule << "build " << target.output << ": compile " << util::file_system::escape_drive_letter(target.inputs[0]);
+    }
 
     if (is_module)
         rule << " | " << module_output; // Ensure dependency on module rule
@@ -85,7 +91,7 @@ std::string NinjaBackend::generate_rule(const CompilationTarget& target) {
     if (!target.dependencies.empty()) {
         rule << " |";
         for (const auto& dep : target.dependencies)
-            rule << " ../../" << dep;
+            rule << " ../../" << util::file_system::to_linux_path((build_dir_ / "modules" / (dep->logical_name + ".ifc")).string());
     }
 
     rule << "\n";
@@ -212,9 +218,11 @@ void NinjaBackend::write_header(std::ostringstream& out, std::string profile) {
             << "  description = Compiling C++ module $in\n\n";
     } else if (compiler_ == muuk::Compiler::Clang) {
         // Clang Compiler
+        // -x c++-module is used to specify that the input file is a module (ie: when it doesn't end with .cppm)
         out << "rule compile_module\n"
-            << "  command = $cxx -x c++-module -std=c++20 -fmodules-ts -c $in -o $out -fmodule-output="
-            << module_dir << " $cflags $profile_cflags\n"
+            << "  command = $cxx -x c++-module -std=c++20 --precompile "
+            << "-fprebuilt-module-path=" << module_dir << " "
+            << "$in -o $out $cflags $profile_cflags\n"
             << "  description = Compiling C++ module $in\n\n";
     } else if (compiler_ == muuk::Compiler::GCC) {
         // GCC Compiler

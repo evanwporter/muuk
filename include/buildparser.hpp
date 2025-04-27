@@ -48,10 +48,12 @@ void parse_compilation_unit(
     const std::filesystem::path& pkg_dir,
     CompilationFlags compilation_flags);
 
+/// Extract platform-specific flags
 std::vector<std::string> extract_platform_flags(
     const toml::table& package_table,
     muuk::Compiler compiler);
 
+/// Extract compiler-specific flags
 std::vector<std::string> extract_compiler_flags(
     const toml::table& package_table,
     muuk::Compiler compiler);

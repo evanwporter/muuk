@@ -101,7 +101,7 @@ int main() {
     }
 };
 
-TEST_F(ModuleResolutionTest, CanResolveModules) {
+TEST_F(ModuleResolutionTest, ResolvesModules) {
     muuk::resolve_modules(manager, temp_dir.string());
 
     // Assert at least one logical name got resolved
@@ -116,4 +116,17 @@ TEST_F(ModuleResolutionTest, CanResolveModules) {
     }
 
     ASSERT_TRUE(found_logical_name) << "No logical module names were resolved.";
+}
+
+TEST_F(ModuleResolutionTest, FindsDependencies) {
+    muuk::resolve_modules(manager, temp_dir.string());
+
+    auto impl_target = manager.find_compilation_target("output", "Impl.o");
+
+    ASSERT_TRUE(impl_target) << "Impl.o target not found.";
+
+    ASSERT_EQ(impl_target->dependencies.size(), 1) << "Impl.o has more than one dependency, expected only 1.";
+
+    const auto& dep = impl_target->dependencies[0];
+    ASSERT_EQ(dep->output, "M.o") << "Impl.o does not depend on M.o, it depends on " << dep->output << ".";
 }

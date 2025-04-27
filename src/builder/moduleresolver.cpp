@@ -40,17 +40,8 @@ namespace muuk {
                 command += " " + normalized;
             }
 
-            // TODO: Remove more elegantly
-            std::string sanitized_input = target.input;
-            sanitized_input.erase(
-                std::remove(
-                    sanitized_input.begin(),
-                    sanitized_input.end(),
-                    '$'),
-                sanitized_input.end());
-
             // Append input file
-            command += " " + sanitized_input;
+            command += " " + target.input;
 
             // Append output file
             command += " -o " + target.output;
@@ -59,7 +50,7 @@ namespace muuk {
             nlohmann::json entry;
             entry["directory"] = build_dir; // Use current directory
             entry["command"] = command;
-            entry["file"] = sanitized_input;
+            entry["file"] = target.input;
             entry["output"] = target.output;
 
             // Add entry to the compilation database
@@ -113,7 +104,7 @@ namespace muuk {
         }
     }
 
-    // Resolves required modules and links dependencies
+    /// Resolves required modules and links dependencies
     void resolve_required_modules(
         const nlohmann::json& dependencies,
         BuildManager& build_manager,
@@ -136,6 +127,7 @@ namespace muuk {
                         continue;
 
                     std::string required_source = require["source-path"];
+
                     CompilationTarget* required_target = build_manager.find_compilation_target("input", required_source);
                     if (required_target) {
                         primary_target->dependencies.push_back(required_target);
@@ -148,7 +140,7 @@ namespace muuk {
         }
     }
 
-    // Orchestrates module resolution
+    /// Orchestrates module resolution
     void resolve_modules(BuildManager& build_manager, const std::string& build_dir) {
         std::string dependency_db = build_dir + "/dependency-db.json";
 

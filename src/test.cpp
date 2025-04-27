@@ -1,4 +1,4 @@
-#ifdef DEBUG
+#ifndef NDEBUG
 import math;
 
 int do_something() {
