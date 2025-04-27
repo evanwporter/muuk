@@ -89,5 +89,5 @@ cflags = ['/Od', '/DDEBUG', '/Zi', '/RTC1', '/FC', '/GS']
 default = true
 include = ['include']
 inherits = ['base']
-lflags = ['/DEBUG', '/MACHINE:X86']
+lflags = ['/DEBUG']
 libs = []

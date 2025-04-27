@@ -21,7 +21,6 @@ jobs:
             binary_name: muuk.exe
             artifact_name: muuk-windows
             zip_name: muuk-windows.zip
-            gh_asset: muuk-windows.zip
             muuk_exec: .\muuk.exe
             copy_cmd: copy build\release\bin\bin.exe muuk.exe
 
@@ -30,7 +29,6 @@ jobs:
             binary_name: muuk
             artifact_name: muuk-macos
             zip_name: muuk-macos.zip
-            gh_asset: muuk-macos.zip
             muuk_exec: ./muuk
             copy_cmd: cp build/release/bin/bin muuk
 
@@ -39,7 +37,6 @@ jobs:
             binary_name: muuk
             artifact_name: muuk-linux
             zip_name: muuk-linux.zip
-            gh_asset: muuk-linux.zip
             muuk_exec: ./muuk
             copy_cmd: cp build/release/bin/bin muuk
 
@@ -72,7 +69,7 @@ jobs:
       - name: Download latest release
         shell: bash
         run: |
-          url=$(gh release view --json assets -q ".assets[] | select(.name == \"${{ matrix.gh_asset }}\") | .url")
+          url=$(gh release view --json assets -q ".assets[] | select(.name == \"${{ matrix.zip_name }}\") | .url")
           curl -L "$url" -o muuk.zip
           unzip -o muuk.zip
           if [[ "${{ runner.os }}" != "Windows" ]]; then
@@ -84,13 +81,11 @@ jobs:
       - name: Install dependencies with muuk
         run: ${{ matrix.muuk_exec }} install
 
-      - name: Create build/release directory
+      - name: Create build directory
         shell: bash
-        run: mkdir -p build/release
-
-      - name: Create build/debug directory
-        shell: bash
-        run: mkdir -p build/debug
+        run: |
+          mkdir -p build/release
+          mkdir -p build/debug
 
       - name: Build project (Release)
         run: ${{ matrix.muuk_exec }} build -c ${{ matrix.compiler }} -p release
@@ -102,15 +97,12 @@ jobs:
         if: runner.os != 'Windows'
         run: chmod +x ${{ matrix.binary_name }}
 
-      - name: Test whether it can build itself
-        run: ./${{ matrix.binary_name }} build -c ${{ matrix.compiler }} -p debug
-
       - name: Upload raw binary as artifact (for internal use)
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
           path: ${{ matrix.binary_name }}
-
+      
       - name: Zip for GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: vimtor/action-zip@v1.1
@@ -126,3 +118,94 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
+  test:
+    name: Test the built binary
+    needs: build
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            artifact_name: muuk-windows
+            binary_name: muuk.exe
+            compiler: msvc
+            muuk_exec: .\muuk.exe
+
+          - os: macos-latest
+            artifact_name: muuk-macos
+            binary_name: muuk
+            compiler: clang
+            muuk_exec: ./muuk
+
+          - os: ubuntu-latest
+            artifact_name: muuk-linux
+            binary_name: muuk
+            compiler: gcc
+            muuk_exec: ./muuk
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: .
+        
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@v6
+  
+      - name: Set up MSVC (Windows only)
+        if: matrix.compiler == 'msvc'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Install LLVM (macOS only)
+        if: runner.os == 'macOS'
+        run: |
+          brew install llvm
+          echo "LLVM installed at: $(brew --prefix llvm)"
+          echo "$(brew --prefix llvm)/bin" >> $GITHUB_PATH
+      
+      - name: Install LLVM (Linux only)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential llvm clang lld
+          echo "LLVM installed at: $(llvm-config --prefix)"
+          echo "$(llvm-config --bindir)" >> $GITHUB_PATH
+
+      - name: Make binary executable (Linux/macOS only)
+        if: runner.os != 'Windows'
+        run: chmod +x muuk
+
+      - name: Install dependencies with muuk
+        run: ${{ matrix.muuk_exec }} install
+
+      - name: Create build directory
+        shell: bash
+        run: |
+          mkdir -p build/release
+          mkdir -p build/debug
+
+      - name: Build project
+        run: ${{ matrix.muuk_exec }} build -c ${{ matrix.compiler }} -p debug
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install pytest
+        run: pip install pytest
+
+      - name: Run test
+        if: runner.os == 'Windows'
+        run: pytest test/external/test.py
+
+      - name: Run C++ tests (Windows)
+        if: runner.os == 'Windows'
+        run: ./build/debug/test/test.exe
+      
