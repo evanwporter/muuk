@@ -1,7 +1,7 @@
 #include <string>
 #include <vector>
 
-#include "buildtargets.hpp"
+#include "build/targets.hpp"
 #include "util.hpp"
 
 BuildTarget::BuildTarget(const std::string target_name, const std::string target_output) :

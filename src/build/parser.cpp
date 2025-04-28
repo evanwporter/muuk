@@ -7,12 +7,12 @@
 #include <fmt/ranges.h>
 #include <toml.hpp>
 
+#include "build/manager.hpp"
+#include "build/module_resolver.hpp"
+#include "build/parser.hpp"
+#include "build/targets.hpp"
 #include "buildconfig.h"
-#include "buildmanager.hpp"
-#include "buildparser.hpp"
-#include "buildtargets.hpp"
 #include "logger.hpp"
-#include "moduleresolver.hpp"
 #include "muuk.hpp"
 #include "muuk_parser.hpp"
 #include "rustify.hpp"

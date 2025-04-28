@@ -10,10 +10,10 @@
 #include "buildconfig.h"
 #include "compiler.hpp"
 #include "error_codes.hpp"
+#include "lockgen/muuklockgen.hpp"
 #include "logger.hpp"
 #include "muuk.hpp"
 #include "muuk_parser.hpp"
-#include "muuklockgen.hpp"
 #include "rustify.hpp"
 #include "try_expected.hpp"
 

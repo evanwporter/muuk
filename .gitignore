@@ -1,6 +1,6 @@
 logs/
 __pycache__/
-build/
+/build/
 
 *.log
 *.obj

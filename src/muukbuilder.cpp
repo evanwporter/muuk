@@ -3,16 +3,16 @@
 
 #include <toml.hpp>
 
-#include "buildbackend.hpp"
+#include "build/backend.hpp"
+#include "build/manager.hpp"
+#include "build/parser.hpp"
 #include "buildconfig.h"
-#include "buildmanager.hpp"
-#include "buildparser.hpp"
 #include "commands/build.hpp"
 #include "compiler.hpp"
 #include "error_codes.hpp"
+#include "lockgen/muuklockgen.hpp"
 #include "logger.hpp"
 #include "muuk_parser.hpp"
-#include "muuklockgen.hpp"
 #include "rustify.hpp"
 #include "try_expected.hpp"
 #include "util.hpp"

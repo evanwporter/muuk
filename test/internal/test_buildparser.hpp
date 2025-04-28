@@ -1,6 +1,6 @@
-// #include "../../include/buildparser.hpp"
-// #include "../../include/buildmanager.hpp"
-// #include "../../include/buildconfig.h"
+// #include "../../include/build/parser.hpp"
+// #include "../../include/build/manager.hpp"
+// #include "../../include/build/config.h"
 // #include "../../include/muukfiler.hpp"
 // #include "./mocks/mockfileop.hpp"
 

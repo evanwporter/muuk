@@ -6,8 +6,8 @@
 
 #include <nlohmann/json.hpp>
 
-#include "buildmanager.hpp"
-#include "buildtargets.hpp"
+#include "build/manager.hpp"
+#include "build/targets.hpp"
 #include "compiler.hpp"
 
 class BuildBackend {

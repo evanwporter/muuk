@@ -43,7 +43,9 @@ public:
     std::string input;
     std::string logical_name;
     std::vector<CompilationTarget*> dependencies; // Files that must be built first
-    CompilationUnitType compilation_unit_type; // Module or Source
+
+    /// Indicates whether the target is a module or a source file.
+    CompilationUnitType compilation_unit_type;
 };
 
 class ArchiveTarget : public BuildTarget {

@@ -1,5 +1,5 @@
-#include "../include/buildmanager.hpp"
-#include "buildtargets.hpp"
+#include "../include/build/manager.hpp"
+#include "build/targets.hpp"
 #include <algorithm>
 #include <gtest/gtest.h>
 

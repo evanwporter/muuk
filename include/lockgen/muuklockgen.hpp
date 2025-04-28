@@ -10,16 +10,18 @@
 
 #include <toml.hpp>
 
-#include "base_config.hpp"
 #include "compiler.hpp"
+#include "lockgen/config/base.hpp"
+#include "lockgen/config/build.hpp"
+#include "lockgen/config/package.hpp"
 #include "muuk.hpp"
 #include "rustify.hpp"
 
 // { Dependency { Versioning { Dependency Info } } }
-// Maps dependencies to their versioning information and associated dependency details.
+/// Maps dependencies to their versioning information and associated dependency details.
 typedef DependencyVersionMap<Dependency> DependencyInfoMap;
 
-// Maps dependencies to their respective versions and associated packages.
+/// Maps dependencies to their respective versions and associated packages.
 typedef DependencyVersionMap<std::shared_ptr<Package>> DependencyMap;
 
 class MuukLockGenerator {

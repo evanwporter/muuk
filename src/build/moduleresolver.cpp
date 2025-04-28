@@ -6,7 +6,7 @@
 #include <fmt/core.h>
 #include <nlohmann/json.hpp>
 
-#include "buildmanager.hpp"
+#include "build/manager.hpp"
 #include "compiler.hpp"
 #include "flags.hpp"
 #include "logger.hpp"

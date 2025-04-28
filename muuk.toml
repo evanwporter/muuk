@@ -25,7 +25,7 @@ sources = [
     'src/package_manager/*.cpp',
     'src/muukinitializer.cpp',
     'src/flags.cpp',
-    'src/builder/*.cpp',
+    'src/build/*.cpp',
     'src/validation/*.cpp',
     'src/quickinitializer.cpp',
     'src/muukterminal.cpp',

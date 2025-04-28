@@ -3,7 +3,8 @@
 #include <glob/glob.hpp>
 #include <toml.hpp>
 
-#include "base_config.hpp"
+#include "lockgen/config/base.hpp"
+#include "lockgen/config/package.hpp"
 #include "logger.hpp"
 #include "util.hpp"
 

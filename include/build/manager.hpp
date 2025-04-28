@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "buildtargets.hpp"
+#include "build/targets.hpp"
 
 struct BuildProfile {
     std::vector<std::string> cflags;

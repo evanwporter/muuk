@@ -10,10 +10,10 @@
 
 #include <nlohmann/json.hpp>
 
-#include "buildmanager.hpp"
-#include "buildtargets.hpp"
+#include "build/manager.hpp"
+#include "build/module_resolver.hpp"
+#include "build/targets.hpp"
 #include "logger.hpp"
-#include "moduleresolver.hpp"
 
 namespace fs = std::filesystem;
 

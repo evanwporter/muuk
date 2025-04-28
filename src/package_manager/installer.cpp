@@ -6,9 +6,9 @@
 
 #include "buildconfig.h"
 #include "commands/install.hpp"
+#include "lockgen/muuklockgen.hpp"
 #include "logger.hpp"
 #include "muuk_parser.hpp"
-#include "muuklockgen.hpp"
 #include "muukterminal.hpp"
 #include "rustify.hpp"
 #include "util.hpp"

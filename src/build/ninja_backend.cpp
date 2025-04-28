@@ -4,10 +4,10 @@
 #include <sstream>
 #include <string>
 
-#include "buildbackend.hpp"
-#include "buildmanager.hpp"
-#include "buildparser.hpp"
-#include "buildtargets.hpp"
+#include "build/backend.hpp"
+#include "build/manager.hpp"
+#include "build/parser.hpp"
+#include "build/targets.hpp"
 #include "logger.hpp"
 #include "util.hpp"
 

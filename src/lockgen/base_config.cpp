@@ -6,7 +6,9 @@
 #include <glob/glob.hpp>
 #include <toml.hpp>
 
-#include "base_config.hpp"
+#include "lockgen/config/base.hpp"
+#include "lockgen/config/build.hpp"
+#include "lockgen/config/package.hpp"
 #include "try_expected.hpp"
 
 // TODO: Put inside namespace muuk::lockgen

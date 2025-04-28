@@ -6,8 +6,8 @@
 
 #include "buildconfig.h"
 #include "commands/remove.hpp"
+#include "lockgen/muuklockgen.hpp"
 #include "muuk_parser.hpp"
-#include "muuklockgen.hpp"
 #include "muukterminal.hpp"
 #include "rustify.hpp"
 

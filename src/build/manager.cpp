@@ -1,7 +1,7 @@
 #include <vector>
 
-#include "buildmanager.hpp"
-#include "buildtargets.hpp"
+#include "build/manager.hpp"
+#include "build/targets.hpp"
 #include "logger.hpp"
 
 void BuildManager::add_compilation_target(
