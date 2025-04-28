@@ -9,10 +9,12 @@
 #include "buildparser.hpp"
 #include "commands/build.hpp"
 #include "compiler.hpp"
+#include "error_codes.hpp"
 #include "logger.hpp"
 #include "muuk_parser.hpp"
 #include "muuklockgen.hpp"
 #include "rustify.hpp"
+#include "try_expected.hpp"
 #include "util.hpp"
 
 namespace fs = std::filesystem;
@@ -89,29 +91,34 @@ namespace muuk {
     Result<void> add_script(const std::string& profile, const std::string& build_name) {
         (void)build_name;
 
-        auto result = muuk::parse_muuk_file("muuk.toml", false);
+        auto result = muuk::parse_muuk_file(
+            "muuk.toml",
+            false,
+            false);
         if (!result)
-            return tl::unexpected("Failed to parse muuk.toml: " + result.error());
+            return Err(result.error());
 
         toml::value config = result.value();
 
-        std::string executable_name = "muuk";
 #ifdef _WIN32
-        std::string executable_path = "build/" + profile + "/" + executable_name + ".exe";
+        std::string executable_path = "build/"
+            + profile + "/" + build_name
+            + "/" + build_name + ".exe";
 #else
-        std::string executable_path = "./build/" + profile + "/" + executable_name;
+        std::string executable_path = "./build/"
+            + profile + "/" + build_name
+            + "/" + build_name + ".exe";
 #endif
 
         if (!config.contains("scripts") || !config["scripts"].is_table()) {
             config["scripts"] = toml::table {};
         }
 
-        config["scripts"].as_table()["run"] = toml::value(executable_path);
+        config["scripts"].as_table()[build_name] = toml::value(executable_path);
 
         std::ofstream out("muuk.toml");
-        if (!out) {
-            return tl::unexpected("Failed to open muuk.toml for writing.");
-        }
+        if (!out)
+            return make_error<EC::FileNotFound>("muuk.toml");
         out << toml::format(config);
 
         muuk::logger::info("Successfully added run script to 'muuk.toml': {}", executable_path);
@@ -128,15 +135,21 @@ namespace muuk {
 
     Result<void> build(std::string& target_build, const std::string& compiler, const std::string& profile, const toml::value& config) {
 
+        auto muuk_result = parse_muuk_file(
+            "muuk.toml",
+            false,
+            true);
+        if (!muuk_result)
+            return Err(muuk_result);
+
+        auto muuk_file = muuk_result.value();
+
+        // TODO: Pass the config to the lock generator
         auto lock_generator_ = MuukLockGenerator::create("./");
         if (!lock_generator_)
             return Err(lock_generator_.error());
 
-        auto lock_file_result = lock_generator_->generate_cache(MUUK_CACHE_FILE);
-        if (!lock_file_result)
-            return Err(lock_file_result.error());
-
-        spdlog::default_logger()->flush();
+        TRYV(lock_generator_->generate_cache(MUUK_CACHE_FILE));
 
         auto compiler_result = compiler.empty()
             ? detect_default_compiler()
@@ -151,24 +164,28 @@ namespace muuk {
 
         auto profile_result = select_profile(profile, config);
         if (!profile_result)
-            return tl::unexpected(profile_result.error());
-
-        std::string selected_profile = profile_result.value();
+            return Err(profile_result);
+        auto selected_profile = profile_result.value();
 
         auto build_manager = std::make_unique<BuildManager>();
 
-        auto parse_result = parse(
+        // TODO: IMPLEMENT
+        // if (muuk_file.contains("build")) {
+        //     const auto& builds = muuk_file["build"].as_table();
+        //     for (const auto& [build_name, _] : builds) {
+        //         muuk::logger::info("Adding script for build target '{}'", build_name);
+        //         TRYV(add_script(selected_profile, build_name));
+        //     }
+        // }
+
+        TRYV(parse(
             *build_manager,
             selected_compiler,
             fs::path("build") / selected_profile,
-            selected_profile);
-
-        if (!parse_result) {
-            return Err(parse_result.error());
-        }
+            selected_profile));
 
         NinjaBackend build_backend(
-            *build_manager, // ← Reuse external BuildManager
+            *build_manager,
             selected_compiler,
             selected_archiver,
             selected_linker);
@@ -179,7 +196,12 @@ namespace muuk {
         build_backend.generate_build_file(target_build, selected_profile);
 
         execute_build(selected_profile);
-        generate_compile_commands(*build_manager, selected_profile, selected_compiler, selected_archiver, selected_linker);
+        generate_compile_commands(
+            *build_manager,
+            selected_profile,
+            selected_compiler,
+            selected_archiver,
+            selected_linker);
 
         return {};
     }

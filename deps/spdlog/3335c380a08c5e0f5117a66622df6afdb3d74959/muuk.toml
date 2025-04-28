@@ -8,7 +8,6 @@ git = 'https://github.com/fmtlib/fmt.git'
 muuk_path = 'deps/fmt/muuk.toml'
 revision = '577fd3be883accf8629423ed77fcca8a24bccee2'
 version = '577fd3be883accf8629423ed77fcca8a24bccee2'
-features = ['use_std2_fmt']
 
 [library]
 cflags = ["-DSPDLOG_COMPILED_LIB", "-DSPDLOG_FMT_EXTERNAL"]

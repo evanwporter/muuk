@@ -217,7 +217,9 @@ struct BaseFields {
             }
 
             std::filesystem::path full_path = std::filesystem::path(base_path) / file_path;
-            temp_sources.emplace_back(util::file_system::to_linux_path(full_path.lexically_normal().string()), extracted_cflags);
+            temp_sources.emplace_back(
+                util::file_system::to_linux_path(full_path.lexically_normal().string()),
+                extracted_cflags);
         }
 
         return temp_sources;

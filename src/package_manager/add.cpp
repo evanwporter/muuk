@@ -109,7 +109,7 @@ namespace muuk {
 
             std::ofstream file_out(toml_path, std::ios::trunc);
             if (!file_out.is_open()) {
-                return tl::unexpected("Failed to open TOML file for writing: " + toml_path);
+                return Err("Failed to open TOML file for writing: {}", toml_path);
             }
 
             file_out << toml::format(root);
@@ -118,7 +118,7 @@ namespace muuk {
             muuk::logger::info("Added dependency '{}' to '{}'", repo_name, toml_path);
             return {};
         } catch (const std::exception& e) {
-            return tl::unexpected("Error adding dependency: " + std::string(e.what()));
+            return Err("Error adding dependency: {}", std::string(e.what()));
         }
     }
 }

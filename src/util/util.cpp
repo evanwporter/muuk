@@ -13,8 +13,6 @@
 #include <windows.h>
 #endif
 
-#include <tl/expected.hpp>
-
 #include "logger.hpp"
 #include "util.hpp"
 
@@ -182,7 +180,7 @@ namespace util {
             try {
                 return nlohmann::json::parse(result);
             } catch (const std::exception& e) {
-                return tl::unexpected("JSON parsing failed: " + std::string(e.what()));
+                return Err("JSON parsing failed: " + std::string(e.what()));
             }
         }
 
@@ -202,7 +200,7 @@ namespace util {
 
             int result = util::command_line::execute_command(command.c_str());
             if (result != 0) {
-                return tl::unexpected("File download failed with exit code: " + std::to_string(result));
+                return Err("File download failed with exit code: " + std::to_string(result));
             }
 
             return {};

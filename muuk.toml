@@ -59,13 +59,6 @@ sources = ['test/internal/muuk_test.cpp']
 [build.test.dependencies]
 googletest = { git = 'https://github.com/google/googletest.git', version = '3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f' }
 
-[build.test_util]
-profile = ['debug']
-sources = ['test/internal/test_util.cpp']
-
-[build.test_util.dependencies]
-googletest = { git = 'https://github.com/google/googletest.git', version = '3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f' }
-
 [platform.windows]
 cflags = []
 

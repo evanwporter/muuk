@@ -24,21 +24,21 @@ inline constexpr auto Err(const std::string& msg) {
 }
 
 inline constexpr auto Err(std::string_view msg) {
-    return tl::unexpected(std::string(msg));
+    return Err(std::string(msg));
 }
 
 inline constexpr auto Err(const char* msg) {
-    return tl::unexpected(std::string(msg));
+    return Err(std::string(msg));
 }
 
 template <typename T>
 inline constexpr auto Err(Result<T> result) {
-    return tl::unexpected(result.error());
+    return Err(result.error());
 }
 
 template <typename... Args>
 inline constexpr auto Err(fmt::format_string<Args...> fmt_str, Args&&... args) {
-    return tl::unexpected(fmt::format(fmt_str, std::forward<Args>(args)...));
+    return Err(fmt::format(fmt_str, std::forward<Args>(args)...));
 }
 
 struct PanicException : public std::exception {
@@ -55,7 +55,7 @@ struct PanicException : public std::exception {
 template <typename T>
 inline auto Try(Result<T>&& exp) -> Result<T> {
     if (!exp)
-        return tl::unexpected(exp.error());
+        return Err(exp.error());
     return std::move(*exp);
 }
 
@@ -63,7 +63,7 @@ inline auto Try(Result<T>&& exp) -> Result<T> {
 template <>
 inline auto Try<void>(Result<void>&& exp) -> Result<void> {
     if (!exp)
-        return tl::unexpected(exp.error());
+        return Err(exp.error());
     return {}; // Return an empty Result<void> (equivalent to Ok())
 }
 

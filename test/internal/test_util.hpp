@@ -83,8 +83,3 @@ TEST_F(UtilTest, EnsureGitignoreCreationEdgeCases) {
     std::getline(file, content);
     EXPECT_EQ(content, "*");
 }
-
-int main(int argc, char** argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}

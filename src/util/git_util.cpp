@@ -55,17 +55,17 @@ namespace util {
 
                 if (!json_data.is_object()) {
                     muuk::logger::error("JSON root is not an object!");
-                    return tl::unexpected("Unexpected JSON structure.");
+                    return Err("Unexpected JSON structure.");
                 }
 
                 if (!json_data.contains("tree")) {
                     muuk::logger::error("JSON does not contain expected 'tree' key.");
-                    return tl::unexpected("Unexpected JSON format.");
+                    return Err("Unexpected JSON format.");
                 }
                 return json_data;
             } catch (const std::exception& e) {
                 muuk::logger::error("Error fetching repository tree: {}", e.what());
-                return tl::unexpected("Failed to fetch repository structure.");
+                return Err("Failed to fetch repository structure.");
             }
         }
 
@@ -92,18 +92,18 @@ namespace util {
         Result<std::vector<std::string>> get_top_level_dirs_of_github(const std::string& author, const std::string& repo) {
             auto result = get_default_branch(author, repo);
             if (!result) {
-                return tl::unexpected(result.error());
+                return Err(result.error());
             }
             std::string branch = result.value();
 
             auto json_result = fetch_repo_tree(author, repo, branch);
             if (!json_result) {
-                return tl::unexpected(json_result.error());
+                return Err(json_result.error());
             }
 
             std::vector<std::string> top_dirs = extract_top_level_dirs(json_result.value());
             if (top_dirs.empty()) {
-                return tl::unexpected("Failed to fetch remote repository structure.");
+                return Err("Failed to fetch remote repository structure.");
             }
 
             return top_dirs;
@@ -130,12 +130,12 @@ namespace util {
 
             auto response = util::network::fetch_json(api_url);
             if (!response) {
-                return tl::unexpected("Failed to fetch license JSON for " + author + "/" + repo + ": " + response.error());
+                return Err("Failed to fetch license JSON for " + author + "/" + repo + ": " + response.error());
             }
 
             // Ensure `response` is a valid JSON object
             if (!response->is_object()) {
-                return tl::unexpected("Invalid JSON response for " + author + "/" + repo);
+                return Err("Invalid JSON response for " + author + "/" + repo);
             }
 
             // Check if the JSON contains the expected license info
@@ -143,7 +143,7 @@ namespace util {
                 return (*response)["license"]["spdx_id"].get<std::string>();
             }
 
-            return tl::unexpected("License information not found for " + author + "/" + repo);
+            return Err("License information not found for " + author + "/" + repo);
         }
 
     } // namespace git

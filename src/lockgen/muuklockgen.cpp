@@ -5,8 +5,6 @@
 
 #include <fmt/core.h>
 #include <fmt/ranges.h>
-#include <glob/glob.hpp>
-#include <tl/expected.hpp>
 #include <toml.hpp>
 
 #include "buildconfig.h"
@@ -273,11 +271,9 @@ Result<void> MuukLockGenerator::load() {
     base_package_dep.version = base_package_version;
 
     // Resolve dependencies for the base package
-    auto result_base_pkg = resolve_dependencies(
+    TRYV(resolve_dependencies(
         base_package_name,
-        base_package_version);
-    if (!result_base_pkg)
-        return Err(result_base_pkg);
+        base_package_version));
 
     muuk::logger::info("Resolving dependencies for build packages...");
     for (const auto& [build_name, build] : builds_) {
