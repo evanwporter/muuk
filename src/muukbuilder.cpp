@@ -134,6 +134,7 @@ namespace muuk {
     }
 
     Result<void> build(std::string& target_build, const std::string& compiler, const std::string& profile, const toml::value& config) {
+        util::file_system::ensure_directory_exists("build/" + profile);
 
         auto muuk_result = parse_muuk_file(
             "muuk.toml",

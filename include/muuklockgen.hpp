@@ -57,6 +57,7 @@ private:
     std::unordered_set<std::string> system_library_paths_;
 
     Profiles profiles_;
+    std::unordered_map<std::string, ProfileConfig> profiles_config_;
 
     static Result<void> parse_features(
         const toml::value& data,

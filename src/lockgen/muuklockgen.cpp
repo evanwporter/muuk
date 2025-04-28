@@ -327,7 +327,7 @@ Result<void> MuukLockGenerator::load() {
 
 Result<void> MuukLockGenerator::generate_cache(const std::string& output_path) {
 
-    //   Write to cache file
+    // Write to cache file
     toml::value root = toml::table {};
 
     // Write Libraries
@@ -380,17 +380,20 @@ Result<void> MuukLockGenerator::generate_cache(const std::string& output_path) {
     root["build"] = build_array;
 
     // Write Profiles
-    // if (base_package_ && !base_package_->profiles_config.empty()) {
-    //     toml::value profile_section = toml::table {};
+    if (!profiles_config_.empty()) {
+        toml::value profile_section = toml::table {};
 
-    //     for (const auto& [profile_name, profile_cfg] : base_package_->profiles_config) {
-    //         toml::value profile_data = toml::table {};
-    //         profile_cfg.serialize(profile_data);
-    //         profile_section[profile_name] = profile_data;
-    //     }
+        for (const auto& [profile_name, profile_cfg] : profiles_config_) {
+            toml::value profile_data = toml::table {};
 
-    //     root["profile"] = profile_section;
-    // }
+            // Serialize the profile fields (sources, defines, etc.)
+            profile_cfg.serialize(profile_data);
+
+            profile_section[profile_name] = profile_data;
+        }
+
+        root["profile"] = profile_section;
+    }
 
     // Write To Cachefile
     std::ofstream lockfile(output_path);
@@ -400,23 +403,6 @@ Result<void> MuukLockGenerator::generate_cache(const std::string& output_path) {
     }
 
     lockfile << toml::format(root);
-
-    // TODO: Use PROFILES from base_config.hpp
-    if (!profiles_.empty()) {
-        for (const auto& [profile_name, profile_settings] : profiles_) {
-            lockfile << "[profile." << profile_name << "]\n";
-
-            for (const auto& [setting_name, values] : profile_settings) {
-                toml::array value_array;
-                for (const auto& value : values) {
-                    value_array.push_back(value);
-                }
-                lockfile << setting_name << " = " << toml::format(toml::value(value_array)) << "\n";
-            }
-
-            lockfile << "\n";
-        }
-    }
 
     lockfile.close();
     return {};

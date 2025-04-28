@@ -40,43 +40,53 @@ Result<void> MuukLockGenerator::parse_dependencies(const toml::value& data, std:
     return {};
 }
 
+// TODO: Eventually I scrap this
 Result<void> MuukLockGenerator::parse_profile(const toml::value& data) {
-
     // Two pass parsing for profiles
-    // First pass: Load all profiles into profiles_ variable
-    if (data.contains("profile") && data.at("profile").is_table())
-        parse_and_store_flag_categories(
-            data.at("profile").as_table(),
-            profiles_,
-            { "cflags", "lflags", "defines" });
+    // First pass: Load all profiles
+    if (data.contains("profile") && data.at("profile").is_table()) {
+        for (const auto& [profile_name, profile_data] : data.at("profile").as_table()) {
+            if (!profile_data.is_table())
+                continue;
+
+            ProfileConfig config;
+            config.name = profile_name;
+            config.load(profile_data, profile_name, base_path_); // assuming you have `base_path_`
+            profiles_config_[profile_name] = std::move(config);
+        }
+    }
 
     // Second pass: Process inheritance
-    if (data.contains("profile") && data.at("profile").is_table())
+    if (data.contains("profile") && data.at("profile").is_table()) {
         for (const auto& [profile_name, profile_data] : data.at("profile").as_table()) {
-            if (profile_data.is_table()) {
-                muuk::logger::trace("Parsing profile '{}'", profile_name);
-                if (profile_data.contains("inherits")) {
-                    if (profile_data.at("inherits").is_array()) {
-                        const auto& inherits_array = profile_data.at("inherits").as_array();
-                        for (const auto& inherits : inherits_array) {
-                            std::string inherited_profile = inherits.as_string();
-                            if (profiles_.find(inherited_profile) == profiles_.end()) {
-                                muuk::logger::error("Inherited profile '" + inherited_profile + "' not found.");
-                                return Err("");
-                            }
-                            merge_profiles(profile_name, inherited_profile);
-                        }
-                    } else if (profile_data.as_table().at("inherits").is_string()) {
-                        std::string inherited_profile = profile_data.as_table().at("inherits").as_string();
-                        if (profiles_.find(inherited_profile) == profiles_.end()) {
+            if (!profile_data.is_table())
+                continue;
+
+            muuk::logger::trace("Parsing inheritance for profile '{}'", profile_name);
+
+            if (profile_data.contains("inherits")) {
+                auto& current_profile = profiles_config_.at(profile_name);
+
+                if (profile_data.at("inherits").is_array()) {
+                    for (const auto& inherits : profile_data.at("inherits").as_array()) {
+                        std::string inherited_profile = inherits.as_string();
+                        if (profiles_config_.find(inherited_profile) == profiles_config_.end()) {
                             muuk::logger::error("Inherited profile '" + inherited_profile + "' not found.");
                             return Err("");
                         }
-                        merge_profiles(profile_name, inherited_profile);
+                        current_profile.merge(profiles_config_.at(inherited_profile));
                     }
+                } else if (profile_data.at("inherits").is_string()) {
+                    std::string inherited_profile = profile_data.at("inherits").as_string();
+                    if (profiles_config_.find(inherited_profile) == profiles_config_.end()) {
+                        muuk::logger::error("Inherited profile '" + inherited_profile + "' not found.");
+                        return Err("");
+                    }
+                    current_profile.merge(profiles_config_.at(inherited_profile));
                 }
             }
         }
+    }
 
     return {};
 }

@@ -47,7 +47,7 @@ namespace muuk {
         return normalized_flag;
     }
 
-    // Normalize a vector of flags in-place
+    /// Normalize a vector of flags in-place
     void normalize_flags_inplace(std::vector<std::string>& flags, const Compiler compiler) {
         std::vector<std::string> valid_flags;
         for (auto& flag : flags) {

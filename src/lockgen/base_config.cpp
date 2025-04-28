@@ -106,21 +106,25 @@ void Compilers::merge(const Compilers& other) {
 }
 
 void Compilers::serialize(toml::value& out) const {
-    toml::value compiler;
-    clang.serialize(compiler["clang"]);
-    if (compiler["clang"].as_table().empty())
-        compiler.as_table().erase("clang");
+    toml::value compiler_out = toml::table {};
 
-    gcc.serialize(compiler["gcc"]);
-    if (compiler["gcc"].as_table().empty())
-        compiler.as_table().erase("gcc");
+    toml::value clang_out = toml::table {};
+    clang.serialize(clang_out);
+    if (!clang_out.as_table().empty())
+        compiler_out["clang"] = clang_out;
 
-    msvc.serialize(compiler["msvc"]);
-    if (compiler["msvc"].as_table().empty())
-        compiler.as_table().erase("msvc");
+    toml::value gcc_out = toml::table {};
+    gcc.serialize(gcc_out);
+    if (!gcc_out.as_table().empty())
+        compiler_out["gcc"] = gcc_out;
 
-    if (!compiler.as_table().empty())
-        out["compiler"] = compiler;
+    toml::value msvc_out = toml::table {};
+    msvc.serialize(msvc_out);
+    if (!msvc_out.as_table().empty())
+        compiler_out["msvc"] = msvc_out;
+
+    if (!compiler_out.as_table().empty())
+        out["compiler"] = compiler_out;
 }
 
 void Platforms::load(const toml::value& v, const std::string& base_path) {
@@ -139,28 +143,39 @@ void Platforms::merge(const Platforms& other) {
 }
 
 void Platforms::serialize(toml::value& out) const {
-    toml::value platform = toml::table {};
+    toml::value platform_out = toml::table {};
 
-    windows.serialize(platform["windows"]);
-    if (platform.at("windows").as_table().empty())
-        platform.as_table().erase("windows");
+    toml::value apple_out = toml::table {};
+    apple.serialize(apple_out);
+    if (!apple_out.as_table().empty())
+        platform_out["apple"] = apple_out;
 
-    linux.serialize(platform["linux"]);
-    if (platform.at("linux").as_table().empty())
-        platform.as_table().erase("linux");
+    toml::value linux_out = toml::table {};
+    linux.serialize(linux_out);
+    if (!linux_out.as_table().empty())
+        platform_out["linux"] = linux_out;
 
-    apple.serialize(platform["apple"]);
-    if (platform.at("apple").as_table().empty())
-        platform.as_table().erase("apple");
+    toml::value windows_out = toml::table {};
+    windows.serialize(windows_out);
+    if (!windows_out.as_table().empty())
+        platform_out["windows"] = windows_out;
 
-    if (!platform.as_table().empty())
-        out["platform"] = platform;
+    if (!platform_out.as_table().empty())
+        out["platform"] = platform_out;
 }
 
 void ProfileConfig::load(const toml::value& v, const std::string& profile_name, const std::string& base_path) {
     BaseConfig<ProfileConfig>::load(v, base_path);
     name = profile_name;
     inherits = toml::find_or<std::vector<std::string>>(v, "inherits", {});
+}
+
+void ProfileConfig::serialize(toml::value& out) const {
+    BaseConfig<ProfileConfig>::serialize(out);
+
+    // Serialize inheritance
+    if (!inherits.empty())
+        out["inherits"] = inherits;
 }
 
 void Library::External::load(const toml::value& v) {

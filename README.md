@@ -1,5 +1,7 @@
 # muuk
 
+<!-- find and replace ==> with → -->
+
 ## UPDATE (4/27): There is now basic module support for MSVC (Clang coming soon)
 
 I don't like CMake very much but I do like cargo a lot, so I created my own cargo-like build system.
@@ -28,6 +30,7 @@ Another relevant comic (all credit to xkcd):
 * `git`
 * `ninja` (you probably have this since I believe its bundled with most CMake distributions.)
 * `wget`
+* `clang-scan-deps` (only needed if you plan on using modules)
 
 Thats it!
 
@@ -52,18 +55,7 @@ edition = "20"
 - `version` → The project version.
 - `edition` → Doesn't do anything (yet)
 
----
 
-## **`[clean]`**
-
-Specify glob patterns for what gets cleaned.
-
-```toml
-[clean]
-patterns = ["*.obj", "*.lib", "*.pdb"]
-```
-
-This will be changed in the future to clean up the build artifacts. Will likley call
 
 ## **`[library]`**
 
@@ -74,7 +66,8 @@ The `[library]` section defines **libraries** that can be compiled separately an
 ```toml
 [library]
 include = ["include"]
-sources = ["src/library.cpp"]
+sources = ["src/source_file.cpp", "src/sauce_file.cpp - DSAUCE_FILE_ONLY_DEFINE -ISAUCE_FILE_ONLY_INCLUDE"]
+sources = ["src/module_file.cppm"]
 cflags = ["-Wall", "-Wextra"]
 dependencies = { boost = { version = "1.75.0", muuk_path = "../boost" } }
 ```
@@ -83,8 +76,11 @@ dependencies = { boost = { version = "1.75.0", muuk_path = "../boost" } }
 
 - `include` → A list of include directories.
 - `sources` → A list of source files for the library.
+- `module` → A list of module files for the library
 - `cflags` → Compiler flags specific to this library.
 - `dependencies` → Defines dependencies required by this library.
+
+Note on the single file flags, you can define file specific compilation flags by including them after the definition.
 
 **Dependency Format:**
 
@@ -94,7 +90,7 @@ dependencies = { dep_name = { version = "X.Y.Z", git = "https://example.com/auth
 
 ## **`[build]`**
 
-This section defines **build targets**, which can be executables or other build artifacts.
+This section defines build targets, which can be executables or other build artifacts.
 
 ### Example:
 
@@ -114,7 +110,7 @@ Note that this build artifact will include the compiler specific rules.
 
 ## **`[profile]`**
 
-Profiles define **build configurations**, such as `debug` and `release`, but they can be whatever.
+Profiles define build configurations, such as `debug` and `release`, but they can be whatever.
 
 ### Example:
 
@@ -178,7 +174,7 @@ lflags = ["-lstdc++"]
 
 ## **`[scripts]`**
 
-This section defines build-related scripts, such as running an executable. This works like `npm run <script>`. Also muuk will add the name of your built executable so you can easily run it.
+This section defines build-related scripts, such as running an executable. This works like `npm run <script>`. Also muuk will add the name of your built executable so you can easily run it (not yet implemented though).
 
 ### Example:
 

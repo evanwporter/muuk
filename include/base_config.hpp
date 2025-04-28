@@ -169,15 +169,15 @@ struct BaseFields {
         if constexpr (Derived::enable_libs)
             if (!libs.empty())
                 out["libs"] = libs;
-        if constexpr (Derived::enable_dependencies) {
-            toml::value deps_out = toml::table {};
-            // for (const auto& [key, dep] : dependencies) {
-            //     toml::value dep_val = toml::table {};
-            //     dep.serialize(dep_val);
-            //     deps_out[key] = dep_val;
-            // }
-            out["dependencies"] = deps_out;
-        }
+        // if constexpr (Derived::enable_dependencies) {
+        //     toml::value deps_out = toml::table {};
+        //     // for (const auto& [key, dep] : dependencies) {
+        //     //     toml::value dep_val = toml::table {};
+        //     //     dep.serialize(dep_val);
+        //     //     deps_out[key] = dep_val;
+        //     // }
+        //     out["dependencies"] = deps_out;
+        // }
     }
 
     void merge(const Derived& other) {
@@ -317,7 +317,12 @@ struct ProfileConfig : BaseConfig<ProfileConfig> {
     std::string name;
     std::vector<std::string> inherits;
 
-    void load(const toml::value& v, const std::string& profile_name, const std::string& base_path);
+    void load(
+        const toml::value& v,
+        const std::string& profile_name,
+        const std::string& base_path);
+
+    void serialize(toml::value& out) const;
 };
 
 struct Library : BaseConfig<Library> {
