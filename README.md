@@ -1,6 +1,6 @@
 # muuk
 
-## There is now basic module support for MSVC / Windows only
+## UPDATE (4/27): There is now basic module support for MSVC (Clang coming soon)
 
 I don't like CMake very much but I do like cargo a lot, so I created my own cargo-like build system.
 
@@ -17,7 +17,7 @@ Another relevant comic (all credit to xkcd):
 - Task runner using `muuk run <script>`. Works pretty much like `npm run <script>`
 - Clean command
 - C++ Meta builder built on top of Ninja
-- C++20 Experimental Module Support
+- C++20 Experimental Module Support (MSVC only)
 - Able to define Platform, Compiler & Profile Specific Flags
 - All flags are automatically applied to dependencies
 
