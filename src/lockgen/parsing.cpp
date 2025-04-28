@@ -40,7 +40,6 @@ Result<void> MuukLockGenerator::parse_dependencies(const toml::value& data, std:
     return {};
 }
 
-// TODO: Eventually I scrap this
 Result<void> MuukLockGenerator::parse_profile(const toml::value& data) {
     // Two pass parsing for profiles
     // First pass: Load all profiles
@@ -70,18 +69,18 @@ Result<void> MuukLockGenerator::parse_profile(const toml::value& data) {
                 if (profile_data.at("inherits").is_array()) {
                     for (const auto& inherits : profile_data.at("inherits").as_array()) {
                         std::string inherited_profile = inherits.as_string();
-                        if (profiles_config_.find(inherited_profile) == profiles_config_.end()) {
-                            muuk::logger::error("Inherited profile '" + inherited_profile + "' not found.");
-                            return Err("");
-                        }
+
+                        if (profiles_config_.find(inherited_profile) == profiles_config_.end())
+                            return Err("Inherited profile '{}' not found.", inherited_profile);
+
                         current_profile.merge(profiles_config_.at(inherited_profile));
                     }
                 } else if (profile_data.at("inherits").is_string()) {
                     std::string inherited_profile = profile_data.at("inherits").as_string();
-                    if (profiles_config_.find(inherited_profile) == profiles_config_.end()) {
-                        muuk::logger::error("Inherited profile '" + inherited_profile + "' not found.");
-                        return Err("");
-                    }
+
+                    if (profiles_config_.find(inherited_profile) == profiles_config_.end())
+                        return Err("Inherited profile '{}' not found.", inherited_profile);
+
                     current_profile.merge(profiles_config_.at(inherited_profile));
                 }
             }

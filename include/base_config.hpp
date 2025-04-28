@@ -25,6 +25,21 @@ struct Feature {
     std::unordered_set<std::string> dependencies;
 };
 
+template <typename T>
+static inline void maybe_set(toml::value& out, const char* key, const T& container) {
+    if (!container.empty())
+        out[key] = container;
+}
+
+inline void force_oneline(toml::value& v) {
+    if (v.is_table())
+        v.as_table_fmt().fmt = toml::table_format::oneline;
+}
+
+#define MAYBE_SET_FIELD(enable_macro, field_name) \
+    if constexpr (Derived::enable_##enable_macro) \
+    maybe_set(out, #field_name, field_name)
+
 class PackageType {
 public:
     enum class Type {
@@ -135,40 +150,25 @@ struct BaseFields {
             toml::array module_array;
             for (const auto& s : expand_glob_sources(modules))
                 module_array.push_back(s.serialize());
-            if (!module_array.empty())
-                out["modules"] = module_array;
+            maybe_set(out, "modules", module_array);
         }
         if constexpr (Derived::enable_sources) {
             toml::array src_array;
             for (const auto& s : expand_glob_sources(sources))
                 src_array.push_back(s.serialize());
-            if (!src_array.empty())
-                out["sources"] = src_array;
+            maybe_set(out, "sources", src_array);
         }
-        if constexpr (Derived::enable_include)
-            if (!include.empty())
-                out["include"] = include;
-        if constexpr (Derived::enable_defines)
-            if (!defines.empty())
-                out["defines"] = defines;
-        if constexpr (Derived::enable_undefines)
-            if (!undefines.empty())
-                out["undefines"] = undefines;
-        if constexpr (Derived::enable_cflags)
-            if (!cflags.empty())
-                out["cflags"] = cflags;
-        if constexpr (Derived::enable_cxxflags)
-            if (!cxxflags.empty())
-                out["cxxflags"] = cxxflags;
-        if constexpr (Derived::enable_aflags)
-            if (!aflags.empty())
-                out["aflags"] = aflags;
-        if constexpr (Derived::enable_lflags)
-            if (!lflags.empty())
-                out["lflags"] = lflags;
-        if constexpr (Derived::enable_libs)
-            if (!libs.empty())
-                out["libs"] = libs;
+
+        MAYBE_SET_FIELD(include, include);
+        MAYBE_SET_FIELD(defines, defines);
+        MAYBE_SET_FIELD(undefines, undefines);
+        MAYBE_SET_FIELD(cflags, cflags);
+        MAYBE_SET_FIELD(cxxflags, cxxflags);
+        MAYBE_SET_FIELD(aflags, aflags);
+        MAYBE_SET_FIELD(lflags, lflags);
+        MAYBE_SET_FIELD(libs, libs);
+
+        // TODO: Uncomment when full logic is implemented
         // if constexpr (Derived::enable_dependencies) {
         //     toml::value deps_out = toml::table {};
         //     // for (const auto& [key, dep] : dependencies) {
@@ -346,7 +346,7 @@ struct Library : BaseConfig<Library> {
     External external;
 
     void load(const std::string& name_, const std::string& version_, const std::string& base_path_, const toml::value& v);
-    void serialize(toml::value& out) const;
+    void serialize(toml::value& out, Platforms platforms, Compilers compilers) const;
 };
 
 class Package {

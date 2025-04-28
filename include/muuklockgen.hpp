@@ -75,6 +75,7 @@ private:
         const std::string& package_version,
         const std::string& path);
 
+    /// Searches for the specified package in the dependency folder and parses its muuk.toml file if found.
     Result<void> search_and_parse_dependency(
         const std::string& package_name,
         const std::string& version);
@@ -112,6 +113,7 @@ private:
         std::shared_ptr<Build> build,
         const Dependency& base_package_dep);
 
+    /// Merges the resolved dependencies of a package into the package itself.
     Result<void> merge_resolved_dependencies(
         const std::string& package_name,
         std::optional<std::string> version = std::nullopt);

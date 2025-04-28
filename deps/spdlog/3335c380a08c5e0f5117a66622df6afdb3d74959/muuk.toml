@@ -31,3 +31,6 @@ std_format = [
     # "no_dep:fmt" # Or maybe I do this in the future?
 ]
 compiled_lib = ["D:SPDLOG_COMPILED_LIB"]
+
+[platform.windows]
+cflags = ["/DWINDO_STILL"]

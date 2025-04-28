@@ -13,7 +13,7 @@ patterns = ['*.obj', '*.lib', '*.pdb']
 [library]
 cflags = ['/W4']
 include = ['include']
-libs = []
+libs = ["lalalib"]
 # modules = ["modules/math.ixx"]
 sources = [
     'src/muuker.cpp',

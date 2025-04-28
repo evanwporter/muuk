@@ -32,6 +32,7 @@ Result<MuukLockGenerator> MuukLockGenerator::create(const std::string& base_path
     return lockgen;
 }
 
+/// Generates a Package object from the parsed muuk.toml file.
 Result<void> MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
     muuk::logger::trace("Attempting to parse muuk.toml: {}", path);
     if (!fs::exists(path))
@@ -49,8 +50,6 @@ Result<void> MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is
         ? data.at("package").at("git").as_string()
         : std::string();
 
-    muuk::logger::info("Parsing muuk.toml for package: {} ({})", package_name, package_version);
-
     muuk::logger::info(
         "Parsing package: {} (version: {}) with muuk path: `{}`",
         package_name,
@@ -65,7 +64,6 @@ Result<void> MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is
 
     const auto base_path = fs::path(path).parent_path().string();
 
-    // TODO: Check and move below into parse_dependencies
     auto deps_result = parse_dependencies(data, package);
     for (const auto& [dep_name, version_map] : package->dependencies_)
         for (const auto& [_, dep_ptr] : version_map)
@@ -87,7 +85,7 @@ Result<void> MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is
         package->compilers_config.load(data["compiler"], base_path);
 
     if (data.contains("platform"))
-        package->compilers_config.load(data["platform"], base_path);
+        package->platforms_config.load(data["platform"], base_path);
 
     resolved_packages[package_name][package_version] = package;
 
@@ -159,11 +157,6 @@ Result<void> MuukLockGenerator::merge_build_dependencies(
 
     muuk::logger::info("Merging dependencies for build '{}'", build_name);
 
-    // auto result_merge = merge_resolved_dependencies(build_name);
-    // if (!result_merge) {
-    //     return Err("Failed to merge resolved dependencies for build '{}': {}", build_name, result_merge.error());
-    // }
-
     // Add base package to the build
     build->dependencies[base_package_->name][base_package_->version] = base_package_dep;
     build->all_dependencies_array.insert(std::make_shared<Dependency>(base_package_dep));
@@ -220,7 +213,6 @@ Result<void> MuukLockGenerator::merge_resolved_dependencies(const std::string& p
     return {};
 }
 
-// Searches for the specified package in the dependency folder and parses its muuk.toml file if found.
 Result<void> MuukLockGenerator::search_and_parse_dependency(const std::string& package_name, const std::string& version) {
     muuk::logger::info("Searching for target package '{}', version '{}'.", package_name, version);
     fs::path search_dir = fs::path(DEPENDENCY_FOLDER) / package_name / version;
@@ -312,13 +304,12 @@ Result<void> MuukLockGenerator::load() {
             }
     }
 
-    merge_resolved_dependencies(base_package_name, base_package_version);
+    TRYV(merge_resolved_dependencies(
+        base_package_name,
+        base_package_version));
 
-    for (const auto& [build_name, build] : builds_) {
-        auto build_result = merge_build_dependencies(build_name, build, base_package_dep);
-        if (!build_result)
-            muuk::logger::error("Failed to merge build dependencies for '{}': {}", build_name, build_result.error());
-    }
+    for (const auto& [build_name, build] : builds_)
+        TRYV(merge_build_dependencies(build_name, build, base_package_dep));
 
     propagate_profiles();
 
@@ -338,7 +329,10 @@ Result<void> MuukLockGenerator::generate_cache(const std::string& output_path) {
             continue;
 
         toml::value lib_table;
-        package->library_config.serialize(lib_table);
+        package->library_config.serialize(
+            lib_table,
+            package->platforms_config,
+            package->compilers_config);
 
         if (lib_table.contains("external"))
             lib_table.at("external").as_table_fmt().fmt = toml::table_format::oneline;

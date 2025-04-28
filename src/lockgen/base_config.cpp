@@ -110,21 +110,29 @@ void Compilers::serialize(toml::value& out) const {
 
     toml::value clang_out = toml::table {};
     clang.serialize(clang_out);
-    if (!clang_out.as_table().empty())
+    if (!clang_out.as_table().empty()) {
+        force_oneline(clang_out);
         compiler_out["clang"] = clang_out;
+    }
 
     toml::value gcc_out = toml::table {};
     gcc.serialize(gcc_out);
-    if (!gcc_out.as_table().empty())
+    if (!gcc_out.as_table().empty()) {
+        force_oneline(gcc_out);
         compiler_out["gcc"] = gcc_out;
+    }
 
     toml::value msvc_out = toml::table {};
     msvc.serialize(msvc_out);
-    if (!msvc_out.as_table().empty())
+    if (!msvc_out.as_table().empty()) {
+        force_oneline(msvc_out);
         compiler_out["msvc"] = msvc_out;
+    }
 
-    if (!compiler_out.as_table().empty())
+    if (!compiler_out.as_table().empty()) {
+        force_oneline(compiler_out);
         out["compiler"] = compiler_out;
+    }
 }
 
 void Platforms::load(const toml::value& v, const std::string& base_path) {
@@ -147,21 +155,29 @@ void Platforms::serialize(toml::value& out) const {
 
     toml::value apple_out = toml::table {};
     apple.serialize(apple_out);
-    if (!apple_out.as_table().empty())
+    if (!apple_out.as_table().empty()) {
+        force_oneline(apple_out);
         platform_out["apple"] = apple_out;
+    }
 
     toml::value linux_out = toml::table {};
     linux.serialize(linux_out);
-    if (!linux_out.as_table().empty())
+    if (!linux_out.as_table().empty()) {
+        force_oneline(linux_out);
         platform_out["linux"] = linux_out;
+    }
 
     toml::value windows_out = toml::table {};
     windows.serialize(windows_out);
-    if (!windows_out.as_table().empty())
+    if (!windows_out.as_table().empty()) {
+        force_oneline(windows_out);
         platform_out["windows"] = windows_out;
+    }
 
-    if (!platform_out.as_table().empty())
+    if (!platform_out.as_table().empty()) {
+        force_oneline(platform_out);
         out["platform"] = platform_out;
+    }
 }
 
 void ProfileConfig::load(const toml::value& v, const std::string& profile_name, const std::string& base_path) {
@@ -210,32 +226,41 @@ void Library::load(const std::string& name_, const std::string& version_, const 
         external.load(toml::find(v, "external"));
 }
 
-void Library::serialize(toml::value& out) const {
+void Library::serialize(toml::value& out, Platforms platforms_, Compilers compilers_) const {
     out["name"] = name;
     out["version"] = version;
     BaseConfig<Library>::serialize(out);
     external.serialize(out);
     out["profiles"] = profiles;
+
+    platforms_.serialize(out);
+    compilers_.serialize(out);
 }
 
 void Build::merge(const Package& package) {
     // Merge base fields
-    include.insert(package.library_config.include.begin(), package.library_config.include.end());
-    cflags.insert(package.library_config.cflags.begin(), package.library_config.cflags.end());
-    cxxflags.insert(package.library_config.cxxflags.begin(), package.library_config.cxxflags.end());
-    aflags.insert(package.library_config.aflags.begin(), package.library_config.aflags.end());
-    lflags.insert(package.library_config.lflags.begin(), package.library_config.lflags.end());
-    defines.insert(package.library_config.defines.begin(), package.library_config.defines.end());
-    libs.insert(package.library_config.libs.begin(), package.library_config.libs.end());
+    using util::array_ops::merge;
+    merge(include, package.library_config.include);
+    merge(cflags, package.library_config.cflags);
+    merge(cxxflags, package.library_config.cxxflags);
+    merge(aflags, package.library_config.aflags);
+    merge(lflags, package.library_config.lflags);
+    merge(defines, package.library_config.defines);
+    merge(undefines, package.library_config.undefines);
+    merge(libs, package.library_config.libs);
+
+    platforms.merge(package.platforms_config);
+    compilers.merge(package.compilers_config);
 
     // Merge shared_ptr dependencies directly
-    all_dependencies_array.insert(
-        package.all_dependencies_array.begin(),
-        package.all_dependencies_array.end());
+    merge(all_dependencies_array, package.all_dependencies_array);
 }
 
 Result<void> Build::serialize(toml::value& out) const {
     BaseConfig<Build>::serialize(out);
+
+    compilers.serialize(out);
+    platforms.serialize(out);
 
     // Collect dependencies and sort them by (name, version)
     std::vector<std::shared_ptr<Dependency>> sorted_deps;
