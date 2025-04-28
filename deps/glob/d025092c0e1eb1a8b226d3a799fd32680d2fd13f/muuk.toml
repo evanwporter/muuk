@@ -1,6 +1,7 @@
 [package]
 name = 'glob'
 version = 'd025092c0e1eb1a8b226d3a799fd32680d2fd13f'
+git = 'https://github.com/p-ranav/glob.git'
 
 [library]
 include = ['single_include/']

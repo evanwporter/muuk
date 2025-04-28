@@ -36,34 +36,24 @@ sources = [
 ]
 
 [dependencies]
-expected = { git = 'https://github.com/TartanLlama/expected.git', version = '41d3e1f48d682992a2230b2a715bca38b848b269' }
-fmt = { git = 'https://github.com/fmtlib/fmt.git', version = '577fd3be883accf8629423ed77fcca8a24bccee2' }
-glob = { git = 'https://github.com/p-ranav/glob.git', version = 'd025092c0e1eb1a8b226d3a799fd32680d2fd13f' }
-json = { git = 'https://github.com/nlohmann/json.git', version = '0b6881a95f8aaf60bd2324ecdf2258a65bf33baf' }
-spdlog = { git = 'https://github.com/gabime/spdlog.git', version = '3335c380a08c5e0f5117a66622df6afdb3d74959', features = [
+expected = '41d3e1f48d682992a2230b2a715bca38b848b269'
+fmt = '577fd3be883accf8629423ed77fcca8a24bccee2'
+glob = 'd025092c0e1eb1a8b226d3a799fd32680d2fd13f'
+json = '0b6881a95f8aaf60bd2324ecdf2258a65bf33baf'
+spdlog = { version = '3335c380a08c5e0f5117a66622df6afdb3d74959', features = [
     'fmt',
 ] }
-toml11 = { git = 'https://github.com/ToruNiina/toml11.git', version = 'a01fe3b4c14c6d7b99ee3f07c9e80058c6403097' }
+toml11 = 'a01fe3b4c14c6d7b99ee3f07c9e80058c6403097'
 
 [build.bin]
 profile = ['release', 'debug']
 sources = ['src/main.cpp']
-
-[build.bin.dependencies]
-argparse = { git = 'https://github.com/p-ranav/argparse.git', version = 'd924b84eba1f0f0adf38b20b7b4829f6f65b6570' }
+dependencies = { argparse = 'd924b84eba1f0f0adf38b20b7b4829f6f65b6570' }
 
 [build.test]
 profile = ['debug']
 sources = ['test/internal/muuk_test.cpp']
-
-[build.test.dependencies]
-googletest = { git = 'https://github.com/google/googletest.git', version = '3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f' }
-
-[platform.windows]
-cflags = []
-
-[platform.linux]
-cflags = []
+dependencies = { googletest = '3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f' }
 
 [profile.base]
 cflags = ['-std=c++20', '/utf-8', '/EHsc', '/FS']
@@ -72,10 +62,6 @@ cflags = ['-std=c++20', '/utf-8', '/EHsc', '/FS']
 cflags = ['/O2', '/DNDEBUG', '/GL']
 inherits = ['base']
 lflags = ['/OPT:REF', '/OPT:ICF', '/LTCG']
-
-[profile.release_x86]
-inherits = ['release']
-lflags = ['/MACHINE:X86']
 
 [profile.debug]
 cflags = ['/Od', '/DDEBUG', '/Zi', '/RTC1', '/FC', '/GS']

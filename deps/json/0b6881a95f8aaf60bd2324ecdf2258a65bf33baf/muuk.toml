@@ -1,7 +1,7 @@
 [package]
 name = 'json'
-revision = '0b6881a95f8aaf60bd2324ecdf2258a65bf33baf'
 version = '0b6881a95f8aaf60bd2324ecdf2258a65bf33baf'
+git = 'https://github.com/nlohmann/json.git'
 
 [library]
 include = ['single_include']

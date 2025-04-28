@@ -1,7 +1,7 @@
 [package]
 name = 'spdlog'
-revision = '3335c380a08c5e0f5117a66622df6afdb3d74959'
 version = '3335c380a08c5e0f5117a66622df6afdb3d74959'
+git = 'https://github.com/gabime/spdlog.git'
 
 [dependencies.fmt]
 git = 'https://github.com/fmtlib/fmt.git'

@@ -1,7 +1,7 @@
 [package]
 name = 'expected'
-revision = '41d3e1f48d682992a2230b2a715bca38b848b269'
 version = '41d3e1f48d682992a2230b2a715bca38b848b269'
+git = 'https://github.com/TartanLlama/expected.git'
 
 [library]
 include = ['include']
