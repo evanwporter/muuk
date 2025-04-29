@@ -51,13 +51,16 @@ jobs:
         if: matrix.compiler == 'msvc'
         uses: ilammy/msvc-dev-cmd@v1
 
-      - name: Install LLVM (macOS only)
+      - name: Install LLVM
         if: runner.os == 'macOS'
         run: |
           brew install llvm
-          echo "LLVM installed at: $(brew --prefix llvm)"
-          echo "$(brew --prefix llvm)/bin" >> $GITHUB_PATH
-      
+          echo "/opt/homebrew/opt/llvm/bin" >> $GITHUB_PATH
+
+      - name: Verify clang-scan-deps
+        if: runner.os == 'macOS'
+        run: clang-scan-deps --version
+    
       - name: Install LLVM (Linux only)
         if: runner.os == 'Linux'
         run: |
@@ -162,12 +165,22 @@ jobs:
         if: matrix.compiler == 'msvc'
         uses: ilammy/msvc-dev-cmd@v1
 
-      - name: Install LLVM (macOS only)
+      # - name: Install LLVM (macOS only)
+      #   if: runner.os == 'macOS'
+      #   run: |
+      #     brew install llvm
+      #     echo "LLVM installed at: $(brew --prefix llvm)"
+      #     echo "$(brew --prefix llvm)/bin" >> $GITHUB_PATH
+
+      - name: Install LLVM
         if: runner.os == 'macOS'
         run: |
           brew install llvm
-          echo "LLVM installed at: $(brew --prefix llvm)"
-          echo "$(brew --prefix llvm)/bin" >> $GITHUB_PATH
+          echo "/opt/homebrew/opt/llvm/bin" >> $GITHUB_PATH
+
+      - name: Verify clang-scan-deps
+        if: runner.os == 'macOS'
+        run: clang-scan-deps --version
       
       - name: Install LLVM (Linux only)
         if: runner.os == 'Linux'
@@ -208,4 +221,8 @@ jobs:
       - name: Run C++ tests (Windows)
         if: runner.os == 'Windows'
         run: ./build/debug/test/test.exe
+
+      # - name: Run C++ tests (Unix)
+      #   if: runner.os != 'Windows'
+      #   run: ./build/debug/test/test
       
