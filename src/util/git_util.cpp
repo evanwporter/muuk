@@ -36,8 +36,7 @@ namespace util {
             return get_default_branch(fmt::format("https://github.com/{}/{}.git", author, repo));
         }
 
-        // Function to fetch repository tree JSON
-        // Function to fetch repository tree JSON
+        /// Function to fetch repository tree JSON
         Result<nlohmann::json> fetch_repo_tree(const std::string& author, const std::string& repo, const std::string& branch) {
             std::string api_url = "https://api.github.com/repos/" + author + "/" + repo + "/git/trees/" + branch + "?recursive=1";
             std::string command = "wget -q -O - " + api_url;
@@ -69,7 +68,7 @@ namespace util {
             }
         }
 
-        // Function to extract top-level directories from repository JSON
+        /// Function to extract top-level directories from repository JSON
         std::vector<std::string> extract_top_level_dirs(const nlohmann::json& json_data) {
             std::unordered_set<std::string> unique_dirs;
 

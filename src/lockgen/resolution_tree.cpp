@@ -14,7 +14,7 @@
 
 namespace fs = std::filesystem;
 
-Result<void> MuukLockGenerator::locate_and_parse_package(const std::string& package_name, std::optional<std::string> version, std::shared_ptr<Package>& package, const std::optional<std::string> search_path) {
+Result<void> MuukLockGenerator::locate_and_parse_package(const std::string& package_name, const std::optional<std::string> version, std::shared_ptr<Package>& package, const std::optional<std::string> search_path) {
     if (search_path) {
         fs::path search_file = fs::path(search_path.value());
         if (!search_path.value().ends_with("muuk.toml")) {
@@ -44,9 +44,7 @@ Result<void> MuukLockGenerator::locate_and_parse_package(const std::string& pack
         }
     } else {
         // If no search path, search in dependency folders
-        auto result = search_and_parse_dependency(package_name, version.value());
-        if (!result)
-            return Err(result);
+        TRYV(search_and_parse_dependency(package_name, version.value()));
 
         package = find_package(package_name, version.value());
 

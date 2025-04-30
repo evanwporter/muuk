@@ -11,6 +11,7 @@
 #include "muuk_parser.hpp"
 #include "muukterminal.hpp"
 #include "rustify.hpp"
+#include "try_expected.hpp"
 #include "util.hpp"
 
 namespace fs = std::filesystem;
@@ -30,11 +31,11 @@ namespace muuk {
         }
     }
 
-    void clone_shallow_repo(const std::string& repo_url, const std::string& target_dir, const std::string& checkout_ref) {
+    Result<void> clone_shallow_repo(const std::string& repo_url, const std::string& target_dir, const std::string& checkout_ref) {
 
-        fs::path muuk_toml_path = target_dir + "/muuk.toml";
-        fs::path parent_repo_dir = fs::path(target_dir).parent_path();
-        fs::path temp_muuk_toml_path = parent_repo_dir / "_muuk_backup.toml";
+        const fs::path muuk_toml_path = target_dir + "/muuk.toml";
+        const fs::path parent_repo_dir = fs::path(target_dir).parent_path();
+        const fs::path temp_muuk_toml_path = parent_repo_dir / "_muuk_backup.toml";
 
         muuk::logger::info("Cloning repository: {} into {}", repo_url, target_dir);
 
@@ -54,28 +55,25 @@ namespace muuk {
             return ref.size() == 40 && std::all_of(ref.begin(), ref.end(), ::isxdigit);
         };
 
-        bool is_sha = is_commit_sha(checkout_ref);
+        const bool is_sha = is_commit_sha(checkout_ref);
         std::string clone_cmd = "git clone --single-branch";
 
-        if (!checkout_ref.empty() && !is_sha && checkout_ref != "latest") {
+        if (!checkout_ref.empty() && !is_sha && checkout_ref != "latest")
             clone_cmd += " --depth=1 --branch " + checkout_ref;
-        }
 
         clone_cmd += " " + repo_url + " " + target_dir;
 
         muuk::logger::info("Running clone command: {}", clone_cmd);
-        int clone_result = util::command_line::execute_command(clone_cmd);
-        if (clone_result != 0) {
-            muuk::logger::error("Failed to clone repository '{}'", repo_url);
-            return;
-        }
+        const int clone_result = util::command_line::execute_command(clone_cmd);
+        if (clone_result != 0)
+            return Err("Failed to clone repository '{}'", repo_url);
 
         // Attempt checkout if ref is provided and not "latest"
         bool did_checkout = false;
         if (!checkout_ref.empty() && checkout_ref != "latest") {
-            std::string checkout_cmd = "cd " + target_dir + " && git -c advice.detachedHead=false checkout " + checkout_ref;
+            const std::string checkout_cmd = "cd " + target_dir + " && git -c advice.detachedHead=false checkout " + checkout_ref;
             muuk::logger::info("Checking out ref: {}", checkout_ref);
-            int checkout_result = util::command_line::execute_command(checkout_cmd);
+            const int checkout_result = util::command_line::execute_command(checkout_cmd);
 
             if (checkout_result == 0) {
                 did_checkout = true;
@@ -85,21 +83,16 @@ namespace muuk {
                 fs::remove_all(target_dir);
 
                 std::string full_clone_cmd = "git clone --single-branch " + repo_url + " " + target_dir;
-                if (util::command_line::execute_command(full_clone_cmd) != 0) {
-                    muuk::logger::error("Failed to fully clone repository '{}'", repo_url);
-                    return;
-                }
+                if (util::command_line::execute_command(full_clone_cmd) != 0)
+                    return Err("Failed to fully clone repository '{}'", repo_url);
 
                 std::string retry_checkout_cmd = "cd " + target_dir + " && git checkout " + checkout_ref;
-                if (util::command_line::execute_command(retry_checkout_cmd) != 0) {
-                    muuk::logger::error("Still failed to checkout ref '{}'", checkout_ref);
-                    return;
-                }
+                if (util::command_line::execute_command(retry_checkout_cmd) != 0)
+                    return Err("Still failed to checkout ref '{}'", checkout_ref);
 
                 did_checkout = true;
             } else {
-                muuk::logger::error("Failed to checkout ref '{}'", checkout_ref);
-                return;
+                return Err("Failed to checkout ref '{}'", checkout_ref);
             }
         }
 
@@ -114,7 +107,7 @@ namespace muuk {
         }
 
         // Remove .git folder to keep things clean
-        fs::path git_dir = target_dir + "/.git";
+        const fs::path git_dir = target_dir + "/.git";
         if (fs::exists(git_dir)) {
             muuk::logger::info("Removing .git folder from '{}'", target_dir);
             fs::remove_all(git_dir);
@@ -122,12 +115,13 @@ namespace muuk {
 
         // Mark as installed
         create_hash_file(target_dir);
+        return {};
     }
 
     Result<void> install(const std::string& lockfile_path_string) {
         using namespace muuk::terminal;
 
-        fs::path lockfile_path = fs::path(lockfile_path_string);
+        const fs::path lockfile_path = fs::path(lockfile_path_string);
 
         auto lockgen = MuukLockGenerator::create("./");
         if (!lockgen) {
@@ -139,24 +133,25 @@ namespace muuk {
             return Err("Failed to generate lockfile: {}", lock_file_result.error());
         }
 
-        std::cout << muuk::terminal::style::CYAN << "Reading lockfile: " << lockfile_path << muuk::terminal::style::RESET << "\n";
+        std::cout << style::CYAN << "Reading lockfile: " << lockfile_path << style::RESET << "\n";
 
         std::ifstream file(lockfile_path);
         if (!file) {
             return Err("Failed to open lockfile '{}'", lockfile_path_string);
         }
 
-        auto parse_result = muuk::parse_muuk_file(lockfile_path_string, true);
+        const auto parse_result = muuk::parse_muuk_file(lockfile_path_string, true);
         if (!parse_result)
             return Err("Failed to parse lockfile '{}': {}", lockfile_path_string, parse_result.error());
-        auto lockfile_data = parse_result.value();
+
+        const auto lockfile_data = parse_result.value();
 
         if (!lockfile_data.contains("package")) {
             return Err("Lockfile does not contain 'package' section");
         }
-        auto packages = lockfile_data.at("package").as_array();
+        const auto packages = lockfile_data.at("package").as_array();
 
-        muuk::terminal::info("Found {}{}{} dependencies:", muuk::terminal::style::BOLD, packages.size(), muuk::terminal::style::RESET);
+        muuk::terminal::info("Found {}{}{} dependencies:", style::BOLD, packages.size(), style::RESET);
         for (const auto& item : packages) {
             const auto pkg = item.as_table();
             if (!pkg.contains("name") || !pkg.contains("version") || !pkg.contains("source"))
@@ -166,8 +161,8 @@ namespace muuk {
             const std::string version = pkg.at("version").as_string();
             const std::string source = pkg.at("source").as_string();
 
-            std::string short_hash = version.substr(0, 8);
-            muuk::logger::info("  - {}{}{} @ {}", muuk::terminal::style::MAGENTA, name, muuk::terminal::style::RESET, short_hash);
+            const std::string short_hash = version.substr(0, 8);
+            muuk::logger::info("  - {}{}{} @ {}", style::MAGENTA, name, style::RESET, short_hash);
         }
 
         std::cout << "\n";
@@ -182,7 +177,7 @@ namespace muuk {
             const std::string source = pkg.at("source").as_string();
             const std::string short_hash = version.substr(0, 8);
 
-            muuk::terminal::info("Installing: {}{}{} @ {}{}", muuk::terminal::style::CYAN, name, muuk::terminal::style::RESET, short_hash, muuk::terminal::style::RESET);
+            muuk::terminal::info("Installing: {}{}{} @ {}{}", style::CYAN, name, style::RESET, short_hash, style::RESET);
 
             std::string git_url;
             if (source.rfind("git+", 0) == 0) {
@@ -192,25 +187,25 @@ namespace muuk {
                 continue;
             }
 
-            std::string target_dir = std::string(DEPENDENCY_FOLDER) + "/" + name + "/" + version;
+            const std::string target_dir = std::string(DEPENDENCY_FOLDER) + "/" + name + "/" + version;
 
             if (fs::exists(target_dir) && is_package_installed(target_dir)) {
-                std::cout << muuk::terminal::style::YELLOW << "Already installed - skipping.\n"
-                          << muuk::terminal::style::RESET << "\n";
+                std::cout << style::YELLOW << "Already installed - skipping.\n"
+                          << style::RESET << "\n";
                 continue;
             }
 
-            std::cout << muuk::terminal::style::MAGENTA << "Cloning from " << git_url << muuk::terminal::style::RESET << "\n";
-            clone_shallow_repo(git_url, target_dir, version);
+            std::cout << style::MAGENTA << "Cloning from " << git_url << style::RESET << "\n";
+            TRYV(clone_shallow_repo(git_url, target_dir, version));
 
             if (fs::exists(target_dir)) {
-                std::cout << muuk::terminal::style::GREEN << "Installed " << name << " @ " << short_hash << muuk::terminal::style::RESET << "\n\n";
+                std::cout << style::GREEN << "Installed " << name << " @ " << short_hash << style::RESET << "\n\n";
             } else {
-                std::cout << muuk::terminal::style::RED << "Failed to install " << name << muuk::terminal::style::RESET << "\n\n";
+                std::cout << style::RED << "Failed to install " << name << style::RESET << "\n\n";
             }
         }
 
-        std::cout << muuk::terminal::style::GREEN << muuk::terminal::style::BOLD << "All dependencies are installed!" << muuk::terminal::style::RESET << "\n";
+        std::cout << style::GREEN << style::BOLD << "All dependencies are installed!" << style::RESET << "\n";
         return {};
     }
 }

@@ -17,10 +17,7 @@
 #include "muuk.hpp"
 #include "rustify.hpp"
 
-// { Dependency { Versioning { Dependency Info } } }
-/// Maps dependencies to their versioning information and associated dependency details.
-typedef DependencyVersionMap<Dependency> DependencyInfoMap;
-
+// { Dependency { Versioning { Package } } }
 /// Maps dependencies to their respective versions and associated packages.
 typedef DependencyVersionMap<std::shared_ptr<Package>> DependencyMap;
 
@@ -40,6 +37,8 @@ private:
     std::string base_path_;
 
     DependencyMap resolved_packages;
+
+    // TODO: Address why I there are two maps for builds
     std::unordered_map<std::string, std::shared_ptr<Package>> builds;
     std::unordered_map<std::string, std::shared_ptr<Build>> builds_;
 
@@ -48,34 +47,35 @@ private:
     // Meant to be a general reference for packages to refer to
     DependencyVersionMap<std::shared_ptr<Dependency>> dependencies_;
 
+    /// Used to track which packages have been visited during dependency resolution.
     std::unordered_set<std::string> visited;
     std::unordered_set<std::string> visited_builds;
 
     // <Package, Version> vector array
-    std::vector<std::pair<std::string, std::string>>
-        resolved_order_;
+    std::vector<std::pair<std::string, std::string>> resolved_order_;
 
     std::unordered_set<std::string> system_include_paths_;
     std::unordered_set<std::string> system_library_paths_;
 
-    Profiles profiles_;
     std::unordered_map<std::string, ProfileConfig> profiles_config_;
 
+    /// Parses the features section of a package and adds them to the package's feature map.
     static Result<void> parse_features(
         const toml::value& data,
         std::shared_ptr<Package> package);
 
+    /**
+     * Parses the dependencies of a package and adds them to the package's
+     * dependency map. Additionally, it adds the dependencies to the global
+     * dependency map.
+     */
     Result<void> parse_dependencies(
         const toml::value& data,
         std::shared_ptr<Package> package);
 
+    /// Parse the profile section of the TOML file.
     Result<void> parse_profile(
         const toml::value& data);
-
-    Result<void> parse_builds(
-        const toml::value& data,
-        const std::string& package_version,
-        const std::string& path);
 
     /// Searches for the specified package in the dependency folder and parses its muuk.toml file if found.
     Result<void> search_and_parse_dependency(
@@ -90,10 +90,6 @@ private:
         const std::string& package_name,
         std::shared_ptr<Package> package);
 
-    void merge_profiles(
-        const std::string& base_profile,
-        const std::string& inherited_profile);
-
     /// Parse a single muuk.toml file representing a package
     Result<void> parse_muuk_toml(const std::string& path, bool is_base = false);
 
@@ -104,7 +100,7 @@ private:
 
     Result<void> locate_and_parse_package(
         const std::string& package_name,
-        std::optional<std::string> version,
+        const std::optional<std::string> version,
         std::shared_ptr<Package>& package,
         const std::optional<std::string> search_path);
 
@@ -120,17 +116,14 @@ private:
         const std::string& package_name,
         std::optional<std::string> version = std::nullopt);
 
-    static void parse_and_store_flag_categories(
-        const toml::value& data,
-        std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_set<std::string>>>& target,
-        const std::vector<std::string>& flag_categories);
-
+    /// This along with `propagate_profiles` downward merges the settings of the inherited profile into the base profile's dependencies.
     void propagate_profiles();
 
     void propagate_profiles_downward(
         Package& package,
         const std::unordered_set<std::string>& inherited_profiles);
 
+    /// Generate a `.gitignore` file in that ignores everything in `deps` except for the `muuk.toml` files.
     void generate_gitignore();
 };
 

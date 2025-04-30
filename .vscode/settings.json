@@ -106,37 +106,11 @@
     "typeindex": "cpp",
     "shared_mutex": "cpp"
   },
-  "[cpp]": {
-    "editor.wordBasedSuggestions": "off",
-    "editor.semanticHighlighting.enabled": true,
-    "editor.stickyScroll.defaultModel": "foldingProviderModel",
-    "editor.suggest.insertMode": "replace",
-    "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd",
-    "editor.formatOnSave": true,
-  },
-  "[json]": {
-    "editor.indentSize": 4,
-    "editor.formatOnSave": true,
-  },
   "C_Cpp.default.compileCommands": "${workspaceFolder}/build/debug/compile_commands.json",
-  "C_Cpp.codeAnalysis.runAutomatically": true,
-  "C_Cpp.experimentalFeatures": "enabled",
-  "C_Cpp.intelliSenseEngine": "disabled",
-  "C_Cpp.formatting": "disabled",
-  "files.encoding": "utf8",
   "python.testing.pytestArgs": [
     "${workspaceFolder}/test/external/test.py"
   ],
   "python.testing.cwd": "${workspaceFolder}/test/external",
-  "python.testing.unittestEnabled": false,
-  "python.testing.pytestEnabled": true,
-  "[python]": {
-    "diffEditor.ignoreTrimWhitespace": false,
-    "editor.defaultColorDecorators": "never",
-    "editor.formatOnType": true,
-    "editor.wordBasedSuggestions": "off",
-    "editor.defaultFormatter": "charliermarsh.ruff"
-  },
   "launches": {
     "lauchDebugger": "(Windows) Launch"
   },
@@ -149,12 +123,5 @@
     "--header-insertion=iwyu"
     // "--completion-style=detailed",
     // "--header-insertion=never"
-  ],
-  "cpp-check-lint.cppcheck.--std_c++=": "c++20",
-  "cpp-check-lint.cppcheck.--std_c=": "c11",
-  "cpp-check-lint.cppcheck.--suppress=": [
-    "duplInheritedMember",
-    // "unmatchedSuppression",
-    // "missingIncludeSystem"
   ],
 }

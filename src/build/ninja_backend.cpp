@@ -14,8 +14,8 @@
 namespace fs = std::filesystem;
 
 NinjaBackend::NinjaBackend(
-    BuildManager& build_manager,
-    muuk::Compiler compiler,
+    const BuildManager& build_manager,
+    const muuk::Compiler compiler,
     const std::string& archiver,
     const std::string& linker) :
     BuildBackend(build_manager, compiler, archiver, linker) { }
@@ -122,9 +122,9 @@ std::string NinjaBackend::generate_rule(const ArchiveTarget& target) {
 }
 
 void NinjaBackend::generate_rule(const ExternalTarget& target) {
-    fs::path folder_path = fs::absolute(target.path);
-    std::string safe_id = "ext_" + target.name;
-    fs::path output_path = build_dir_ / (safe_id + ".ninja");
+    const fs::path folder_path = fs::absolute(target.path);
+    const std::string safe_id = "ext_" + target.name;
+    const fs::path output_path = build_dir_ / (safe_id + ".ninja");
 
     std::ostringstream out;
 
@@ -137,7 +137,7 @@ void NinjaBackend::generate_rule(const ExternalTarget& target) {
     for (const auto& arg : target.args)
         configure_args += " " + arg;
 
-    std::string configure_stamp = (folder_path / "build" / "build.ninja").string();
+    const std::string configure_stamp = (folder_path / "build" / "build.ninja").string();
 
     out << "build " << configure_stamp << ": configure_external " << folder_path / "CMakeLists.txt"
         << "\n";
@@ -198,7 +198,7 @@ void NinjaBackend::write_header(std::ostringstream& out, std::string profile) {
 
     module_dir = "../../" + module_dir;
 
-    auto [profile_cflags, profile_lflags] = get_profile_flag_strings(build_manager, profile);
+    const auto [profile_cflags, profile_lflags] = get_profile_flag_strings(build_manager, profile);
 
     out << "# Profile-Specific Flags\n"
         << "profile_cflags = " << profile_cflags << "\n"
@@ -285,7 +285,7 @@ void NinjaBackend::write_header(std::ostringstream& out, std::string profile) {
 }
 
 void NinjaBackend::generate_build_rules(std::ostringstream& out, const std::string& target_build) {
-    (void)target_build;
+    (void)target_build; // TODO: Use target_build
     std::ostringstream build_rules;
 
     // Generate compilation rules

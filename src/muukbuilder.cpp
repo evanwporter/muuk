@@ -133,8 +133,11 @@ namespace muuk {
         return {};
     }
 
-    Result<void> build(std::string& target_build, const std::string& compiler, const std::string& profile, const toml::value& config) {
+    Result<void> build(const std::string& target_build, const std::string& compiler, const std::string& profile, const toml::value& config, const std::string& jobs) {
         util::file_system::ensure_directory_exists("build/" + profile);
+
+        if (!jobs.empty() && !util::is_integer(jobs))
+            return Err("Invalid number of jobs specified: " + jobs);
 
         auto muuk_result = parse_muuk_file(
             "muuk.toml",

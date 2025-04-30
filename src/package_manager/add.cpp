@@ -7,7 +7,6 @@
 #include "buildconfig.h"
 #include "commands/add.hpp"
 #include "logger.hpp"
-#include "muuk.hpp"
 #include "muuk_parser.hpp"
 #include "rustify.hpp"
 #include "util.hpp"
@@ -37,6 +36,7 @@ namespace muuk {
     }
 
     Result<void> add(const std::string& toml_path, const std::string& repo, std::string version, std::string& git_url, std::string& muuk_path, bool is_system, const std::string& target_section) {
+        (void)target_section; // TODO: Use target_section
         muuk::logger::info(
             "Adding dependency to '{}': {} (version: {})",
             toml_path,
@@ -77,10 +77,10 @@ namespace muuk {
                     version = util::git::get_latest_revision(git_url);
             }
 
-            std::string final_git_url = git_url.empty()
+            const std::string final_git_url = git_url.empty()
                 ? "https://github.com/" + author + "/" + repo_name + ".git"
                 : git_url;
-            std::string target_dir = std::string(DEPENDENCY_FOLDER) + "/" + repo_name + "/" + version;
+            const std::string target_dir = std::string(DEPENDENCY_FOLDER) + "/" + repo_name + "/" + version;
 
             // Ensure dependency folder exists
             util::file_system::ensure_directory_exists(DEPENDENCY_FOLDER, true);
@@ -88,7 +88,7 @@ namespace muuk {
 
             if (muuk_path.empty()) {
                 muuk_path = target_dir + "/muuk.toml";
-                std::string muuk_toml_url = "https://raw.githubusercontent.com/" + author + "/" + repo_name + "/" + version + "/muuk.toml";
+                const std::string muuk_toml_url = "https://raw.githubusercontent.com/" + author + "/" + repo_name + "/" + version + "/muuk.toml";
 
                 if (!util::network::download_file(muuk_toml_url, muuk_path)) {
 #ifdef SEARCH_FOR_MUUK_PATCHES
@@ -108,15 +108,15 @@ namespace muuk {
             dependencies[repo_name] = toml::value(version);
 
             std::ofstream file_out(toml_path, std::ios::trunc);
-            if (!file_out.is_open()) {
+            if (!file_out.is_open())
                 return Err("Failed to open TOML file for writing: {}", toml_path);
-            }
 
             file_out << toml::format(root);
             file_out.close();
 
             muuk::logger::info("Added dependency '{}' to '{}'", repo_name, toml_path);
             return {};
+
         } catch (const std::exception& e) {
             return Err("Error adding dependency: {}", std::string(e.what()));
         }

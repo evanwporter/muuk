@@ -17,25 +17,26 @@ enum class LinkType {
     SHARED
 };
 
-using Profiles = std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_set<std::string>>>;
-
 struct Feature {
     std::unordered_set<std::string> defines;
     std::unordered_set<std::string> undefines;
     std::unordered_set<std::string> dependencies;
 };
 
+/// Conditionally sets a key in a TOML table if the container is not empty.
 template <typename T>
 static inline void maybe_set(toml::value& out, const char* key, const T& container) {
     if (!container.empty())
         out[key] = container;
 }
 
+/// Forces a TOML table to be serialized in a single line.
 inline void force_oneline(toml::value& v) {
     if (v.is_table())
         v.as_table_fmt().fmt = toml::table_format::oneline;
 }
 
+/// Conditionally serializes a member field to a TOML table based on a compile-time flag.
 #define MAYBE_SET_FIELD(enable_macro, field_name) \
     if constexpr (Derived::enable_##enable_macro) \
     maybe_set(out, #field_name, field_name)

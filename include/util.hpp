@@ -112,6 +112,9 @@ namespace util {
             dest.insert(src.begin(), src.end());
         }
     }
+
+    /// Checks if a string is a valid positive integer
+    bool is_integer(const std::string& s);
 } // namespace Utils
 
 #endif

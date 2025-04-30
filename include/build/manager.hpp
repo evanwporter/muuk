@@ -27,7 +27,7 @@ public:
         const std::string src,
         const std::string obj,
         const CompilationFlags compilation_flags,
-        CompilationUnitType compilation_unit_type = CompilationUnitType::Source);
+        const CompilationUnitType compilation_unit_type = CompilationUnitType::Source);
 
     void add_archive_target(
         const std::string lib,

@@ -69,18 +69,14 @@ int main(int argc, char* argv[]) {
         .nargs(1);
     build_command.add_argument("-p", "--profile")
         .help("Specify a build profile (e.g., debug, release)")
-        .default_value(std::string(""))
+        .default_value(std::string("")) // TODO: Eventually parse the default profile from the config file
+        .nargs(1);
+    build_command.add_argument("-j", "--jobs")
+        .help("Number of jobs to run in parallel (0 means infinity)")
+        .default_value(std::string("1"))
         .nargs(1);
 
     argparse::ArgumentParser download_command("install", "Install a package from github");
-    // download_command.add_argument("url")
-    //     .help("The author and zip file of the github repo to install");
-    // download_command.add_argument("--version")
-    //     .help("The version to download (default: latest)")
-    //     .default_value(std::string("latest"));
-    // download_command.add_argument("--submodule")
-    //     .help("Install the package as a Git submodule instead of downloading a release.")
-    //     .flag();
 
     argparse::ArgumentParser remove_command("remove", "Remove an installed package or submodule");
     remove_command.add_argument("package_name")
@@ -206,7 +202,13 @@ int main(int argc, char* argv[]) {
             std::string target_build = build_command.get<std::string>("--target-build");
             std::string compiler = build_command.get<std::string>("--compiler");
             std::string profile = build_command.get<std::string>("--profile");
-            return check_and_report(muuk::build(target_build, compiler, profile, muuk_config));
+            std::string jobs = build_command.get<std::string>("--jobs");
+            return check_and_report(muuk::build(
+                target_build,
+                compiler,
+                profile,
+                muuk_config,
+                jobs));
         }
     } catch (const std::runtime_error& err) {
         muuk::logger::error(std::string(err.what()) + "\n");

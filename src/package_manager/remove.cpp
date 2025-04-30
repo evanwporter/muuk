@@ -52,7 +52,7 @@ namespace muuk {
             root["dependencies"] = new_deps;
 
             // Remove local dependency folder
-            std::string dep_path = std::string(DEPENDENCY_FOLDER) + "/" + package_name;
+            const std::string dep_path = std::string(DEPENDENCY_FOLDER) + "/" + package_name;
             if (fs::exists(dep_path)) {
                 std::cout << style::CYAN << "Deleting local folder: " << dep_path << style::RESET << "\n";
                 fs::remove_all(dep_path);

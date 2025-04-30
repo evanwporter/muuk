@@ -9,10 +9,11 @@
 
 namespace muuk {
     Result<void> build(
-        std::string& target_build,
+        const std::string& target_build,
         const std::string& compiler,
         const std::string& profile,
-        const toml::value& config);
+        const toml::value& config,
+        const std::string& jobs);
 }
 
 #endif // MUUK_BUILDER_H

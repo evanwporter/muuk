@@ -4,33 +4,33 @@
 
 #include <filesystem>
 #include <string>
-#include <vector>
 
 #include <toml.hpp>
 
 #include "build/manager.hpp"
+#include "build/targets.hpp"
 #include "compiler.hpp"
 
 std::pair<std::string, std::string> get_profile_flag_strings(
-    BuildManager& manager,
+    const BuildManager& manager,
     const std::string& profile);
 
 Result<void> parse(
     BuildManager& build_manager,
-    muuk::Compiler compiler,
+    const muuk::Compiler compiler,
     const std::filesystem::path& build_dir,
     const std::string& profile);
 
 void parse_compilation_targets(
     BuildManager& build_manager,
-    muuk::Compiler compiler,
+    const muuk::Compiler compiler,
     const std::filesystem::path& build_dir,
     const std::string& profile,
     const toml::value& muuk_file);
 
 void parse_libraries(
     BuildManager& build_manager,
-    muuk::Compiler compiler,
+    const muuk::Compiler compiler,
     const std::filesystem::path& build_dir,
     const toml::value& muuk_file);
 
@@ -46,16 +46,6 @@ void parse_compilation_unit(
     const toml::array& unit_array,
     const CompilationUnitType compilation_unit_type,
     const std::filesystem::path& pkg_dir,
-    CompilationFlags compilation_flags);
-
-/// Extract platform-specific flags
-std::vector<std::string> extract_platform_flags(
-    const toml::table& package_table,
-    muuk::Compiler compiler);
-
-/// Extract compiler-specific flags
-std::vector<std::string> extract_compiler_flags(
-    const toml::table& package_table,
-    muuk::Compiler compiler);
+    const CompilationFlags compilation_flags);
 
 #endif

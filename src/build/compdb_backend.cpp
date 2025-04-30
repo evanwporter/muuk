@@ -16,8 +16,8 @@ namespace fs = std::filesystem;
 // make sure it only generates profile specific stuff
 
 CompileCommandsBackend::CompileCommandsBackend(
-    BuildManager& build_manager,
-    muuk::Compiler compiler,
+    const BuildManager& build_manager,
+    const muuk::Compiler compiler,
     const std::string& archiver,
     const std::string& linker) :
     BuildBackend(build_manager, compiler, archiver, linker) { }
@@ -34,10 +34,10 @@ void CompileCommandsBackend::generate_build_file(const std::string& target_build
         muuk::logger::info("Created build directory: {}", build_dir_.string());
     }
 
-    auto [profile_cflags, profile_lflags] = get_profile_flag_strings(build_manager, profile);
+    const auto [profile_cflags, profile_lflags] = get_profile_flag_strings(build_manager, profile);
 
     // Generate compile_commands.json
-    json compile_commands = generate_compile_commands(profile_cflags);
+    const json compile_commands = generate_compile_commands(profile_cflags);
 
     std::ofstream out(build_dir_ / "compile_commands.json");
     if (!out) {

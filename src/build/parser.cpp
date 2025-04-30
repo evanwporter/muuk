@@ -27,7 +27,7 @@ static constexpr std::string_view to_string(CompilationUnitType value) {
     return names.at(static_cast<size_t>(value));
 }
 
-static Result<BuildProfile> extract_profile_flags(const std::string& profile, muuk::Compiler compiler, const toml::value& muuk_file) {
+static Result<BuildProfile> extract_profile_flags(const std::string& profile, const muuk::Compiler compiler, const toml::value& muuk_file) {
     muuk::logger::info("Extracting profile-specific flags for profile '{}'", profile);
 
     if (!muuk_file.contains("profile"))
@@ -56,14 +56,28 @@ static Result<BuildProfile> extract_profile_flags(const std::string& profile, mu
     return build_profile;
 }
 
-// Extract platform-specific flags
-std::vector<std::string> extract_platform_flags(const toml::table& package_table) {
+/// Generic flag extractor from a TOML table given a section and a key
+std::vector<std::string> extract_flags_by_key(
+    const toml::table& package_table,
+    const std::string& section,
+    const std::string& key_name) {
     std::vector<std::string> flags;
-    if (!package_table.contains("platform"))
+
+    if (!package_table.contains(section))
         return flags;
 
-    auto platform_table = package_table.at("platform").as_table();
+    auto section_table = package_table.at(section).as_table();
 
+    if (section_table.contains(key_name)) {
+        auto entry = section_table.at(key_name).as_table();
+        flags = muuk::parse_array_as_vec(entry, "cflags");
+    }
+
+    return flags;
+}
+
+/// Extract platform-specific flags
+std::vector<std::string> extract_platform_flags(const toml::table& package_table) {
     std::string detected_platform;
 
 #ifdef _WIN32
@@ -73,38 +87,19 @@ std::vector<std::string> extract_platform_flags(const toml::table& package_table
 #elif __linux__
     detected_platform = "linux";
 #else
-    detected_platform = "unknown";
+    detected_platform = "unknown"; // Fallback for unsupported platforms
 #endif
 
-    if (platform_table.contains(detected_platform)) {
-        auto platform_entry = platform_table.at(detected_platform).as_table();
-
-        flags = muuk::parse_array_as_vec(platform_entry, "cflags");
-    }
-
-    return flags;
+    return extract_flags_by_key(package_table, "platform", detected_platform);
 }
 
+/// Extract compiler-specific flags
 std::vector<std::string> extract_compiler_flags(const toml::table& package_table, const muuk::Compiler compiler) {
-    std::vector<std::string> flags;
-    if (!package_table.contains("compiler"))
-        return flags;
-
-    auto compiler_table = package_table.at("compiler").as_table();
-
-    auto compiler_ = compiler.to_string();
-
-    if (compiler_table.contains(compiler_)) {
-        auto compiler_entry = compiler_table.at(compiler_).as_table();
-
-        flags = muuk::parse_array_as_vec(compiler_entry, "cflags");
-    }
-
-    return flags;
+    return extract_flags_by_key(package_table, "compiler", compiler.to_string());
 }
 
 /// Parses compilation units (modules or sources) from the TOML array
-void parse_compilation_unit(BuildManager& build_manager, const toml::array& unit_array, const CompilationUnitType compilation_unit_type, const std::filesystem::path& pkg_dir, CompilationFlags compilation_flags) {
+void parse_compilation_unit(BuildManager& build_manager, const toml::array& unit_array, const CompilationUnitType compilation_unit_type, const std::filesystem::path& pkg_dir, const CompilationFlags compilation_flags) {
 
     for (const auto& unit_entry : unit_array) {
         if (!unit_entry.is_table())
@@ -113,13 +108,13 @@ void parse_compilation_unit(BuildManager& build_manager, const toml::array& unit
         if (!unit_entry.contains("path"))
             continue;
 
-        std::string src_path
+        const std::string src_path
             = util::file_system::to_linux_path(
                 std::filesystem::absolute(
                     std::filesystem::path(unit_entry.at("path").as_string()))
                     .string());
 
-        std::string obj_path = util::file_system::to_linux_path(
+        const std::string obj_path = util::file_system::to_linux_path(
             (pkg_dir / std::filesystem::path(src_path).stem()).string() + OBJ_EXT,
             "../../");
 
@@ -177,6 +172,7 @@ void parse_compilation_targets(BuildManager& build_manager, const muuk::Compiler
             auto iflags = muuk::parse_array_as_vec(package_table, "include", "-I../../");
             auto defines = muuk::parse_array_as_vec(package_table, "defines", "-D");
 
+            // Extract platform-specific and compiler-specific flags
             auto platform_cflags = extract_platform_flags(package_table);
             auto compiler_cflags = extract_compiler_flags(package_table, compiler);
 
@@ -435,7 +431,7 @@ void parse_executables(BuildManager& build_manager, const muuk::Compiler compile
     }
 }
 
-Result<void> parse(BuildManager& build_manager, muuk::Compiler compiler, const std::filesystem::path& build_dir, const std::string& profile) {
+Result<void> parse(BuildManager& build_manager, const muuk::Compiler compiler, const std::filesystem::path& build_dir, const std::string& profile) {
 
     auto result = muuk::parse_muuk_file("build/muuk.lock.toml", true);
     if (!result) {
@@ -457,7 +453,7 @@ Result<void> parse(BuildManager& build_manager, muuk::Compiler compiler, const s
     return {};
 }
 
-std::pair<std::string, std::string> get_profile_flag_strings(BuildManager& manager, const std::string& profile) {
+std::pair<std::string, std::string> get_profile_flag_strings(const BuildManager& manager, const std::string& profile) {
     const auto* build_profile = manager.get_profile(profile);
     std::string profile_cflags, profile_lflags;
 

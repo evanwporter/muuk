@@ -269,12 +269,7 @@ Result<void> MuukLockGenerator::load() {
 
     muuk::logger::info("Resolving dependencies for build packages...");
     for (const auto& [build_name, build] : builds_) {
-        auto result_build_pkg = resolve_build_dependencies(build_name);
-        if (!result_build_pkg)
-            muuk::logger::error(
-                "Failed to resolve dependencies for build package '{}': {}",
-                build_name,
-                result_build_pkg.error());
+        TRYV(resolve_build_dependencies(build_name));
     }
 
     for (const auto& [package_name, version] : resolved_order_) {
@@ -508,38 +503,6 @@ std::shared_ptr<Package> MuukLockGenerator::find_package(const std::string& pack
     return nullptr;
 }
 
-// Merges the settings of the inherited profile into the base profile.
-void MuukLockGenerator::merge_profiles(const std::string& base_profile, const std::string& inherited_profile) {
-    if (profiles_.find(inherited_profile) == profiles_.end()) {
-        muuk::logger::error("Inherited profile '{}' not found with base profile {}.", inherited_profile, base_profile);
-        return;
-    }
-
-    muuk::logger::trace("Merging profile '{}' into '{}'", inherited_profile, base_profile);
-
-    for (const auto& [key, values] : profiles_[inherited_profile]) {
-        profiles_[base_profile][key].insert(values.begin(), values.end());
-    }
-}
-
-void MuukLockGenerator::parse_and_store_flag_categories(
-    const toml::value& data,
-    std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_set<std::string>>>& target,
-    const std::vector<std::string>& flag_categories) {
-    for (const auto& [category_name, category_data] : data.as_table()) {
-        if (!category_data.is_table()) {
-            continue;
-        }
-
-        const std::string category_name_str = category_name;
-
-        for (const auto& flag_type : flag_categories) {
-            target[category_name_str][flag_type] = muuk::parse_array_as_set(
-                category_data, flag_type);
-        }
-    }
-}
-
 Result<void> MuukLockGenerator::resolve_build_dependencies(const std::string& build_name) {
     if (visited_builds.count(build_name)) {
         muuk::logger::trace("Build '{}' already processed. Skipping resolution.", build_name);
@@ -588,7 +551,7 @@ Result<void> MuukLockGenerator::resolve_build_dependencies(const std::string& bu
                     "Failed to resolve dependency '{}' for build '{}': {}",
                     dep_name,
                     build_name,
-                    result.error());
+                    result.error()); // Custom error handling so I can add the build name.
         }
 
         if (resolved_packages.count(dep_name) && resolved_packages[dep_name].count(dep_version)) {
@@ -602,9 +565,10 @@ Result<void> MuukLockGenerator::resolve_build_dependencies(const std::string& bu
                 build_name);
         } else
             muuk::logger::warn(
-                "Dependency '{}' (v{}) not found in resolved_packages after resolution.",
+                "Dependency '{}' (v{}) not found in resolved_packages after resolution for Build {}.",
                 dep_name,
-                dep_version);
+                dep_version,
+                build_name);
     }
 
     resolved_order_.emplace_back(build_name, base_package_->version);

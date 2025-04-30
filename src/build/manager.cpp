@@ -8,7 +8,7 @@ void BuildManager::add_compilation_target(
     const std::string src,
     const std::string obj,
     const CompilationFlags compilation_flags,
-    CompilationUnitType compilation_unit_type) {
+    const CompilationUnitType compilation_unit_type) {
 
     // Prevent empty inputs
     if (src.empty() || obj.empty()) {
