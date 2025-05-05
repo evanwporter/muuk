@@ -13,8 +13,12 @@ patterns = ['*.obj', '*.lib', '*.pdb']
 [library]
 cflags = ['/W4']
 include = ['include']
-libs = ["lalalib"]
-# modules = ["modules/math.ixx"]
+# libs = [
+#     "lala.lib",
+#     { name = "mylib_clang.lib", compiler = "clang" },
+#     { name = "mylib_win.lib", platform = "windows" },
+#     { name = "mylib_msvc.lib", platform = "windows", compiler = "msvc" },
+# ] # modules = ["modules/math.ixx"]
 sources = [
     'src/muuker.cpp',
     'src/util/*.cpp',

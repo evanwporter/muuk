@@ -1,6 +1,7 @@
 #include <filesystem>
 #include <memory>
 #include <optional>
+#include <queue>
 #include <string>
 #include <utility>
 #include <vector>
@@ -54,6 +55,7 @@ Result<void> MuukLockGenerator::locate_and_parse_package(const std::string& pack
     return {};
 }
 
+// TODO: Add cycle detection
 Result<void> MuukLockGenerator::resolve_dependencies(const std::string& package_name, std::optional<std::string> version, std::optional<std::string> search_path) {
     if (visited.count(package_name)) {
         muuk::logger::trace("Dependency '{}' already processed. Skipping resolution.", package_name);
@@ -196,4 +198,50 @@ void MuukLockGenerator::resolve_system_dependency(const std::string& package_nam
     //     if (include_path.empty() && lib_path.empty() && (!dep_info || dep_info->libs.empty())) {
     //         muuk::logger::error("Failed to resolve system dependency '{}'. Provide a valid path or ensure it is installed.", package_name);
     //     }
+}
+
+// Cycle detection using Kahn's algorithm
+// Funnily enough, I learned about this algo from the leetcode problem "Course Schedule II"
+// https://leetcode.com/problems/course-schedule-ii/description/
+bool MuukLockGenerator::has_cycle() {
+    std::unordered_map<std::string, std::vector<std::string>> graph;
+    std::unordered_map<std::string, int> in_degree;
+
+    for (const auto& [pkg_name, versions] : resolved_packages) {
+        for (const auto& [version, pkg_ptr] : versions) {
+            if (!pkg_ptr)
+                continue;
+
+            std::string from = pkg_name + "@" + version;
+            in_degree[from]; // Ensure it exists
+
+            for (const auto& [dep_name, version_map] : pkg_ptr->dependencies_) {
+                for (const auto& [dep_version, _] : version_map) {
+                    std::string to = dep_name + "@" + dep_version;
+                    graph[from].push_back(to);
+                    in_degree[to]++;
+                }
+            }
+        }
+    }
+
+    // Topological sort using Kahn's algorithm
+    std::queue<std::string> q;
+    for (const auto& [node, deg] : in_degree)
+        if (deg == 0)
+            q.push(node);
+
+    int visited = 0;
+    while (!q.empty()) {
+        auto node = q.front();
+        q.pop();
+        visited++;
+
+        for (const auto& neighbor : graph[node]) {
+            if (--in_degree[neighbor] == 0)
+                q.push(neighbor);
+        }
+    }
+
+    return visited != (int)in_degree.size();
 }

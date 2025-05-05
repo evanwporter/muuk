@@ -8,6 +8,7 @@
 #include <glob/glob.hpp>
 #include <toml.hpp>
 
+#include "compiler.hpp"
 #include "logger.hpp"
 #include "muuk.hpp"
 #include "toml_ext.hpp"
@@ -46,6 +47,18 @@ inline void force_oneline(toml::value& v) {
         maybe_set(out, #field, arr);                     \
     }
 
+#define LOAD_TOML_SET_FIELD(enable_macro, field_name) \
+    if constexpr (Derived::enable_##enable_macro)     \
+    field_name = toml::try_find_or<std::unordered_set<std::string>>(v, #field_name, {})
+
+#define LOAD_TOML_SOURCES(enable_macro, field_name, key_name) \
+    if constexpr (Derived::enable_##enable_macro)             \
+    field_name = parse_sources(v, base_path, key_name)
+
+#define LOAD_TOML_LIBS(enable_macro, field_name)  \
+    if constexpr (Derived::enable_##enable_macro) \
+    field_name = parse_libs(v, base_path)
+
 struct Dependency {
     std::string name;
     std::string git_url;
@@ -72,6 +85,14 @@ struct source_file {
 
 using module_file = source_file;
 
+struct lib_file {
+    std::string path;
+    std::vector<std::string> lflags;
+    std::optional<muuk::Compiler> compiler;
+    // TODO: Platform: if platform doesn't match then skip this lib
+    // If compiler is MSVC and platform is not Windows, skip this lib
+};
+
 template <typename Derived>
 struct BaseFields {
     std::vector<source_file> sources;
@@ -93,29 +114,23 @@ struct BaseFields {
     static constexpr bool enable_libs = true;
 
     void load(const toml::value& v, const std::string& base_path) {
-        if constexpr (Derived::enable_modules)
-            modules = parse_sources(v, base_path, "modules");
-        if constexpr (Derived::enable_sources)
-            sources = parse_sources(v, base_path);
+        LOAD_TOML_SOURCES(modules, modules, "modules");
+        LOAD_TOML_SOURCES(sources, sources, "sources");
+
         if constexpr (Derived::enable_include) {
             auto raw_includes = toml::try_find_or<std::unordered_set<std::string>>(v, "include", {});
             for (const auto& inc : raw_includes)
                 include.insert(util::file_system::to_linux_path((std::filesystem::path(base_path) / inc).lexically_normal().string()));
         }
-        if constexpr (Derived::enable_defines)
-            defines = toml::try_find_or<std::unordered_set<std::string>>(v, "defines", {});
-        if constexpr (Derived::enable_undefines)
-            undefines = toml::try_find_or<std::unordered_set<std::string>>(v, "undefines", {});
-        if constexpr (Derived::enable_cflags)
-            cflags = toml::try_find_or<std::unordered_set<std::string>>(v, "cflags", {});
-        if constexpr (Derived::enable_cxxflags)
-            cxxflags = toml::try_find_or<std::unordered_set<std::string>>(v, "cxxflags", {});
-        if constexpr (Derived::enable_aflags)
-            aflags = toml::try_find_or<std::unordered_set<std::string>>(v, "aflags", {});
-        if constexpr (Derived::enable_lflags)
-            lflags = toml::try_find_or<std::unordered_set<std::string>>(v, "lflags", {});
-        if constexpr (Derived::enable_libs)
-            libs = toml::try_find_or<std::unordered_set<std::string>>(v, "libs", {});
+
+        LOAD_TOML_SET_FIELD(defines, defines);
+        LOAD_TOML_SET_FIELD(undefines, undefines);
+        LOAD_TOML_SET_FIELD(cflags, cflags);
+        LOAD_TOML_SET_FIELD(cxxflags, cxxflags);
+        LOAD_TOML_SET_FIELD(aflags, aflags);
+        LOAD_TOML_SET_FIELD(lflags, lflags);
+
+        LOAD_TOML_LIBS(libs, libs);
 
         if constexpr (Derived::enable_dependencies) {
             if (v.contains("dependencies")) {
@@ -165,6 +180,7 @@ struct BaseFields {
         merge(libs, other.libs);
     }
 
+private:
     static std::vector<source_file> parse_sources(const toml::value& section, const std::string& base_path, const std::string& key = "sources") {
         std::vector<source_file> temp_sources;
         if (!section.contains(key))
@@ -201,6 +217,21 @@ struct BaseFields {
         return temp_sources;
     }
 
+    /// Parses and appends the base path to the library paths.
+    /// If the path is already absolute, it will be used as is.
+    static std::unordered_set<std::string> parse_libs(const toml::value& section, const std::string& base_path) {
+        std::unordered_set<std::string> resolved_libs;
+
+        auto raw_libs = toml::try_find_or<std::unordered_set<std::string>>(section, "libs", {});
+        for (const auto& lib : raw_libs) {
+            std::filesystem::path lib_path(lib);
+            if (!lib_path.is_absolute())
+                lib_path = std::filesystem::path(base_path) / lib_path;
+            resolved_libs.insert(util::file_system::to_linux_path(lib_path.lexically_normal().string()));
+        }
+        return resolved_libs;
+    }
+
     static std::vector<source_file> expand_glob_sources(const std::vector<source_file>& input_sources) {
         std::vector<source_file> expanded;
 
@@ -219,13 +250,9 @@ struct BaseFields {
     }
 };
 
-struct CompilerConfig : BaseFields<CompilerConfig> {
-    void load(const toml::value& v, const std::string& base_path);
-};
+struct CompilerConfig : BaseFields<CompilerConfig> { };
 
-struct PlatformConfig : BaseFields<PlatformConfig> {
-    void load(const toml::value& v, const std::string& base_path);
-};
+struct PlatformConfig : BaseFields<PlatformConfig> { };
 
 struct Compilers {
     CompilerConfig clang, gcc, msvc;

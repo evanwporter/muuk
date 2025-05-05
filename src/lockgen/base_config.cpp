@@ -16,6 +16,20 @@
 // namespace muuk {
 //     namespace lockgen {
 
+#define LOAD_IF_PRESENT(key, target) \
+    if (v.contains(#key))            \
+    target.load(v.at(#key), base_path)
+
+#define SERIALIZE_SUBCONFIG(KEY, FIELD, TARGET) \
+    do {                                        \
+        toml::value tmp = toml::table {};       \
+        (FIELD).serialize(tmp);                 \
+        if (!tmp.as_table().empty()) {          \
+            force_oneline(tmp);                 \
+            (TARGET)[KEY] = tmp;                \
+        }                                       \
+    } while (0) // do-while is used to avoid macro issues
+
 Result<void> Dependency::load(const std::string name_, const toml::value& v) {
     name = name_;
     if (v.is_string()) {
@@ -30,8 +44,7 @@ Result<void> Dependency::load(const std::string name_, const toml::value& v) {
     path = toml::find_or<std::string>(v, "path", "");
     version = toml::find_or<std::string>(v, "version", "");
 
-    auto enabled_feats = toml::find_or<std::vector<std::string>>(v, "features", {});
-    enabled_features = std::unordered_set<std::string>(enabled_feats.begin(), enabled_feats.end());
+    enabled_features = toml::try_find_or<std::unordered_set<std::string>>(v, "features", {});
 
     libs = toml::find_or<std::vector<std::string>>(v, "libs", {});
     return {};
@@ -76,21 +89,10 @@ toml::value source_file::serialize() const {
     };
 }
 
-void CompilerConfig::load(const toml::value& v, const std::string& base_path) {
-    BaseFields::load(v, base_path);
-}
-
-void PlatformConfig::load(const toml::value& v, const std::string& base_path) {
-    BaseFields::load(v, base_path);
-}
-
 void Compilers::load(const toml::value& v, const std::string& base_path) {
-    if (v.contains("clang"))
-        clang.load(v.at("clang"), base_path);
-    if (v.contains("gcc"))
-        gcc.load(v.at("gcc"), base_path);
-    if (v.contains("msvc"))
-        msvc.load(v.at("msvc"), base_path);
+    LOAD_IF_PRESENT(clang, clang);
+    LOAD_IF_PRESENT(gcc, gcc);
+    LOAD_IF_PRESENT(msvc, msvc);
 }
 
 void Compilers::merge(const Compilers& other) {
@@ -102,26 +104,9 @@ void Compilers::merge(const Compilers& other) {
 void Compilers::serialize(toml::value& out) const {
     toml::value compiler_out = toml::table {};
 
-    toml::value clang_out = toml::table {};
-    clang.serialize(clang_out);
-    if (!clang_out.as_table().empty()) {
-        force_oneline(clang_out);
-        compiler_out["clang"] = clang_out;
-    }
-
-    toml::value gcc_out = toml::table {};
-    gcc.serialize(gcc_out);
-    if (!gcc_out.as_table().empty()) {
-        force_oneline(gcc_out);
-        compiler_out["gcc"] = gcc_out;
-    }
-
-    toml::value msvc_out = toml::table {};
-    msvc.serialize(msvc_out);
-    if (!msvc_out.as_table().empty()) {
-        force_oneline(msvc_out);
-        compiler_out["msvc"] = msvc_out;
-    }
+    SERIALIZE_SUBCONFIG("clang", clang, compiler_out);
+    SERIALIZE_SUBCONFIG("gcc", gcc, compiler_out);
+    SERIALIZE_SUBCONFIG("msvc", msvc, compiler_out);
 
     if (!compiler_out.as_table().empty()) {
         force_oneline(compiler_out);
@@ -130,12 +115,9 @@ void Compilers::serialize(toml::value& out) const {
 }
 
 void Platforms::load(const toml::value& v, const std::string& base_path) {
-    if (v.contains("windows"))
-        windows.load(v.at("windows"), base_path);
-    if (v.contains("linux"))
-        linux.load(v.at("linux"), base_path);
-    if (v.contains("apple"))
-        apple.load(v.at("apple"), base_path);
+    LOAD_IF_PRESENT(windows, windows);
+    LOAD_IF_PRESENT(linux, linux);
+    LOAD_IF_PRESENT(apple, apple);
 }
 
 void Platforms::merge(const Platforms& other) {
@@ -147,26 +129,9 @@ void Platforms::merge(const Platforms& other) {
 void Platforms::serialize(toml::value& out) const {
     toml::value platform_out = toml::table {};
 
-    toml::value apple_out = toml::table {};
-    apple.serialize(apple_out);
-    if (!apple_out.as_table().empty()) {
-        force_oneline(apple_out);
-        platform_out["apple"] = apple_out;
-    }
-
-    toml::value linux_out = toml::table {};
-    linux.serialize(linux_out);
-    if (!linux_out.as_table().empty()) {
-        force_oneline(linux_out);
-        platform_out["linux"] = linux_out;
-    }
-
-    toml::value windows_out = toml::table {};
-    windows.serialize(windows_out);
-    if (!windows_out.as_table().empty()) {
-        force_oneline(windows_out);
-        platform_out["windows"] = windows_out;
-    }
+    SERIALIZE_SUBCONFIG("apple", apple, platform_out);
+    SERIALIZE_SUBCONFIG("linux", linux, platform_out);
+    SERIALIZE_SUBCONFIG("windows", windows, platform_out);
 
     if (!platform_out.as_table().empty()) {
         force_oneline(platform_out);

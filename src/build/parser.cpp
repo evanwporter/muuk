@@ -311,12 +311,11 @@ Result<std::vector<ExternalTarget>> parse_external_targets(const toml::value& mu
 
             std::vector<std::string> outputs;
             if (ext_table.contains("outputs")) {
-                for (const auto& out : ext_table.at("outputs").as_array()) {
+                for (const auto& out : ext_table.at("outputs").as_array())
                     outputs.push_back(out.as_string());
-                }
-            } else {
+
+            } else
                 return Err("Missing 'outputs' field for external target '{}'", name);
-            }
 
             externals.emplace_back(name, version, type, path, args, outputs);
             muuk::logger::info("Parsed external target '{}'", name);
@@ -405,6 +404,14 @@ void parse_executables(BuildManager& build_manager, const muuk::Compiler compile
                         libs.push_back(lib_path);
                     }
                 }
+            }
+        }
+
+        if (build_table.contains("libs")) {
+            for (const auto& lib : build_table.at("libs").as_array()) {
+                if (!lib.is_string())
+                    continue;
+                libs.push_back(lib.as_string());
             }
         }
 

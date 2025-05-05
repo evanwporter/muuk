@@ -123,6 +123,8 @@ private:
 
     /// Generate a `.gitignore` file in that ignores everything in `deps` except for the `muuk.toml` files.
     void generate_gitignore();
+
+    bool has_cycle();
 };
 
 #endif // MUUK_LOCK_GEN_H

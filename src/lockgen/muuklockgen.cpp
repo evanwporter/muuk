@@ -40,7 +40,7 @@ Result<void> MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is
 
     auto result_muuk = muuk::parse_muuk_file(path);
     if (!result_muuk)
-        return Err(result_muuk.error());
+        return Err(result_muuk);
 
     auto data = result_muuk.value();
 
@@ -150,9 +150,8 @@ Result<void> MuukLockGenerator::merge_build_dependencies(
     std::shared_ptr<Build> build,
     const Dependency& base_package_dep) {
 
-    if (!build) {
+    if (!build) // This should never happen, but just in case
         return Err("Build '{}' is null. Cannot merge dependencies.", build_name);
-    }
 
     muuk::logger::info("Merging dependencies for build '{}'", build_name);
 
@@ -217,9 +216,8 @@ Result<void> MuukLockGenerator::search_and_parse_dependency(const std::string& p
     fs::path search_dir = fs::path(DEPENDENCY_FOLDER) / package_name / version;
 
     // TODO: Make this return matter
-    if (!fs::exists(search_dir)) {
+    if (!fs::exists(search_dir))
         return Err("Dependency '{}' version '{}' not found in '{}'", package_name, version, search_dir.string());
-    }
 
     fs::path dep_path = search_dir / MUUK_TOML_FILE;
     if (fs::exists(dep_path))

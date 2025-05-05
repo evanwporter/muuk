@@ -11,14 +11,18 @@ namespace muuk {
     const Compiler Compiler::MSVC(Compiler::Type::MSVC);
 
     Result<Compiler> Compiler::from_string(const std::string& compilerStr) {
-        static const std::unordered_map<std::string, Type> compilerMap = {
-            { "g++", Type::GCC }, { "gcc", Type::GCC }, { "clang++", Type::Clang }, { "clang", Type::Clang }, { "cl", Type::MSVC }, { "msvc", Type::MSVC }
+        static const std::unordered_map<std::string, Type> compiler_map = {
+            { "g++", Type::GCC },
+            { "gcc", Type::GCC },
+            { "clang++", Type::Clang },
+            { "clang", Type::Clang },
+            { "cl", Type::MSVC },
+            { "msvc", Type::MSVC }
         };
 
-        auto it = compilerMap.find(compilerStr);
-        if (it != compilerMap.end()) {
+        auto it = compiler_map.find(compilerStr);
+        if (it != compiler_map.end())
             return Compiler(it->second);
-        }
 
         return Err("Unknown compiler: {}. Acceptable compilers are `gcc`, `clang` and `msvc`", compilerStr);
     }
@@ -48,7 +52,7 @@ namespace muuk {
         return "clang++";
     }
 
-    // Detect archiver based on compiler
+    /// Detect archiver based on compiler
     std::string Compiler::detect_archiver() const {
         switch (type_) {
         case Type::MSVC:
@@ -65,7 +69,7 @@ namespace muuk {
         return "llvm-ar";
     }
 
-    // Detect linker based on compiler
+    /// Detect linker based on compiler
     std::string Compiler::detect_linker() const {
         switch (type_) {
         case Type::MSVC:
@@ -166,9 +170,13 @@ namespace muuk {
         };
 
         if (compiler == Compiler::MSVC) {
-            return msvcFlags.count(year_) ? msvcFlags.at(year_) : "/std:c++latest";
+            return msvcFlags.count(year_)
+                ? msvcFlags.at(year_)
+                : "/std:c++latest"; // Default for MSVC
         } else {
-            return gccClangFlags.count(year_) ? gccClangFlags.at(year_) : "-std=c++2b"; // Default for GCC/Clang
+            return gccClangFlags.count(year_)
+                ? gccClangFlags.at(year_)
+                : "-std=c++20"; // Default for GCC/Clang
         }
     }
 

@@ -105,6 +105,72 @@ TEST(ValidateMuukTomlTest, InvalidDateTimeType) {
     EXPECT_FALSE(result.has_value());
 }
 
+TEST(ValidateMuukTomlTest, MixedTypeLibsArray) {
+    toml::value valid_toml = toml::parse_str(R"(
+        [package]
+        name = "test"
+        version = "1.0"
+
+        [library]
+        libs = [
+            "foo.lib",
+            { path = "bar.lib", platform = "windows" },
+            { path = "baz.lib", compiler = "clang" }
+        ]
+    )");
+
+    EXPECT_TRUE(muuk::validate_muuk_toml(valid_toml).has_value());
+}
+
+TEST(ValidateMuukTomlTest, InvalidKeyMixedTypeLibsArray) {
+    toml::value valid_toml = toml::parse_str(R"(
+        [package]
+        name = "test"
+        version = "1.0"
+
+        [library]
+        libs = [
+            "foo.lib",
+            { name = "bar.lib", platform = "windows" },
+            { path = "baz.lib", compiler = "clang" }
+        ]
+    )");
+
+    EXPECT_FALSE(muuk::validate_muuk_toml(valid_toml).has_value());
+}
+
+TEST(ValidateMuukTomlTest, MixedTypeSourcesArray) {
+    toml::value valid_toml = toml::parse_str(R"(
+        [package]
+        name = "test"
+        version = "1.0"
+
+        [library]
+        sources = [
+            "alice.cpp",
+            { path = "bar.cpp", cflags = ["-DDO_THIS"] },
+            { path = "foo.cpp", cflags = ["-DNOT_THIS"] },
+        ]
+    )");
+
+    EXPECT_TRUE(muuk::validate_muuk_toml(valid_toml).has_value());
+}
+
+TEST(ValidateMuukTomlTest, InvalidLibsTableEntry) {
+    toml::value invalid_toml = toml::parse_str(R"(
+        [package]
+        name = "test"
+        version = "1.0"
+
+        [library]
+        libs = [
+            { wrong_field = "x.lib" }
+        ]
+    )");
+
+    EXPECT_FALSE(muuk::validate_muuk_toml(invalid_toml).has_value());
+}
+
 // class ValidateMuukLockTomlTest : public ::testing::Test { };
 
 // // TEST_F(ValidateMuukLockTomlTest, ValidMuukLockToml) {
