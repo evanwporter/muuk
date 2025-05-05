@@ -115,7 +115,7 @@ def module_project_dir():
 def test_muuk_build(request, project_dir_fixture):
     project_dir = request.getfixturevalue(project_dir_fixture)
 
-    muuk_executable = os.path.join(PROJECT_ROOT, "build", "debug", "bin", "bin.exe")
+    muuk_executable = os.path.join(PROJECT_ROOT, "build", "debug", "bin.exe")
 
     result = subprocess.run(
         [muuk_executable, "build", "-c", "cl", "-p", "debug"],
@@ -140,7 +140,7 @@ def test_muuk_build(request, project_dir_fixture):
         else:
             print("\n--- build.ninja not found ---")
 
-    expected_bin = os.path.join(project_dir, "build", "debug", "bin", "bin.exe")
+    expected_bin = os.path.join(project_dir, "build", "debug", "bin.exe")
     assert os.path.isfile(expected_bin), f"Expected binary not found: {expected_bin}"
 
 

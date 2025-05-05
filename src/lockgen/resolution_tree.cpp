@@ -16,11 +16,11 @@ namespace fs = std::filesystem;
 Result<void> MuukLockGenerator::locate_and_parse_package(const std::string& package_name, const std::optional<std::string> version, std::shared_ptr<Package>& package, const std::optional<std::string> search_path) {
     if (search_path) {
         fs::path search_file = fs::path(search_path.value());
-        if (!search_path.value().ends_with("muuk.toml")) {
-            muuk::logger::info("Search path '{}' does not end with 'muuk.toml', appending it.", search_file.string());
-            search_file /= "muuk.toml";
+        if (!search_path.value().ends_with(MUUK_TOML_FILE)) {
+            muuk::logger::info("Search path '{}' does not end with `muuk.toml`, appending it.", search_file.string());
+            search_file /= MUUK_TOML_FILE;
         } else {
-            muuk::logger::info("Search path '{}' already ends with 'muuk.toml', using as is.", search_file.string());
+            muuk::logger::info("Search path '{}' already ends with `muuk.toml`, using as is.", search_file.string());
         }
 
         if (fs::exists(search_file)) {

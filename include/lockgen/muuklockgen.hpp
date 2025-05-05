@@ -38,8 +38,6 @@ private:
 
     DependencyMap resolved_packages;
 
-    // TODO: Address why I there are two maps for builds
-    std::unordered_map<std::string, std::shared_ptr<Package>> builds;
     std::unordered_map<std::string, std::shared_ptr<Build>> builds_;
 
     std::shared_ptr<Package> base_package_;

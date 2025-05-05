@@ -116,6 +116,7 @@ namespace muuk {
                 {"include", {false, TomlArray{TomlType::String}}},
                 {"cflags", {false, TomlArray{TomlType::String}}},
                 {"system_include", {false, TomlArray{TomlType::String}}},
+                {"link", {false, TomlType::String}},
                 {"dependencies", {false, TomlType::Table, {}}
             }}}
         }}}},

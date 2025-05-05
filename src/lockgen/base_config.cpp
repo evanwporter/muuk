@@ -1,11 +1,11 @@
 #include <string>
-#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
 #include <glob/glob.hpp>
 #include <toml.hpp>
 
+#include "compiler.hpp"
 #include "lockgen/config/base.hpp"
 #include "lockgen/config/build.hpp"
 #include "lockgen/config/package.hpp"
@@ -15,20 +15,6 @@
 // TODO: Put inside namespace muuk::lockgen
 // namespace muuk {
 //     namespace lockgen {
-
-typedef std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_set<std::string>>>
-    Profiles;
-
-PackageType::PackageType(Type type) :
-    type_(type) { }
-
-bool PackageType::operator==(const PackageType& other) const {
-    return type_ == other.type_;
-}
-
-bool PackageType::operator!=(const PackageType& other) const {
-    return !(*this == other);
-}
 
 Result<void> Dependency::load(const std::string name_, const toml::value& v) {
     name = name_;
@@ -267,6 +253,8 @@ void Build::merge(const Package& package) {
 Result<void> Build::serialize(toml::value& out) const {
     BaseConfig<Build>::serialize(out);
 
+    out["link"] = muuk::to_string(link_type);
+
     compilers.serialize(out);
     platforms.serialize(out);
 
@@ -301,6 +289,16 @@ void Build::load(const toml::value& v, const std::string& base_path) {
 
     profiles = toml::try_find_or<std::unordered_set<std::string>>(v, "profile", {});
 
+    // Get the link type
+    const auto& link_res = toml::try_find_or<std::string>(v, "link", "");
+    if (link_res == "static")
+        link_type = muuk::BuildLinkType::STATIC;
+    else if (link_res == "shared")
+        link_type = muuk::BuildLinkType::SHARED;
+    else if (link_res == "binary")
+        link_type = muuk::BuildLinkType::BINARY;
+
+    // Load dependencies
     for (const auto& [dep_name, versions] : dependencies)
         for (const auto& [dep_version, dep] : versions)
             all_dependencies_array.insert(std::make_shared<Dependency>(dep));

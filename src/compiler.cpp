@@ -175,4 +175,31 @@ namespace muuk {
     std::string Edition::to_flag() const {
         return to_flag(Compiler::GCC); // Default to GCC
     }
+
+    std::string to_string(BuildLinkType type) {
+        switch (type) {
+        case BuildLinkType::BINARY:
+            return "binary";
+        case BuildLinkType::STATIC:
+            return "static";
+        case BuildLinkType::SHARED:
+            return "shared";
+        default:
+            return "";
+        }
+    }
+
+    std::string to_string(LinkType type) {
+        switch (type) {
+        case LinkType::STATIC:
+            return "static";
+        case LinkType::SHARED:
+            return "shared";
+        case LinkType::NO_LINK:
+            return "no_link";
+        default:
+            return "";
+        }
+    }
+
 } // namespace muuk

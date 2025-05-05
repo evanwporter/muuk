@@ -78,6 +78,23 @@ namespace muuk {
     private:
         Year year_;
     };
+
+    enum class LinkType {
+        STATIC,
+        SHARED,
+        NO_LINK
+    };
+
+    enum class BuildLinkType {
+        BINARY,
+        STATIC,
+        SHARED
+    };
+
+    std::string to_string(BuildLinkType type);
+
+    std::string to_string(LinkType type);
+
 } // namespace muuk
 
 #endif

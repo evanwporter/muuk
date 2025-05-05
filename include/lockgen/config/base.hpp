@@ -13,11 +13,6 @@
 #include "toml_ext.hpp"
 #include "util.hpp"
 
-enum class LinkType {
-    STATIC,
-    SHARED
-};
-
 struct Feature {
     std::unordered_set<std::string> defines;
     std::unordered_set<std::string> undefines;
@@ -41,6 +36,15 @@ inline void force_oneline(toml::value& v) {
 #define MAYBE_SET_FIELD(enable_macro, field_name) \
     if constexpr (Derived::enable_##enable_macro) \
     maybe_set(out, #field_name, field_name)
+
+/// Serializes and globs a vector of source files to a TOML array.
+#define SERIALIZE_GLOB_SOURCES(field)                    \
+    if constexpr (Derived::enable_##field) {             \
+        toml::array arr;                                 \
+        for (const auto& s : expand_glob_sources(field)) \
+            arr.push_back(s.serialize());                \
+        maybe_set(out, #field, arr);                     \
+    }
 
 struct Dependency {
     std::string name;
@@ -125,18 +129,8 @@ struct BaseFields {
     }
 
     void serialize(toml::value& out) const {
-        if constexpr (Derived::enable_modules) {
-            toml::array module_array;
-            for (const auto& s : expand_glob_sources(modules))
-                module_array.push_back(s.serialize());
-            maybe_set(out, "modules", module_array);
-        }
-        if constexpr (Derived::enable_sources) {
-            toml::array src_array;
-            for (const auto& s : expand_glob_sources(sources))
-                src_array.push_back(s.serialize());
-            maybe_set(out, "sources", src_array);
-        }
+        SERIALIZE_GLOB_SOURCES(modules);
+        SERIALIZE_GLOB_SOURCES(sources);
 
         MAYBE_SET_FIELD(include, include);
         MAYBE_SET_FIELD(defines, defines);
@@ -171,7 +165,7 @@ struct BaseFields {
         merge(libs, other.libs);
     }
 
-    std::vector<source_file> parse_sources(const toml::value& section, const std::string& base_path, const std::string& key = "sources") {
+    static std::vector<source_file> parse_sources(const toml::value& section, const std::string& base_path, const std::string& key = "sources") {
         std::vector<source_file> temp_sources;
         if (!section.contains(key))
             return temp_sources;
@@ -195,7 +189,10 @@ struct BaseFields {
                 file_path = source_entry;
             }
 
-            std::filesystem::path full_path = std::filesystem::path(base_path) / file_path;
+            std::filesystem::path full_path = std::filesystem::path(file_path);
+            if (!full_path.is_absolute())
+                full_path = std::filesystem::path(base_path) / full_path;
+
             temp_sources.emplace_back(
                 util::file_system::to_linux_path(full_path.lexically_normal().string()),
                 extracted_cflags);
@@ -210,9 +207,9 @@ struct BaseFields {
         for (const auto& s : input_sources) {
             try {
                 std::vector<std::filesystem::path> globbed_paths = glob::glob(s.path);
-                for (const auto& path : globbed_paths) {
+                for (const auto& path : globbed_paths)
                     expanded.emplace_back(util::file_system::to_linux_path(path.string()), s.cflags);
-                }
+
             } catch (const std::exception& e) {
                 muuk::logger::warn("Error while globbing '{}': {}", s.path, e.what());
             }
@@ -302,28 +299,4 @@ struct ProfileConfig : BaseConfig<ProfileConfig> {
         const std::string& base_path);
 
     void serialize(toml::value& out) const;
-};
-
-struct Library : BaseConfig<Library> {
-    std::string name;
-    std::string version;
-    std::unordered_set<std::string> profiles;
-
-    static constexpr bool enable_compilers = false;
-    static constexpr bool enable_platforms = false;
-    static constexpr bool enable_dependencies = false;
-
-    struct External {
-        std::string type, path;
-        std::vector<std::string> args;
-        std::vector<std::string> outputs;
-
-        void load(const toml::value& v);
-        void serialize(toml::value& out) const;
-    };
-
-    External external;
-
-    void load(const std::string& name_, const std::string& version_, const std::string& base_path_, const toml::value& v);
-    void serialize(toml::value& out, Platforms platforms, Compilers compilers) const;
 };

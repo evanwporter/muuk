@@ -15,6 +15,7 @@
 #include "muuk.hpp"
 #include "muuk_parser.hpp"
 #include "rustify.hpp"
+#include "util.hpp"
 
 namespace fs = std::filesystem;
 
@@ -58,8 +59,7 @@ Result<void> MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is
     auto package = std::make_shared<Package>(
         package_name,
         package_version,
-        fs::path(path).parent_path().string(),
-        PackageType::LIBRARY);
+        fs::path(path).parent_path().string());
 
     const auto base_path = fs::path(path).parent_path().string();
 
@@ -130,7 +130,7 @@ void MuukLockGenerator::generate_gitignore() {
             continue;
 
         auto pkg = find_package(name, version);
-        if (!pkg || pkg->package_type != PackageType::LIBRARY)
+        if (!pkg)
             continue;
 
         out << "!/" << name << "\n";
@@ -221,7 +221,7 @@ Result<void> MuukLockGenerator::search_and_parse_dependency(const std::string& p
         return Err("Dependency '{}' version '{}' not found in '{}'", package_name, version, search_dir.string());
     }
 
-    fs::path dep_path = search_dir / "muuk.toml";
+    fs::path dep_path = search_dir / MUUK_TOML_FILE;
     if (fs::exists(dep_path))
         TRYV(parse_muuk_toml(dep_path.string()));
     else
@@ -237,25 +237,25 @@ Result<void> MuukLockGenerator::load() {
     muuk::logger::info("------------------------------");
 
     // TODO: Remove 2x parse
-    TRYV(parse_muuk_toml(base_path_ + "muuk.toml", true));
+    TRYV(parse_muuk_toml(base_path_ + MUUK_TOML_FILE, true));
 
     // TODO: Make it be base_path + "/" <= check for file
     // Extract the package name and version from the base muuk.toml
-    auto base_muuk_result = muuk::parse_muuk_file(base_path_ + "muuk.toml");
-    if (!base_muuk_result) {
-        muuk::logger::error("Failed to parse muuk file for base muuk.toml");
-        return Err("");
-    }
+    auto base_muuk_result = muuk::parse_muuk_file(base_path_ + MUUK_TOML_FILE);
+    if (!base_muuk_result)
+        Err(base_muuk_result);
 
-    auto base_data = base_muuk_result.value();
-    if (!base_data.contains("package") || !base_data["package"].is_table()) {
-        muuk::logger::error("Missing 'package' section in base muuk.toml file.");
-        return Err("");
-    }
+    auto base_data
+        = base_muuk_result.value();
+    if (!base_data.contains("package") || !base_data["package"].is_table())
+        return Err("Missing 'package' section in base {} file.", MUUK_TOML_FILE);
 
     const std::string base_package_name = base_data["package"]["name"].as_string();
     const std::string base_package_version = base_data["package"]["version"].as_string();
-    muuk::logger::info("Base package name extracted: {}, version: {}", base_package_name, base_package_version);
+    muuk::logger::info(
+        "Base package name extracted: {}, version: {}",
+        base_package_name,
+        base_package_version);
 
     Dependency base_package_dep;
     base_package_dep.load(base_package_name, base_data);
@@ -327,6 +327,8 @@ Result<void> MuukLockGenerator::generate_cache(const std::string& output_path) {
             lib_table,
             package->platforms_config,
             package->compilers_config);
+
+        lib_table["path"] = util::file_system::to_linux_path(package->base_path);
 
         if (lib_table.contains("external"))
             lib_table.at("external").as_table_fmt().fmt = toml::table_format::oneline;
@@ -496,9 +498,6 @@ std::shared_ptr<Package> MuukLockGenerator::find_package(const std::string& pack
         return resolved_packages[package_name][version.value()];
     }
 
-    if (builds.count(package_name)) {
-        return builds[package_name];
-    }
     return nullptr;
 }
 
@@ -595,16 +594,13 @@ void MuukLockGenerator::propagate_profiles() {
             if (!dep_package)
                 continue;
 
-            if (dep_package->package_type == PackageType::LIBRARY) {
-                propagate_profiles_downward(*dep_package, build_profiles);
-            }
+            propagate_profiles_downward(*dep_package, build_profiles);
         }
     }
 }
 
 void MuukLockGenerator::propagate_profiles_downward(Package& package, const std::unordered_set<std::string>& inherited_profiles) {
-    if (package.package_type != PackageType::LIBRARY)
-        return;
+    muuk::logger::info("Propagating profiles to package '{}'", package.name);
 
     // Insert inherited profiles
     package.library_config.profiles.insert(inherited_profiles.begin(), inherited_profiles.end());
@@ -616,9 +612,7 @@ void MuukLockGenerator::propagate_profiles_downward(Package& package, const std:
                 continue;
 
             auto& dep_pkg = resolved_packages[dep_name][dep_version];
-            if (dep_pkg->package_type == PackageType::LIBRARY) {
-                propagate_profiles_downward(*dep_pkg, inherited_profiles);
-            }
+            propagate_profiles_downward(*dep_pkg, inherited_profiles);
         }
     }
 }

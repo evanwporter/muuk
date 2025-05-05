@@ -80,6 +80,15 @@ namespace util {
             return (is_absolute ? "" : prefix) + new_path;
         }
 
+        std::string sanitize_path(const std::string& input) {
+            std::string output = input;
+            for (char& ch : output) {
+                if (ch == ':' || ch == ' ')
+                    ch = '_';
+            }
+            return output;
+        }
+
         /// Modify Windows drive letter (e.g., C:) to a format that can be used in build files (e.g., C$:)
         std::string escape_drive_letter(const std::string& path) {
             std::string new_path = path;

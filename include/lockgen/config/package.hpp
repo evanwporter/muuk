@@ -7,39 +7,17 @@
 #include <glob/glob.hpp>
 #include <toml.hpp>
 
+#include "compiler.hpp"
 #include "lockgen/config/base.hpp"
+#include "lockgen/config/library.hpp"
 #include "muuk.hpp"
-
-class PackageType {
-public:
-    enum class Type {
-        LIBRARY,
-        BUILD
-    };
-
-    static const PackageType LIBRARY;
-    static const PackageType BUILD;
-
-    explicit PackageType(Type type);
-
-    static std::string to_string(Type type);
-    std::string to_string() const;
-    static PackageType from_string(const std::string& typeStr);
-
-    bool operator==(const PackageType& other) const;
-    bool operator!=(const PackageType& other) const;
-
-private:
-    Type type_;
-};
 
 class Package {
 public:
     Package(
         const std::string& name,
         const std::string& version,
-        const std::string& base_path,
-        const PackageType package_type);
+        const std::string& base_path);
 
     void merge(const Package& child_pkg);
 
@@ -49,7 +27,6 @@ public:
     std::string name;
     std::string version;
     std::string base_path;
-    PackageType package_type; // "library" or "build"
 
     /// Git URL or local path
     std::string source;
@@ -66,7 +43,7 @@ public:
     std::unordered_map<std::string, Feature> features;
 
     /// Preferred link type for the package.
-    LinkType link_type = LinkType::STATIC;
+    muuk::LinkType link_type = muuk::LinkType::STATIC;
 
     /// Compiler-specific settings parsed from `[compiler]`.
     Compilers compilers_config;

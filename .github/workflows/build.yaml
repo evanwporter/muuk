@@ -220,7 +220,7 @@ jobs:
 
       - name: Run C++ tests (Windows)
         if: runner.os == 'Windows'
-        run: ./build/debug/test/test.exe
+        run: ./build/debug/test.exe
 
       # - name: Run C++ tests (Unix)
       #   if: runner.os != 'Windows'

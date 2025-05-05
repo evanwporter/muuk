@@ -8,14 +8,10 @@
 #include "logger.hpp"
 #include "util.hpp"
 
-const PackageType PackageType::LIBRARY(PackageType::Type::LIBRARY);
-const PackageType PackageType::BUILD(PackageType::Type::BUILD);
-
-Package::Package(const std::string& name, const std::string& version, const std::string& base_path, const PackageType package_type) :
+Package::Package(const std::string& name, const std::string& version, const std::string& base_path) :
     name(name),
     version(version),
-    base_path(base_path),
-    package_type(package_type) {
+    base_path(base_path) {
 }
 
 void Package::merge(const Package& child_pkg) {

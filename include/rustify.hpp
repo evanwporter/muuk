@@ -13,11 +13,6 @@
 template <typename T, typename E = std::string>
 using Result = tl::expected<T, E>;
 
-template <typename T>
-constexpr Result<T> Ok(T value) {
-    return std::move(value);
-}
-
 inline constexpr auto Err(const std::string& msg) {
     return tl::unexpected(msg);
 }

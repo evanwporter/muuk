@@ -35,6 +35,7 @@ void BuildManager::add_archive_target(const std::string lib, const std::vector<s
 
 void BuildManager::add_link_target(const std::string exe, const std::vector<std::string> objs, const std::vector<std::string> libs, const std::vector<std::string> lflags) {
     if (exe.empty() || objs.empty()) {
+        // TODO: It can have no object files
         muuk::logger::error("Link target must have an executable name and at least one object file.");
         return;
     }

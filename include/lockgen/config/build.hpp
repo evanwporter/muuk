@@ -7,6 +7,7 @@
 #include <glob/glob.hpp>
 #include <toml.hpp>
 
+#include "compiler.hpp"
 #include "lockgen/config/base.hpp"
 #include "lockgen/config/package.hpp"
 
@@ -16,6 +17,8 @@ struct Build : BaseConfig<Build> {
 
     static constexpr bool enable_compilers = false;
     static constexpr bool enable_platforms = false;
+
+    muuk::BuildLinkType link_type = muuk::BuildLinkType::BINARY;
 
     void merge(const Package& package);
     Result<void> serialize(toml::value& out) const;
