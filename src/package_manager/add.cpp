@@ -44,7 +44,7 @@ namespace muuk {
             version);
 
         try {
-            auto parsed = muuk::parse_muuk_file(toml_path, false, true);
+            auto parsed = muuk::parse_muuk_file(toml_path);
             if (!parsed)
                 return Err(parsed);
             auto root = parsed.value();

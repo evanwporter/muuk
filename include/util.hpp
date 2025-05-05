@@ -83,20 +83,6 @@ namespace util {
     }
 
     // ==========================
-    //  Muuk Toml Utilities
-    // ==========================
-    namespace muuk_toml {
-        template <typename T, typename TC, typename K>
-        T find_or_get(const toml::basic_value<TC>& v, const K& key, T&& fallback) {
-            try {
-                return toml::get<T>(v.at(toml::detail::key_cast<TC>(key)));
-            } catch (...) {
-                return std::forward<T>(fallback);
-            }
-        }
-    }
-
-    // ==========================
     //  Array Utilities
     // ==========================
     namespace array_ops {

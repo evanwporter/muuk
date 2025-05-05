@@ -60,17 +60,12 @@ namespace muuk {
                 std::forward<Args>(args)...);
         }
 
-        static int current_indent_level = 0;
-
-        std::string get_indent();
-
         template <typename... Args>
         void info(fmt::format_string<Args...> format_str, Args&&... args) {
             std::string message = fmt::format(format_str, std::forward<Args>(args)...);
             fmt::print(
                 fg(fmt::color::cyan),
-                "{}{}\n",
-                get_indent(),
+                "{}\n",
                 message);
         }
 
@@ -80,8 +75,7 @@ namespace muuk {
             fmt::print(
                 stderr,
                 fg(fmt::color::yellow),
-                "{}warning:{} {}\n",
-                get_indent(),
+                "warning:{} {}\n",
                 style::RESET,
                 message);
         }
@@ -92,25 +86,18 @@ namespace muuk {
             fmt::print(
                 stderr,
                 fg(fmt::color::red),
-                "{}error:{} {}\n",
-                get_indent(),
+                "error:{} {}\n",
                 style::RESET,
                 message);
         }
 
-        // Function to display a selection menu and return the selected index
+        /// Function to display a selection menu and return the selected index
         int select_from_menu(const std::vector<std::string>& options);
 
-        // Prints a message and gets user input as a string
-        std::string prompt_string(const std::string& message);
-
-        // Prints a message and gets user input as an integer
-        int prompt_int(const std::string& message);
-
-        // Pauses execution until the user presses ENTER
+        /// Pauses execution until the user presses ENTER
         void pause(const std::string& message = "Press ENTER to continue...");
 
-        // Waits for any key press
+        /// Waits for any key press
         void wait_for_key_press(const std::string& message = "Press any key to continue...");
 
     } // namespace terminal

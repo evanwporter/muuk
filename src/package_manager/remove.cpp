@@ -20,7 +20,7 @@ namespace muuk {
         std::cout << style::CYAN << "Removing dependency: " << style::BOLD << package_name << style::RESET << "\n";
 
         try {
-            auto parsed = muuk::parse_muuk_file(toml_path, false, true);
+            auto parsed = muuk::parse_muuk_file(toml_path, false);
             if (!parsed)
                 return Err(parsed);
             auto root = parsed.value();

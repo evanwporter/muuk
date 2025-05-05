@@ -10,6 +10,7 @@
 
 #include "logger.hpp"
 #include "muuk.hpp"
+#include "toml_ext.hpp"
 #include "util.hpp"
 
 enum class LinkType {
@@ -93,24 +94,24 @@ struct BaseFields {
         if constexpr (Derived::enable_sources)
             sources = parse_sources(v, base_path);
         if constexpr (Derived::enable_include) {
-            auto raw_includes = util::muuk_toml::find_or_get<std::unordered_set<std::string>>(v, "include", {});
+            auto raw_includes = toml::try_find_or<std::unordered_set<std::string>>(v, "include", {});
             for (const auto& inc : raw_includes)
                 include.insert(util::file_system::to_linux_path((std::filesystem::path(base_path) / inc).lexically_normal().string()));
         }
         if constexpr (Derived::enable_defines)
-            defines = util::muuk_toml::find_or_get<std::unordered_set<std::string>>(v, "defines", {});
+            defines = toml::try_find_or<std::unordered_set<std::string>>(v, "defines", {});
         if constexpr (Derived::enable_undefines)
-            defines = util::muuk_toml::find_or_get<std::unordered_set<std::string>>(v, "undefines", {});
+            undefines = toml::try_find_or<std::unordered_set<std::string>>(v, "undefines", {});
         if constexpr (Derived::enable_cflags)
-            cflags = util::muuk_toml::find_or_get<std::unordered_set<std::string>>(v, "cflags", {});
+            cflags = toml::try_find_or<std::unordered_set<std::string>>(v, "cflags", {});
         if constexpr (Derived::enable_cxxflags)
-            cxxflags = util::muuk_toml::find_or_get<std::unordered_set<std::string>>(v, "cxxflags", {});
+            cxxflags = toml::try_find_or<std::unordered_set<std::string>>(v, "cxxflags", {});
         if constexpr (Derived::enable_aflags)
-            aflags = util::muuk_toml::find_or_get<std::unordered_set<std::string>>(v, "aflags", {});
+            aflags = toml::try_find_or<std::unordered_set<std::string>>(v, "aflags", {});
         if constexpr (Derived::enable_lflags)
-            lflags = util::muuk_toml::find_or_get<std::unordered_set<std::string>>(v, "lflags", {});
+            lflags = toml::try_find_or<std::unordered_set<std::string>>(v, "lflags", {});
         if constexpr (Derived::enable_libs)
-            libs = util::muuk_toml::find_or_get<std::unordered_set<std::string>>(v, "libs", {});
+            libs = toml::try_find_or<std::unordered_set<std::string>>(v, "libs", {});
 
         if constexpr (Derived::enable_dependencies) {
             if (v.contains("dependencies")) {

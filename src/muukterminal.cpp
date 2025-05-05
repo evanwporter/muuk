@@ -17,12 +17,6 @@ namespace muuk {
         // constexpr const char* WARN_PREFIX = "\033[1;33mwarning:\033[0m "; // Yellow
         // constexpr const char* ERROR_PREFIX = "\033[1;31merror:\033[0m "; // Red
 
-        std::string get_indent() {
-            return std::string(
-                current_indent_level,
-                ' ');
-        }
-
         void move_cursor_up(int lines) {
             for (int i = 0; i < lines; i++) {
                 std::cout << "\x1b[A"; // Move cursor up one line (ANSI escape sequence)
@@ -110,36 +104,6 @@ namespace muuk {
             }
 
             return selected;
-        }
-
-        std::string prompt_string(const std::string& message) {
-            std::string input;
-            std::cout << message << ": ";
-            std::getline(std::cin, input);
-            return input;
-        }
-
-        int prompt_int(const std::string& message) {
-            std::string input;
-            int value;
-            while (true) {
-                std::cout << message << ": ";
-                std::getline(std::cin, input);
-                try {
-                    value = std::stoi(input);
-                    return value;
-                } catch (...) {
-                    std::cout << "Invalid input. Please enter a valid number.\n";
-                }
-            }
-        }
-
-        void print_divider(const std::string& title) {
-            std::cout << "\n------------------------------------------\n";
-            if (!title.empty()) {
-                std::cout << " " << title << "\n";
-                std::cout << "------------------------------------------\n";
-            }
         }
 
         void pause(const std::string& message) {

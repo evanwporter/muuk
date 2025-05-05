@@ -4,8 +4,7 @@
 #ifndef MUUKVALIDATOR_HPP
 #define MUUKVALIDATOR_HPP
 
-#include <stdexcept>
-#include <string>
+#include <string_view>
 
 #include <toml.hpp>
 
@@ -13,12 +12,6 @@
 #include "rustify.hpp"
 
 namespace muuk {
-
-    class invalid_toml : public std::runtime_error {
-    public:
-        explicit invalid_toml(const std::string& message) :
-            std::runtime_error(message) { }
-    };
 
     Result<void> validate_muuk_toml(const toml::value& toml_data);
     Result<void> validate_muuk_lock_toml(const toml::value& toml_data);

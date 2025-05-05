@@ -9,7 +9,8 @@
 #include "lockgen/config/base.hpp"
 #include "lockgen/config/build.hpp"
 #include "lockgen/config/package.hpp"
-#include "try_expected.hpp"
+#include "rustify.hpp"
+#include "toml_ext.hpp"
 
 // TODO: Put inside namespace muuk::lockgen
 // namespace muuk {
@@ -51,9 +52,14 @@ Result<void> Dependency::load(const std::string name_, const toml::value& v) {
 }
 
 Result<void> Dependency::serialize(toml::value& out) const {
+    // If name is empty then we have a problem
+    // Something got messed along the way and it probably
+    // should've not gotten to this point lol
     if (name.empty())
         return Err("Dependency name is empty");
-    out["name"] = name; // If name is empty then we have a problem
+
+    out["name"] = name;
+
     if (!git_url.empty())
         out["git"] = git_url;
     if (!path.empty())
@@ -293,7 +299,7 @@ Result<void> Build::serialize(toml::value& out) const {
 void Build::load(const toml::value& v, const std::string& base_path) {
     BaseConfig<Build>::load(v, base_path);
 
-    profiles = util::muuk_toml::find_or_get<std::unordered_set<std::string>>(v, "profile", {});
+    profiles = toml::try_find_or<std::unordered_set<std::string>>(v, "profile", {});
 
     for (const auto& [dep_name, versions] : dependencies)
         for (const auto& [dep_version, dep] : versions)

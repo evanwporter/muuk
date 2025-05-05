@@ -3,7 +3,6 @@
 #ifndef MUUK_RUSTIFY_HPP
 #define MUUK_RUSTIFY_HPP
 
-#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -41,39 +40,15 @@ inline constexpr auto Err(fmt::format_string<Args...> fmt_str, Args&&... args) {
     return Err(fmt::format(fmt_str, std::forward<Args>(args)...));
 }
 
-struct PanicException : public std::exception {
-    std::string message;
-    explicit PanicException(std::string msg) :
-        message(std::move(msg)) { }
-    const char* what() const noexcept override { return message.c_str(); }
-};
+// Helper macros for working with std::expected
+// Inspired by P0779R0 and Rust's `?` operator
 
-[[noreturn]] inline void panic(const std::string& msg) {
-    throw PanicException(msg);
-}
-
-template <typename T>
-inline auto Try(Result<T>&& exp) -> Result<T> {
-    if (!exp)
-        return Err(exp.error());
-    return std::move(*exp);
-}
-
-// Specialization for void type
-template <>
-inline auto Try<void>(Result<void>&& exp) -> Result<void> {
-    if (!exp)
-        return Err(exp.error());
-    return {}; // Return an empty Result<void> (equivalent to Ok())
-}
-
-#define Ensure(cond, msg) \
-    if (!(cond))          \
-    return Err<void>(msg)
-
-// `PanicIfUnreachable(msg)`: Used for logic errors like unreachable!() in Rust.
-[[noreturn]] inline void PanicIfUnreachable(const std::string& msg) {
-    throw std::runtime_error(fmt::format("Fatal Error: {}", msg));
-}
+// TRYV: use when expr returns std::expected<void, E>
+#define TRYV(expr)                                      \
+    do {                                                \
+        auto _try_result = (expr);                      \
+        if (!_try_result)                               \
+            return tl::unexpected(_try_result.error()); \
+    } while (0)
 
 #endif // MUUK_RUSTIFY_HPP

@@ -14,7 +14,6 @@
 #include "logger.hpp"
 #include "muuk_parser.hpp"
 #include "rustify.hpp"
-#include "try_expected.hpp"
 #include "util.hpp"
 
 namespace fs = std::filesystem;
@@ -91,10 +90,7 @@ namespace muuk {
     Result<void> add_script(const std::string& profile, const std::string& build_name) {
         (void)build_name;
 
-        auto result = muuk::parse_muuk_file(
-            "muuk.toml",
-            false,
-            false);
+        auto result = muuk::parse_muuk_file("muuk.toml");
         if (!result)
             return Err(result.error());
 
@@ -139,10 +135,7 @@ namespace muuk {
         if (!jobs.empty() && !util::is_integer(jobs))
             return Err("Invalid number of jobs specified: " + jobs);
 
-        auto muuk_result = parse_muuk_file(
-            "muuk.toml",
-            false,
-            true);
+        auto muuk_result = parse_muuk_file("muuk.toml");
         if (!muuk_result)
             return Err(muuk_result);
 
