@@ -328,7 +328,7 @@ Result<std::vector<ExternalTarget>> parse_external_targets(const toml::value& mu
     return externals;
 }
 
-void parse_executables(BuildManager& build_manager, const muuk::Compiler compiler, const std::filesystem::path& build_dir, const std::string& profile_, const toml::value& muuk_file) {
+void parse_executables(BuildManager& build_manager, const muuk::Compiler compiler, const std::filesystem::path& build_dir, const std::filesystem::path& build_artifact_dir, const std::string& profile_, const toml::value& muuk_file) {
     if (!muuk_file.contains("build") || !muuk_file.contains("library"))
         return;
 
@@ -379,7 +379,7 @@ void parse_executables(BuildManager& build_manager, const muuk::Compiler compile
                 if (!src_table.contains("path"))
                     continue;
 
-                const auto [_, obj_path] = get_src_and_obj_paths(src_table, build_dir);
+                const auto [_, obj_path] = get_src_and_obj_paths(src_table, build_artifact_dir);
 
                 obj_files.push_back(obj_path);
             }
@@ -395,7 +395,7 @@ void parse_executables(BuildManager& build_manager, const muuk::Compiler compile
                 if (lib_map.contains(lib_name) && lib_map.at(lib_name).contains(version)) {
                     const auto& lib_table = lib_map.at(lib_name).at(version).as_table();
 
-                    const auto lib_path_dir = (build_dir / lib_table.at("path").as_string()).lexically_normal();
+                    const auto lib_path_dir = (build_artifact_dir / lib_table.at("path").as_string()).lexically_normal();
 
                     // If it doesn't have these keys, then its an empty library so we should skip it
                     if (lib_table.contains("sources") || lib_table.contains("modules")) {
@@ -444,9 +444,28 @@ Result<void> parse(BuildManager& build_manager, const muuk::Compiler compiler, c
 
     build_manager.set_profile_flags(profile, profile_result.value());
 
-    parse_compilation_targets(build_manager, compiler, build_dir, muuk_file, profile);
-    parse_libraries(build_manager, compiler, build_dir, muuk_file, profile);
-    parse_executables(build_manager, compiler, build_dir, profile, muuk_file);
+    const auto build_artifact_dir = build_dir / MUUK_FILES;
+    util::file_system::ensure_directory_exists(build_artifact_dir.string());
+
+    parse_compilation_targets(
+        build_manager,
+        compiler,
+        build_artifact_dir,
+        muuk_file,
+        profile);
+    parse_libraries(
+        build_manager,
+        compiler,
+        build_artifact_dir,
+        muuk_file,
+        profile);
+    parse_executables(
+        build_manager,
+        compiler,
+        build_dir,
+        build_artifact_dir,
+        profile,
+        muuk_file);
 
     return {};
 }

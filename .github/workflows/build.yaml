@@ -225,4 +225,69 @@ jobs:
       # - name: Run C++ tests (Unix)
       #   if: runner.os != 'Windows'
       #   run: ./build/debug/test/test
+
+  clang:
+    name: Compile with Clang {matrix.os}
+    needs: build
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            artifact_name: muuk-windows
+            binary_name: muuk.exe
+            muuk_exec: .\muuk.exe
+
+          # - os: macos-latest
+          #   artifact_name: muuk-macos
+          #   binary_name: muuk
+          #   compiler: clang
+          #   muuk_exec: ./muuk
+
+          - os: ubuntu-latest
+            artifact_name: muuk-linux
+            binary_name: muuk
+            muuk_exec: ./muuk
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: .
+        
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@v6
+  
+      - name: Set up MSVC (Windows only)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
       
+      - name: Install LLVM (Linux only)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential llvm clang lld
+          echo "LLVM installed at: $(llvm-config --prefix)"
+          echo "$(llvm-config --bindir)" >> $GITHUB_PATH
+
+      - name: Make binary executable (Linux/macOS only)
+        if: runner.os != 'Windows'
+        run: chmod +x muuk
+
+      - name: Install dependencies with muuk
+        run: ${{ matrix.muuk_exec }} install
+
+      - name: Create build directory
+        shell: bash
+        run: |
+          mkdir -p build/release
+          mkdir -p build/debug
+
+      - name: Build project
+        run: ${{ matrix.muuk_exec }} build -c clang -p debug
+  
