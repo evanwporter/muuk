@@ -8,7 +8,7 @@
 #include "rustify.hpp"
 
 namespace muuk {
-    Result<void> build(
+    Result<void> build_cmd(
         const std::string& target_build,
         const std::string& compiler,
         const std::string& profile,

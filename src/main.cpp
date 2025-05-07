@@ -203,7 +203,7 @@ int main(int argc, char* argv[]) {
             std::string compiler = build_command.get<std::string>("--compiler");
             std::string profile = build_command.get<std::string>("--profile");
             std::string jobs = build_command.get<std::string>("--jobs");
-            return check_and_report(muuk::build(
+            return check_and_report(muuk::build_cmd(
                 target_build,
                 compiler,
                 profile,

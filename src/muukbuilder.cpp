@@ -121,15 +121,15 @@ namespace muuk {
         return {};
     }
 
-    Result<void> generate_compile_commands(BuildManager& build_manager, const std::string& profile, const muuk::Compiler& compiler, const std::string& archiver, const std::string& linker) {
+    Result<void> generate_compile_commands(build::BuildManager& build_manager, const std::string& profile, const muuk::Compiler& compiler, const std::string& archiver, const std::string& linker) {
         muuk::logger::info("Generating compile_commands.json for profile '{}'", profile);
-        CompileCommandsBackend backend(build_manager, compiler, archiver, linker);
+        build::CompileCommandsBackend backend(build_manager, compiler, archiver, linker);
         backend.generate_build_file("compile_commands", profile);
         muuk::logger::info("compile_commands.json generated successfully.");
         return {};
     }
 
-    Result<void> build(const std::string& target_build, const std::string& compiler, const std::string& profile, const toml::value& config, const std::string& jobs) {
+    Result<void> build_cmd(const std::string& target_build, const std::string& compiler, const std::string& profile, const toml::value& config, const std::string& jobs) {
         util::file_system::ensure_directory_exists("build/" + profile);
 
         if (!jobs.empty() && !util::is_integer(jobs))
@@ -142,7 +142,7 @@ namespace muuk {
         auto muuk_file = muuk_result.value();
 
         // TODO: Pass the config to the lock generator
-        auto lock_generator_ = MuukLockGenerator::create("./");
+        auto lock_generator_ = lockgen::MuukLockGenerator::create("./");
         if (!lock_generator_)
             return Err(lock_generator_.error());
 
@@ -164,7 +164,7 @@ namespace muuk {
             return Err(profile_result);
         auto selected_profile = profile_result.value();
 
-        auto build_manager = std::make_unique<BuildManager>();
+        auto build_manager = std::make_unique<build::BuildManager>();
 
         // TODO: IMPLEMENT
         // if (muuk_file.contains("build")) {
@@ -181,7 +181,7 @@ namespace muuk {
             fs::path("build") / selected_profile,
             selected_profile));
 
-        NinjaBackend build_backend(
+        build::NinjaBackend build_backend(
             *build_manager,
             selected_compiler,
             selected_archiver,

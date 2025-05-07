@@ -10,75 +10,79 @@
 #include "build/targets.hpp"
 #include "compiler.hpp"
 
-class BuildBackend {
-protected:
-    const BuildManager& build_manager;
-    muuk::Compiler compiler_;
-    const std::string archiver_;
-    const std::string linker_;
+namespace muuk {
+    namespace build {
+        class BuildBackend {
+        protected:
+            const BuildManager& build_manager;
+            muuk::Compiler compiler_;
+            const std::string archiver_;
+            const std::string linker_;
 
-public:
-    virtual ~BuildBackend() = default;
+        public:
+            virtual ~BuildBackend() = default;
 
-    BuildBackend(
-        const BuildManager& build_manager,
-        const muuk::Compiler compiler,
-        const std::string archiver,
-        const std::string linker) :
-        build_manager(build_manager),
-        compiler_(compiler),
-        archiver_(std::move(archiver)),
-        linker_(std::move(linker)) {
-    }
+            BuildBackend(
+                const BuildManager& build_manager,
+                const muuk::Compiler compiler,
+                const std::string archiver,
+                const std::string linker) :
+                build_manager(build_manager),
+                compiler_(compiler),
+                archiver_(std::move(archiver)),
+                linker_(std::move(linker)) {
+            }
 
-    virtual void generate_build_file(
-        const std::string& target_build,
-        const std::string& profile)
-        = 0;
-};
+            virtual void generate_build_file(
+                const std::string& target_build,
+                const std::string& profile)
+                = 0;
+        };
 
-class NinjaBackend : public BuildBackend {
-private:
-    std::filesystem::path build_dir_;
+        class NinjaBackend : public BuildBackend {
+        private:
+            std::filesystem::path build_dir_;
 
-public:
-    NinjaBackend(
-        const BuildManager& build_manager,
-        const muuk::Compiler compiler,
-        const std::string& archiver,
-        const std::string& linker);
+        public:
+            NinjaBackend(
+                const BuildManager& build_manager,
+                const muuk::Compiler compiler,
+                const std::string& archiver,
+                const std::string& linker);
 
-    void generate_build_file(
-        const std::string& target_build,
-        const std::string& profile) override;
+            void generate_build_file(
+                const std::string& target_build,
+                const std::string& profile) override;
 
-private:
-    std::string generate_rule(const CompilationTarget& target);
-    std::string generate_rule(const ArchiveTarget& target);
-    std::string generate_rule(const LinkTarget& target);
-    void generate_rule(const ExternalTarget& target);
+        private:
+            std::string generate_rule(const CompilationTarget& target);
+            std::string generate_rule(const ArchiveTarget& target);
+            std::string generate_rule(const LinkTarget& target);
+            void generate_rule(const ExternalTarget& target);
 
-    void generate_build_rules(std::ostringstream& out, const std::string& target_build);
-    void write_header(std::ostringstream& out, std::string profile);
-};
+            void generate_build_rules(std::ostringstream& out, const std::string& target_build);
+            void write_header(std::ostringstream& out, std::string profile);
+        };
 
-class CompileCommandsBackend : public BuildBackend {
-private:
-    std::filesystem::path build_dir_;
+        class CompileCommandsBackend : public BuildBackend {
+        private:
+            std::filesystem::path build_dir_;
 
-public:
-    CompileCommandsBackend(
-        const BuildManager& build_manager,
-        const muuk::Compiler compiler,
-        const std::string& archiver,
-        const std::string& linker);
+        public:
+            CompileCommandsBackend(
+                const BuildManager& build_manager,
+                const muuk::Compiler compiler,
+                const std::string& archiver,
+                const std::string& linker);
 
-    void generate_build_file(
-        const std::string& target_build,
-        const std::string& profile) override;
+            void generate_build_file(
+                const std::string& target_build,
+                const std::string& profile) override;
 
-private:
-    nlohmann::json generate_compile_commands(const std::string& profile_cflags);
-};
+        private:
+            nlohmann::json generate_compile_commands(const std::string& profile_cflags);
+        };
+    } // namespace build
+} // namespace muuk
 
 #endif // BUILD_BACKEND_H

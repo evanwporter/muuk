@@ -58,7 +58,7 @@ namespace muuk {
                 fs::remove_all(dep_path);
             }
 
-            auto lockgen = MuukLockGenerator::create(lockfile_path);
+            auto lockgen = lockgen::MuukLockGenerator::create(lockfile_path);
             if (!lockgen)
                 return Err(lockgen.error());
 

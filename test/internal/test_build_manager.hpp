@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <gtest/gtest.h>
 
+using namespace muuk::build;
+
 class BuildManagerTest : public ::testing::Test {
 protected:
     BuildManager build_manager;

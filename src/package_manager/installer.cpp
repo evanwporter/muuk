@@ -122,7 +122,7 @@ namespace muuk {
 
         const fs::path lockfile_path = fs::path(lockfile_path_string);
 
-        auto lockgen = MuukLockGenerator::create("./");
+        auto lockgen = lockgen::MuukLockGenerator::create("./");
         if (!lockgen) {
             return Err(lockgen.error());
         }

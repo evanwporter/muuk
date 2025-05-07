@@ -17,6 +17,8 @@
 
 namespace fs = std::filesystem;
 
+using namespace muuk::build;
+
 class ModuleResolutionTest : public ::testing::Test {
 protected:
     fs::path temp_dir;
@@ -102,7 +104,7 @@ int main() {
 };
 
 TEST_F(ModuleResolutionTest, ResolvesModules) {
-    muuk::resolve_modules(manager, temp_dir.string());
+    resolve_modules(manager, temp_dir.string());
 
     // Assert at least one logical name got resolved
     // TODO: Check specific logical names
@@ -119,7 +121,7 @@ TEST_F(ModuleResolutionTest, ResolvesModules) {
 }
 
 TEST_F(ModuleResolutionTest, FindsDependencies) {
-    muuk::resolve_modules(manager, temp_dir.string());
+    resolve_modules(manager, temp_dir.string());
 
     auto impl_target = manager.find_compilation_target("output", "Impl.o");
 
