@@ -20,7 +20,7 @@ include = ['include']
 #     { name = "mylib_msvc.lib", platform = "windows", compiler = "msvc" },
 # ] # modules = ["modules/math.ixx"]
 sources = [
-    'src/muuker.cpp',
+    { path = 'src/muuker.cpp', cflags = [] },
     'src/util/*.cpp',
     'src/logger.cpp',
     'src/muukfiler.cpp',

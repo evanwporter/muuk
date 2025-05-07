@@ -52,7 +52,7 @@ namespace muuk {
         std::vector<std::string> valid_flags;
         for (auto& flag : flags) {
             flag = normalize_flag(flag, compiler);
-            auto validation_result = validate_flag(compiler, flag);
+            auto validation_result = validation::validate_flag(compiler, flag);
             if (!validation_result) {
                 muuk::logger::warn("Skipping invalid flag `{}` for compiler `{}`: {}", flag, compiler.to_string(), validation_result.error());
                 continue;

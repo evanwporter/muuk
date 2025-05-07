@@ -9,7 +9,6 @@
 
 #include "buildconfig.h"
 #include "compiler.hpp"
-#include "error_codes.hpp"
 #include "lockgen/muuklockgen.hpp"
 #include "logger.hpp"
 #include "muuk.hpp"
@@ -39,7 +38,7 @@ namespace muuk {
         Result<void> MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
             muuk::logger::trace("Attempting to parse muuk.toml: {}", path);
             if (!fs::exists(path))
-                return muuk::make_error<muuk::EC::FileNotFound>(path);
+                return make_error<EC::FileNotFound>(path);
 
             auto result_muuk = muuk::parse_muuk_file(path);
             if (!result_muuk)

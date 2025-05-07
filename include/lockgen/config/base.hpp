@@ -9,31 +9,16 @@
 #include <toml.hpp>
 
 #include "compiler.hpp"
-#include "logger.hpp"
 #include "muuk.hpp"
 #include "toml_ext.hpp"
 #include "util.hpp"
 
-namespace muuk {
-    namespace lockgen {
-        struct Feature {
-            std::unordered_set<std::string> defines;
-            std::unordered_set<std::string> undefines;
-            std::unordered_set<std::string> dependencies;
-        };
-
-        /// Conditionally sets a key in a TOML table if the container is not empty.
-        template <typename T>
-        static inline void maybe_set(toml::value& out, const char* key, const T& container) {
-            if (!container.empty())
-                out[key] = container;
-        }
-
-        /// Forces a TOML table to be serialized in a single line.
-        inline void force_oneline(toml::value& v) {
-            if (v.is_table())
-                v.as_table_fmt().fmt = toml::table_format::oneline;
-        }
+/// Conditionally sets a key in a TOML table if the container is not empty.
+template <typename T>
+static inline void maybe_set(toml::value& out, const char* key, const T& container) {
+    if (!container.empty())
+        out[key] = container;
+}
 
 /// Conditionally serializes a member field to a TOML table based on a compile-time flag.
 #define MAYBE_SET_FIELD(enable_macro, field_name) \
@@ -61,6 +46,14 @@ namespace muuk {
     if constexpr (Derived::enable_##enable_macro) \
     field_name = parse_libs(v, base_path)
 
+namespace muuk {
+    namespace lockgen {
+        struct Feature {
+            std::unordered_set<std::string> defines;
+            std::unordered_set<std::string> undefines;
+            std::unordered_set<std::string> dependencies;
+        };
+
         struct Dependency {
             std::string name;
             std::string git_url;
@@ -77,12 +70,12 @@ namespace muuk {
 
         struct source_file {
             std::string path;
-            std::vector<std::string> cflags;
+            std::unordered_set<std::string> cflags;
 
             toml::value serialize() const;
 
-            source_file(std::string p, const std::vector<std::string>& f) :
-                path(std::move(p)), cflags(f) { }
+            // source_file(std::string p, const std::vector<std::string>& f) :
+            //     path(std::move(p)), cflags(f) { }
         };
 
         using module_file = source_file;
@@ -95,7 +88,19 @@ namespace muuk {
             // If compiler is MSVC and platform is not Windows, skip this lib
         };
 
-        std::vector<source_file> parse_sources(const toml::value& section, const std::string& base_path, const std::string& key = "sources");
+        std::vector<source_file> parse_sources(
+            const toml::value& section,
+            const std::string& base_path,
+            const std::string& key = "sources");
+
+        /// Parses and appends the base path to the library paths.
+        /// If the path is already absolute, it will be used as is.
+        std::unordered_set<std::string> parse_libs(
+            const toml::value& section,
+            const std::string& base_path);
+
+        std::vector<source_file> expand_glob_sources(
+            const std::vector<source_file>& input_sources);
 
         template <typename Derived>
         struct BaseFields {
@@ -182,75 +187,6 @@ namespace muuk {
                 merge(defines, other.defines);
                 merge(undefines, other.undefines);
                 merge(libs, other.libs);
-            }
-
-        private:
-            static std::vector<source_file> parse_sources(const toml::value& section, const std::string& base_path, const std::string& key = "sources") {
-                std::vector<source_file> temp_sources;
-                if (!section.contains(key))
-                    return temp_sources;
-
-                for (const auto& src : section.at(key).as_array()) {
-                    std::string source_entry = src.as_string();
-
-                    std::vector<std::string> extracted_cflags;
-                    std::string file_path;
-
-                    size_t space_pos = source_entry.find(' ');
-                    if (space_pos != std::string::npos) {
-                        file_path = source_entry.substr(0, space_pos);
-                        std::string flags_str = source_entry.substr(space_pos + 1);
-
-                        std::istringstream flag_stream(flags_str);
-                        std::string flag;
-                        while (flag_stream >> flag)
-                            extracted_cflags.push_back(flag);
-                    } else {
-                        file_path = source_entry;
-                    }
-
-                    std::filesystem::path full_path = std::filesystem::path(file_path);
-                    if (!full_path.is_absolute())
-                        full_path = std::filesystem::path(base_path) / full_path;
-
-                    temp_sources.emplace_back(
-                        util::file_system::to_linux_path(full_path.lexically_normal().string()),
-                        extracted_cflags);
-                }
-
-                return temp_sources;
-            }
-
-            /// Parses and appends the base path to the library paths.
-            /// If the path is already absolute, it will be used as is.
-            static std::unordered_set<std::string> parse_libs(const toml::value& section, const std::string& base_path) {
-                std::unordered_set<std::string> resolved_libs;
-
-                auto raw_libs = toml::try_find_or<std::unordered_set<std::string>>(section, "libs", {});
-                for (const auto& lib : raw_libs) {
-                    std::filesystem::path lib_path(lib);
-                    if (!lib_path.is_absolute())
-                        lib_path = std::filesystem::path(base_path) / lib_path;
-                    resolved_libs.insert(util::file_system::to_linux_path(lib_path.lexically_normal().string()));
-                }
-                return resolved_libs;
-            }
-
-            static std::vector<source_file> expand_glob_sources(const std::vector<source_file>& input_sources) {
-                std::vector<source_file> expanded;
-
-                for (const auto& s : input_sources) {
-                    try {
-                        std::vector<std::filesystem::path> globbed_paths = glob::glob(s.path);
-                        for (const auto& path : globbed_paths)
-                            expanded.emplace_back(util::file_system::to_linux_path(path.string()), s.cflags);
-
-                    } catch (const std::exception& e) {
-                        muuk::logger::warn("Error while globbing '{}': {}", s.path, e.what());
-                    }
-                }
-
-                return expanded;
             }
         };
 

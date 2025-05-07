@@ -9,7 +9,6 @@
 #include "buildconfig.h"
 #include "commands/build.hpp"
 #include "compiler.hpp"
-#include "error_codes.hpp"
 #include "lockgen/muuklockgen.hpp"
 #include "logger.hpp"
 #include "muuk_parser.hpp"
@@ -153,7 +152,7 @@ namespace muuk {
             : muuk::Compiler::from_string(compiler);
 
         if (!compiler_result)
-            return Err("Error selecting compiler: " + compiler_result.error());
+            return Err("Error selecting compiler: " + compiler_result.error().message);
 
         const auto& selected_compiler = compiler_result.value();
         const std::string selected_archiver = selected_compiler.detect_archiver();

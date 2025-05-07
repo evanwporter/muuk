@@ -7,7 +7,6 @@
 #include <vector>
 
 #include "buildconfig.h"
-#include "error_codes.hpp"
 #include "lockgen/muuklockgen.hpp"
 #include "logger.hpp"
 #include "rustify.hpp"
@@ -42,7 +41,7 @@ namespace muuk {
                     if (!package)
                         return Err("Package '{}' not found after parsing '{}'.", package_name, *search_path);
                 } else {
-                    return muuk::make_error<muuk::EC::FileNotFound>(search_file.string());
+                    return make_error<EC::FileNotFound>(search_file.string());
                 }
             } else {
                 // If no search path, search in dependency folders
@@ -233,11 +232,11 @@ namespace muuk {
                 if (deg == 0)
                     q.push(node);
 
-            int visited = 0;
+            int visited_ = 0;
             while (!q.empty()) {
                 auto node = q.front();
                 q.pop();
-                visited++;
+                visited_++;
 
                 for (const auto& neighbor : graph[node]) {
                     if (--in_degree[neighbor] == 0)
@@ -245,7 +244,7 @@ namespace muuk {
                 }
             }
 
-            return visited != (int)in_degree.size();
+            return visited_ != (int)in_degree.size();
         }
     } // namespace lockgen
 } // namespace muuk

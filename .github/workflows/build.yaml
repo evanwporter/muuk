@@ -227,7 +227,7 @@ jobs:
       #   run: ./build/debug/test/test
 
   clang:
-    name: Compile with Clang {matrix.os}
+    name: Compile with Clang on ${{ matrix.os }}
     needs: build
     runs-on: ${{ matrix.os }}
 

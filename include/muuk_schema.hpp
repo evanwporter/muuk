@@ -12,219 +12,220 @@
 
 namespace muuk {
 
-    enum class TomlType {
-        Table,
-        Array,
-        String,
-        Integer,
-        Float,
-        Boolean,
-        Date,
-        Time,
-        DateTime
-    };
+    namespace validation {
 
-    struct TomlArray;
-    struct TomlTable;
+        enum class TomlType {
+            Table,
+            Array,
+            String,
+            Integer,
+            Float,
+            Boolean,
+            Date,
+            Time,
+            DateTime
+        };
 
-    /// Helpers to represent multiple possible types
-    using TomlTypeVariantOneType = std::variant<TomlType, TomlArray, TomlTable>;
-    using TomlUnionTypes = std::vector<TomlTypeVariantOneType>;
+        struct TomlArray;
+        struct TomlTable;
 
-    /// This is for the ScemaNode type, which can be a single type or a union of types.
-    using TomlTypeVariant = std::variant<TomlType, TomlArray, TomlTable, TomlUnionTypes>;
+        /// Helpers to represent multiple possible types
+        using TomlTypeVariantOneType = std::variant<TomlType, TomlArray, TomlTable>;
+        using TomlUnionTypes = std::vector<TomlTypeVariantOneType>;
 
-    struct SchemaNode;
-    typedef std::unordered_map<std::string, SchemaNode> SchemaMap;
+        /// This is for the ScemaNode type, which can be a single type or a union of types.
+        using TomlTypeVariant = std::variant<TomlType, TomlArray, TomlTable, TomlUnionTypes>;
 
-    struct TomlTable {
-        SchemaMap fields;
+        struct SchemaNode;
+        typedef std::unordered_map<std::string, SchemaNode> SchemaMap;
 
-        explicit TomlTable(SchemaMap fields_) :
-            fields(std::move(fields_)) { }
-    };
+        struct TomlTable {
+            SchemaMap fields;
 
-    struct TomlArray {
-        std::variant<TomlType, TomlUnionTypes> element_types;
-        std::shared_ptr<TomlTable> table_schema;
+            explicit TomlTable(SchemaMap fields_) :
+                fields(std::move(fields_)) { }
+        };
 
-        TomlArray(TomlType type) :
-            element_types(type) { }
+        struct TomlArray {
+            std::variant<TomlType, TomlUnionTypes> element_types;
+            std::shared_ptr<TomlTable> table_schema;
 
-        TomlArray(const TomlUnionTypes& types) :
-            element_types(types) { }
+            TomlArray(TomlType type) :
+                element_types(type) { }
 
-        TomlArray(const SchemaMap& schema) :
-            element_types(TomlType::Table),
-            table_schema(std::make_shared<TomlTable>(schema)) { }
-    };
+            TomlArray(const TomlUnionTypes& types) :
+                element_types(types) { }
 
-    // Helper to represent multiple possible types
-    struct SchemaNode {
-        bool required;
-        TomlTypeVariant type;
+            TomlArray(const SchemaMap& schema) :
+                element_types(TomlType::Table),
+                table_schema(std::make_shared<TomlTable>(schema)) { }
+        };
 
-        SchemaNode(bool required_, TomlTypeVariant type_) :
-            required(required_), type(std::move(type_)) { }
-    };
+        // Helper to represent multiple possible types
+        struct SchemaNode {
+            bool required;
+            TomlTypeVariant type;
 
-    Result<TomlType> get_toml_type(const toml::value& node);
+            SchemaNode(bool required_, TomlTypeVariant type_) :
+                required(required_), type(std::move(type_)) { }
+        };
 
-    // Merge multiple SchemaMaps
-    template <typename... Maps>
-    SchemaMap merge_schema_maps(const Maps&... maps) {
-        SchemaMap merged;
-        // Fold expression to insert all maps into `merged`
-        (merged.insert(maps.begin(), maps.end()), ...);
-        return merged;
-    }
+        // Merge multiple SchemaMaps
+        template <typename... Maps>
+        SchemaMap merge_schema_maps(const Maps&... maps) {
+            SchemaMap merged;
+            // Fold expression to insert all maps into `merged`
+            (merged.insert(maps.begin(), maps.end()), ...);
+            return merged;
+        }
 
-    // clang-format off
+        // clang-format off
 
-    const SchemaMap dependency_schema = {
-        { "version", { true, TomlType::String } },
-        { "git", { false, TomlType::String } },
-        { "path", { false, TomlType::String } },
-        { "features", { false, TomlArray { TomlType::String } } },
-        { "system", { false, TomlType::Boolean } },
-        { "libs", { false, TomlArray { TomlType::String } } }
-    };
+        const SchemaMap dependency_schema = {
+            { "version", { true, TomlType::String } },
+            { "git", { false, TomlType::String } },
+            { "path", { false, TomlType::String } },
+            { "features", { false, TomlArray { TomlType::String } } },
+            { "system", { false, TomlType::Boolean } },
+            { "libs", { false, TomlArray { TomlType::String } } }
+        };
 
-    const SchemaMap base_package_schema = {
-        { "include", { false, TomlArray { TomlType::String } } },
-        { "sources", { false, TomlArray {
-            TomlUnionTypes {
-                TomlType::String,
-                TomlTable({
-                    {"path", { true, TomlType::String } },
-                    {"cflags", { false, TomlArray { TomlType::String } } },
-                })
-            }}}},
-        { "libs", { false, TomlArray {
-            TomlUnionTypes {
-                TomlType::String,
-                TomlTable({
-                    {"path", { true, TomlType::String } },
-                    {"lflags", { false, TomlArray { TomlType::String } } },
-                    {"compiler", { false, TomlType::String } },
-                    {"platform", { false, TomlType::String } },
-                })
-            }}}},
-        { "cflags", { false, TomlArray { TomlType::String } } },
-        { "libflags", { false, TomlArray { TomlType::String } } },
-        { "lflags", { false, TomlArray { TomlType::String } } },
-        { "system_include", { false, TomlArray { TomlType::String } } }
-    };
-
-    const SchemaMap build_schema = {
-        { "*", { false, TomlTable({
-            { "include", { false, TomlArray{TomlType::String} } },
-            { "cflags", { false, TomlArray{TomlType::String} } },
-            { "system_include", { false, TomlArray{TomlType::String} } },
-            { "link", { false, TomlType::String } },
-            { "dependencies", { false, TomlTable({}) } }
-        })}}
-    }; 
-
-    const SchemaMap package_schema = {
-        {"name", {true, TomlType::String}},
-        {"version", {true, TomlType::String}},
-        {"edition", {false, TomlType::String}},
-        {"git", {false, TomlType::String}},
-        {"description", {false, TomlType::String}},
-        {"license", {false, TomlType::String}},
-        {"authors", {false, TomlArray{TomlType::String}}},
-        {"repository", {false, TomlType::String}},
-        {"documentation", {false, TomlType::String}},
-        {"homepage", {false, TomlType::String}},
-        {"readme", {false, TomlType::String}},
-        {"keywords", {false, TomlArray{TomlType::String}}}
-    };
-
-    const SchemaMap muuk_schema = {
-        {"package", {true, TomlTable(package_schema)}},
-
-        { "dependencies", { false, TomlUnionTypes{
-            TomlType::String,
-            TomlTable({
-                { "*", { false, TomlUnionTypes{
+        const SchemaMap base_package_schema = {
+            { "include", { false, TomlArray { TomlType::String } } },
+            { "sources", { false, TomlArray {
+                TomlUnionTypes {
                     TomlType::String,
-                    TomlTable({dependency_schema})
-                }}}
-            })
-        }}},
+                    TomlTable({
+                        {"path", { true, TomlType::String } },
+                        {"cflags", { false, TomlArray { TomlType::String } } },
+                    })
+                }}}},
+            { "libs", { false, TomlArray {
+                TomlUnionTypes {
+                    TomlType::String,
+                    TomlTable({
+                        {"path", { true, TomlType::String } },
+                        {"lflags", { false, TomlArray { TomlType::String } } },
+                        {"compiler", { false, TomlType::String } },
+                        {"platform", { false, TomlType::String } },
+                    })
+                }}}},
+            { "cflags", { false, TomlArray { TomlType::String } } },
+            { "libflags", { false, TomlArray { TomlType::String } } },
+            { "lflags", { false, TomlArray { TomlType::String } } },
+            { "system_include", { false, TomlArray { TomlType::String } } }
+        };
 
-        {"build", {false, TomlTable(build_schema)}},
-        {"library", {false, TomlTable {base_package_schema}}},
+        const SchemaMap build_schema = {
+            { "*", { false, TomlTable({
+                { "include", { false, TomlArray{TomlType::String} } },
+                { "cflags", { false, TomlArray{TomlType::String} } },
+                { "system_include", { false, TomlArray{TomlType::String} } },
+                { "link", { false, TomlType::String } },
+                { "dependencies", { false, TomlTable({}) } }
+            })}}
+        }; 
 
-        {"profile", {false, TomlTable({
-            {"*", {false, TomlTable({
-                {"default", {false, TomlType::Boolean}},
-                {"inherits", {false, TomlArray{TomlType::String}}},
-                {"include", {false, TomlArray{TomlType::String}}},
-                {"cflags", {false, TomlArray{TomlType::String}}}
-            })}}
-        })}},
-    
-        {"platform", {false, TomlTable({
-            {"*", {false, TomlTable({
-                {"default", {false, TomlType::Boolean}},
-                {"include", {false, TomlArray{TomlType::String}}},
-                {"cflags", {false, TomlArray{TomlType::String}}},
-                {"lflags", {false, TomlArray{TomlType::String}}}
-            })}}
-        })}},
-    
-        {"compiler", {false, TomlTable({
-            {"*", {false, TomlTable({
-                {"default", {false, TomlType::Boolean}},
-                {"include", {false, TomlArray{TomlType::String}}},
-                {"cflags", {false, TomlArray{TomlType::String}}},
-                {"lflags", {false, TomlArray{TomlType::String}}}
-            })}}
-        })}},
-    
-        {"features", {false, TomlTable({
-            {"default", {false, TomlArray{TomlType::String}}},
-            {"*", {false, TomlUnionTypes{
-                TomlTypeVariantOneType{TomlArray{TomlType::String}},
-                TomlTypeVariantOneType{TomlTable({
-                    {"dependencies", {false, TomlArray{TomlType::String}}},
-                    {"defines", {false, TomlArray{TomlType::String}}}
-                })}
-            }}}
-        })}}
-    };
+        const SchemaMap package_schema = {
+            {"name", {true, TomlType::String}},
+            {"version", {true, TomlType::String}},
+            {"edition", {false, TomlType::String}},
+            {"git", {false, TomlType::String}},
+            {"description", {false, TomlType::String}},
+            {"license", {false, TomlType::String}},
+            {"authors", {false, TomlArray{TomlType::String}}},
+            {"repository", {false, TomlType::String}},
+            {"documentation", {false, TomlType::String}},
+            {"homepage", {false, TomlType::String}},
+            {"readme", {false, TomlType::String}},
+            {"keywords", {false, TomlArray{TomlType::String}}}
+        };
 
-    const SchemaMap muuk_lock_schema = {
-        // {"library", {false, TomlArray(merge_schema_maps(
-        //     SchemaMap{
-        //         {"name", {true, TomlType::String}},
-        //         {"version", {true, TomlType::String}},
-        //         {"dependencies", {false, TomlArray(SchemaMap{
-        //             {"name", {true, TomlType::String}},
-        //             {"version", {true, TomlType::String}},
-        //         })}}
-        //     }, 
-        //     base_package_schema
-        // ))}},
+        const SchemaMap muuk_schema = {
+            {"package", {true, TomlTable(package_schema)}},
+
+            { "dependencies", { false, TomlUnionTypes{
+                TomlType::String,
+                TomlTable({
+                    { "*", { false, TomlUnionTypes{
+                        TomlType::String,
+                        TomlTable({dependency_schema})
+                    }}}
+                })
+            }}},
+
+            {"build", {false, TomlTable(build_schema)}},
+            {"library", {false, TomlTable {base_package_schema}}},
+
+            {"profile", {false, TomlTable({
+                {"*", {false, TomlTable({
+                    {"default", {false, TomlType::Boolean}},
+                    {"inherits", {false, TomlArray{TomlType::String}}},
+                    {"include", {false, TomlArray{TomlType::String}}},
+                    {"cflags", {false, TomlArray{TomlType::String}}}
+                })}}
+            })}},
         
-        // {"build", {false, TomlArray(merge_schema_maps(
-        //     SchemaMap{
-        //         {"name", {true, TomlType::String}},
-        //         {"version", {true, TomlType::String}},
-        //         {"dependencies", {false, TomlArray(SchemaMap{
-        //             {"name", {true, TomlType::String}},
-        //             {"version", {true, TomlType::String}},
-        //         })}}
-        //     }, 
-        //     base_package_schema
-        // ))}},
+            {"platform", {false, TomlTable({
+                {"*", {false, TomlTable({
+                    {"default", {false, TomlType::Boolean}},
+                    {"include", {false, TomlArray{TomlType::String}}},
+                    {"cflags", {false, TomlArray{TomlType::String}}},
+                    {"lflags", {false, TomlArray{TomlType::String}}}
+                })}}
+            })}},
+        
+            {"compiler", {false, TomlTable({
+                {"*", {false, TomlTable({
+                    {"default", {false, TomlType::Boolean}},
+                    {"include", {false, TomlArray{TomlType::String}}},
+                    {"cflags", {false, TomlArray{TomlType::String}}},
+                    {"lflags", {false, TomlArray{TomlType::String}}}
+                })}}
+            })}},
+        
+            {"features", {false, TomlTable({
+                {"default", {false, TomlArray{TomlType::String}}},
+                {"*", {false, TomlUnionTypes{
+                    TomlTypeVariantOneType{TomlArray{TomlType::String}},
+                    TomlTypeVariantOneType{TomlTable({
+                        {"dependencies", {false, TomlArray{TomlType::String}}},
+                        {"defines", {false, TomlArray{TomlType::String}}}
+                    })}
+                }}}
+            })}}
+        };
 
-        // {"dependencies", {false, TomlUnionTypes{TomlType::String, TomlType::Table}, {
-        //     {"*", {false, TomlType::Table, dependency_schema}}
-        // }}},
-    };
+        const SchemaMap muuk_lock_schema = {
+            // {"library", {false, TomlArray(merge_schema_maps(
+            //     SchemaMap{
+            //         {"name", {true, TomlType::String}},
+            //         {"version", {true, TomlType::String}},
+            //         {"dependencies", {false, TomlArray(SchemaMap{
+            //             {"name", {true, TomlType::String}},
+            //             {"version", {true, TomlType::String}},
+            //         })}}
+            //     }, 
+            //     base_package_schema
+            // ))}},
+            
+            // {"build", {false, TomlArray(merge_schema_maps(
+            //     SchemaMap{
+            //         {"name", {true, TomlType::String}},
+            //         {"version", {true, TomlType::String}},
+            //         {"dependencies", {false, TomlArray(SchemaMap{
+            //             {"name", {true, TomlType::String}},
+            //             {"version", {true, TomlType::String}},
+            //         })}}
+            //     }, 
+            //     base_package_schema
+            // ))}},
 
-    // clang-format on
+            // {"dependencies", {false, TomlUnionTypes{TomlType::String, TomlType::Table}, {
+            //     {"*", {false, TomlType::Table, dependency_schema}}
+            // }}},
+        };
+
+        // clang-format on
+    } // namespace validation
 } // namespace muuk

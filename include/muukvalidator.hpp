@@ -12,14 +12,14 @@
 #include "rustify.hpp"
 
 namespace muuk {
+    namespace validation {
+        Result<void> validate_muuk_toml(const toml::value& toml_data);
+        Result<void> validate_muuk_lock_toml(const toml::value& toml_data);
 
-    Result<void> validate_muuk_toml(const toml::value& toml_data);
-    Result<void> validate_muuk_lock_toml(const toml::value& toml_data);
+        bool is_valid_dependency_name(std::string_view name);
 
-    bool is_valid_dependency_name(std::string_view name);
-
-    Result<bool> validate_flag(Compiler compiler_, std::string_view flag);
-
+        Result<bool> validate_flag(Compiler compiler_, std::string_view flag);
+    }
 } // namespace muuk
 
 #endif // MUUKVALIDATOR_HPP

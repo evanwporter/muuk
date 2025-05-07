@@ -4,7 +4,6 @@
 
 #include <toml.hpp>
 
-#include "error_codes.hpp"
 #include "logger.hpp"
 #include "muuk_parser.hpp"
 #include "muukvalidator.hpp"
@@ -36,7 +35,7 @@ namespace muuk {
 
         // Validate against schema
         if (!is_lockfile)
-            TRYV(validate_muuk_toml(parsed));
+            TRYV(validation::validate_muuk_toml(parsed));
 
         muuk::logger::info("Successfully parsed and validated '{}'", path);
         return parsed;
@@ -53,7 +52,7 @@ namespace muuk {
 
         auto raw_vec = toml::try_get<std::vector<std::string>>(table.at(key));
         if (!raw_vec)
-            muuk::logger::warn(raw_vec.error());
+            muuk::logger::warn(raw_vec);
         else {
             for (const auto& item : raw_vec.value())
                 result.push_back(prefix + item);

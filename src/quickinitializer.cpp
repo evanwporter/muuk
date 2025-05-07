@@ -140,7 +140,7 @@ namespace muuk {
         // Get default branch
         auto branch_result = util::git::get_default_branch(author, repo);
         if (!branch_result) {
-            return Err("Failed to get default branch: " + branch_result.error());
+            return Err("Failed to get default branch: " + branch_result.error().message);
         }
         std::string branch = branch_result.value();
 

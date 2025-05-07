@@ -45,29 +45,38 @@ namespace muuk {
 
         template <typename... Args>
         static void warn(const std::string& format_str, Args&&... args) {
-            initialize();
             const std::string formatted_message = fmt::vformat(format_str, fmt::make_format_args(args...));
-            muuk::terminal::warn(formatted_message);
-            spdlog::warn(formatted_message);
+            warn(formatted_message);
         }
 
         template <typename T>
-        static inline void warn(Result<T>&& result) {
-            warn(result.error());
+        static inline void warn(const Result<T>& result) {
+            warn(result.error().message);
+        }
+
+        template <typename... Args>
+        static void warn(const std::string& message) {
+            initialize();
+            muuk::terminal::warn(message);
+            spdlog::warn(message);
+        }
+
+        static void error(const std::string& msg) {
+            initialize();
+            muuk::terminal::error(msg);
+            std::cerr.flush();
+            spdlog::error(msg);
         }
 
         template <typename... Args>
         static void error(const std::string& format_str, Args&&... args) {
-            initialize();
             const std::string formatted_message = fmt::vformat(format_str, fmt::make_format_args(args...));
-            muuk::terminal::error(formatted_message);
-            std::cerr.flush();
-            spdlog::error(formatted_message);
+            error(formatted_message);
         }
 
         template <typename T>
-        static inline void error(Result<T>&& result) {
-            error(result.error());
+        static inline void error(const Result<T>& result) {
+            error(result.error().message);
         }
 
         template <typename... Args>

@@ -8,7 +8,7 @@
 
 namespace muuk {
 
-    Result<toml::value> parse_muuk_file(const std::string& path, bool is_lockfile = false);
+    [[nodiscard]] Result<toml::value> parse_muuk_file(const std::string& path, bool is_lockfile = false);
 
     std::vector<std::string> parse_array_as_vec(
         const toml::value& table,

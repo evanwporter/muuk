@@ -22,8 +22,8 @@
 
 inline int check_and_report(const Result<void>& result) {
     if (!result) {
-        if (!result.error().empty()) {
-            muuk::logger::error(result.error());
+        if (!result.error().message.empty()) {
+            muuk::logger::error(result);
         }
         return 1;
     }
@@ -176,9 +176,11 @@ int main(int argc, char* argv[]) {
         // ===================================================
         muuk::logger::info("[muuk] Using configuration from: {}", muuk_path);
 
-        auto parse_result = muuk::parse_muuk_file(muuk_path, false);
+        const auto parse_result = muuk::parse_muuk_file(
+            muuk_path,
+            false);
         if (!parse_result) {
-            muuk::logger::error(parse_result.error());
+            muuk::logger::error(parse_result);
             return 1;
         }
 

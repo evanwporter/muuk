@@ -16,6 +16,12 @@
     if (v.contains(#key))            \
     target.load(v.at(#key), base_path)
 
+/// Forces a TOML table to be serialized in a single line.
+inline void force_oneline(toml::value& v) {
+    if (v.is_table())
+        v.as_table_fmt().fmt = toml::table_format::oneline;
+}
+
 #define SERIALIZE_SUBCONFIG(KEY, FIELD, TARGET) \
     do {                                        \
         toml::value tmp = toml::table {};       \

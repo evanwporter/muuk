@@ -83,12 +83,16 @@ namespace muuk {
         template <typename... Args>
         void error(const std::string& format_str, Args&&... args) {
             const std::string message = fmt::vformat(format_str, fmt::make_format_args(args...));
+            error(message);
+        }
+
+        inline void error(const std::string& msg) {
             fmt::print(
                 stderr,
                 fg(fmt::color::red),
                 "error:{} {}\n",
                 style::RESET,
-                message);
+                msg);
         }
 
         /// Function to display a selection menu and return the selected index

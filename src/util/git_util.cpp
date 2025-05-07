@@ -129,7 +129,7 @@ namespace util {
 
             auto response = util::network::fetch_json(api_url);
             if (!response) {
-                return Err("Failed to fetch license JSON for " + author + "/" + repo + ": " + response.error());
+                return Err("Failed to fetch license JSON for " + author + "/" + repo + ": " + response.error().message);
             }
 
             // Ensure `response` is a valid JSON object
