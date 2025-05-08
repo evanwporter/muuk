@@ -64,6 +64,7 @@ dependencies = { googletest = '3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f' }
 
 [profile.base]
 cflags = ['-std=c++20', '/utf-8', '/EHsc', '/FS', '/nologo']
+aflags = ['/nologo']
 lflags = ['/nologo']
 
 [profile.release]

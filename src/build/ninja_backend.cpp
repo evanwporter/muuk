@@ -200,10 +200,12 @@ namespace muuk {
 
             module_dir = "../../" + module_dir;
 
-            const auto [profile_cflags, profile_lflags] = get_profile_flag_strings(build_manager, profile);
+            const auto [profile_cflags, profile_aflags, profile_lflags]
+                = get_profile_flag_strings(build_manager, profile);
 
             out << "# Profile-Specific Flags\n"
                 << "profile_cflags = " << profile_cflags << "\n"
+                << "profile_aflags = " << profile_aflags << "\n"
                 << "profile_lflags = " << profile_lflags << "\n\n";
 
             out << "# ------------------------------------------------------------\n"
@@ -251,11 +253,11 @@ namespace muuk {
                     << "  description = Compiling $in\n\n"
 
                     << "rule archive\n"
-                    << "  command = $ar /OUT:$out $in\n"
+                    << "  command = $ar /OUT:$out $in $aflags $profile_aflags\n"
                     << "  description = Archiving $out\n\n"
 
                     << "rule link\n"
-                    << "  command = $linker $in /OUT:$out $profile_lflags $lflags $libraries\n"
+                    << "  command = $linker $in /OUT:$out $lflags $profile_lflags $libraries\n"
                     << "  description = Linking $out\n\n";
 
             } else {
@@ -265,11 +267,11 @@ namespace muuk {
                     << "  description = Compiling $in\n\n"
 
                     << "rule archive\n"
-                    << "  command = $ar rcs $out $in\n"
+                    << "  command = $ar rcs $out $in $aflags $profile_aflags\n"
                     << "  description = Archiving $out\n\n"
 
                     << "rule link\n"
-                    << "  command = $linker $in -o $out $profile_lflags $lflags $libraries\n"
+                    << "  command = $linker $in -o $out $lflags $profile_lflags $libraries\n"
                     << "  description = Linking $out\n\n";
             }
 

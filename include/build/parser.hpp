@@ -13,7 +13,7 @@
 
 namespace muuk {
     namespace build {
-        std::pair<std::string, std::string> get_profile_flag_strings(
+        std::tuple<std::string, std::string, std::string> get_profile_flag_strings(
             const BuildManager& manager,
             const std::string& profile);
 

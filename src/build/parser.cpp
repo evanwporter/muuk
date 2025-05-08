@@ -44,14 +44,17 @@ namespace muuk {
 
             BuildProfile build_profile;
             build_profile.cflags = muuk::parse_array_as_vec(profile_entry, "cflags");
+            build_profile.aflags = muuk::parse_array_as_vec(profile_entry, "aflags");
             build_profile.lflags = muuk::parse_array_as_vec(profile_entry, "lflags");
             build_profile.defines = muuk::parse_array_as_vec(profile_entry, "defines", "-D");
 
             muuk::normalize_flags_inplace(build_profile.cflags, compiler);
+            muuk::normalize_flags_inplace(build_profile.aflags, compiler);
             muuk::normalize_flags_inplace(build_profile.lflags, compiler);
             muuk::normalize_flags_inplace(build_profile.defines, compiler);
 
             muuk::logger::trace("Profile '{}' CFLAGS: {}", profile, fmt::join(build_profile.cflags, " "));
+            muuk::logger::trace("Profile '{}' AFLAGS: {}", profile, fmt::join(build_profile.cflags, " "));
             muuk::logger::trace("Profile '{}' LFLAGS: {}", profile, fmt::join(build_profile.lflags, " "));
             muuk::logger::trace("Profile '{}' Defines: {}", profile, fmt::join(build_profile.defines, " "));
 
@@ -274,6 +277,7 @@ namespace muuk {
                     parse_entries(library_table.at("sources").as_array());
                 }
 
+                // Parse archive flags
                 auto aflags = muuk::parse_array_as_vec(library_table.as_table(), "aflags");
                 muuk::normalize_flags_inplace(aflags, compiler);
                 build_manager.add_archive_target(lib_path, obj_files, aflags);
@@ -417,9 +421,8 @@ namespace muuk {
                     }
                 }
 
-                // Linker flags
+                // Parse link flags
                 std::vector<std::string> lflags = muuk::parse_array_as_vec(build_table, "lflags");
-
                 muuk::normalize_flags_inplace(lflags, compiler);
 
                 // Register build
@@ -472,27 +475,30 @@ namespace muuk {
             return {};
         }
 
-        std::pair<std::string, std::string> get_profile_flag_strings(const BuildManager& manager, const std::string& profile) {
+        std::tuple<std::string, std::string, std::string> get_profile_flag_strings(const BuildManager& manager, const std::string& profile) {
             const auto* build_profile = manager.get_profile(profile);
-            std::string profile_cflags, profile_lflags;
+            std::string profile_cflags, profile_lflags, profile_aflags;
 
             if (build_profile) {
-                std::ostringstream cflags_stream, lflags_stream;
+                std::ostringstream cflags_stream, lflags_stream, aflags_stream;
 
                 for (const auto& flag : build_profile->cflags)
                     cflags_stream << flag << " ";
                 for (const auto& def : build_profile->defines)
                     cflags_stream << def << " ";
+                for (const auto& flag : build_profile->aflags)
+                    aflags_stream << flag << " ";
                 for (const auto& flag : build_profile->lflags)
                     lflags_stream << flag << " ";
 
                 profile_cflags = cflags_stream.str();
+                profile_aflags = aflags_stream.str();
                 profile_lflags = lflags_stream.str();
             } else {
                 muuk::logger::warn("No profile flags found for '{}'", profile);
             }
 
-            return { profile_cflags, profile_lflags };
+            return { profile_cflags, profile_aflags, profile_lflags };
         }
     } // namespace build
 } // namespace muuk

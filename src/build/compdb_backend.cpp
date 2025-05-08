@@ -33,7 +33,8 @@ namespace muuk {
                 muuk::logger::info("Created build directory: {}", build_dir_.string());
             }
 
-            const auto [profile_cflags, profile_lflags] = get_profile_flag_strings(build_manager, profile);
+            // TODO: When C++26 rolls around we can discard the stuff after _aflag and _lflag
+            const auto [profile_cflags, _aflag, _lflag] = get_profile_flag_strings(build_manager, profile);
 
             // Generate compile_commands.json
             const json compile_commands = generate_compile_commands(profile_cflags);

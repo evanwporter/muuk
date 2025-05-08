@@ -8,13 +8,13 @@
       "name": "(Windows) Build",
       "type": "cppvsdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/build/debug/bin.exe",
+      "program": "${workspaceFolder}/build/debug/muuk.exe",
       "args": [
         "build",
         "-c",
         "cl",
         "--profile",
-        "release"
+        "release",
         // "install"
         // "add",
         // "Neargye/magic_enum"
@@ -31,7 +31,7 @@
       "name": "(Windows) Build Clang",
       "type": "cppvsdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/build/debug/bin.exe",
+      "program": "${workspaceFolder}/build/debug/muuk.exe",
       "args": [
         "build",
         "-c",
@@ -79,7 +79,7 @@
       "name": "(Windows) Install",
       "type": "cppvsdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/build/debug/bin.exe",
+      "program": "${workspaceFolder}/build/debug/muuk.exe",
       "args": [
         "install"
       ],
@@ -94,7 +94,7 @@
       "name": "(Windows) Add Package",
       "type": "cppvsdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/build/debug/bin.exe",
+      "program": "${workspaceFolder}/build/debug/muuk.exe",
       "args": [
         "add",
         "Neargye/magic_enum"
@@ -111,7 +111,7 @@
       "name": "(Windows) Remove Package",
       "type": "cppvsdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/build/debug/bin.exe",
+      "program": "${workspaceFolder}/build/debug/muuk.exe",
       "args": [
         "remove",
         "magic_enum"

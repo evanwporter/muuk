@@ -9,7 +9,9 @@
         "--compiler",
         "cl",
         "-p",
-        "debug"
+        "debug",
+        "-t",
+        "muuk"
       ],
       "problemMatcher": [
         "$msCompile"
@@ -42,7 +44,9 @@
         "-p",
         "release",
         "-c",
-        "cl"
+        "cl",
+        "-t",
+        "muuk"
       ],
       "problemMatcher": [
         "$msCompile"

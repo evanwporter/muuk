@@ -11,6 +11,7 @@ namespace muuk {
     namespace build {
         struct BuildProfile {
             std::vector<std::string> cflags;
+            std::vector<std::string> aflags;
             std::vector<std::string> lflags;
             std::vector<std::string> defines;
         };
