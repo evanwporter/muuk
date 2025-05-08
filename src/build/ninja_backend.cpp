@@ -23,8 +23,8 @@ namespace muuk {
             BuildBackend(build_manager, compiler, archiver, linker) { }
 
         void NinjaBackend::generate_build_file(
-            const std::string& target_build,
             const std::string& profile) {
+
             muuk::logger::info("");
             muuk::logger::info("  Generating Ninja file for '{}'", profile);
             muuk::logger::info("----------------------------------------");
@@ -42,7 +42,7 @@ namespace muuk {
             std::ostringstream output_stream;
 
             write_header(output_stream, profile);
-            generate_build_rules(output_stream, target_build);
+            generate_build_rules(output_stream);
 
             std::ofstream out(ninja_file_, std::ios::out);
             if (!out) {
@@ -286,9 +286,9 @@ namespace muuk {
                 << "  description = Building external project\n\n";
         }
 
-        void NinjaBackend::generate_build_rules(std::ostringstream& out, const std::string& target_build) {
-            (void)target_build; // TODO: Use target_build
+        void NinjaBackend::generate_build_rules(std::ostringstream& out) {
             std::ostringstream build_rules;
+            std::ostringstream phony_rules;
 
             // Generate compilation rules
             for (const auto& target : build_manager.get_compilation_targets())
@@ -303,8 +303,17 @@ namespace muuk {
             build_rules << "\n";
 
             // Generate link rules
-            for (const auto& target : build_manager.get_link_targets())
+            for (const auto& target : build_manager.get_link_targets()) {
                 build_rules << generate_rule(target);
+
+                // Generate phony alias
+                // (e.g. `muuk.exe` -> `muuk`)
+                std::string short_name = fs::path(target.output).stem().string();
+                phony_rules << "build " << short_name << ": phony " << target.output << "\n";
+            }
+
+            build_rules << "\n"
+                        << phony_rules.str();
 
             // Write build rules to the file
             out << build_rules.str();

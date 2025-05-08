@@ -22,7 +22,7 @@ jobs:
             artifact_name: muuk-windows
             zip_name: muuk-windows.zip
             muuk_exec: .\muuk.exe
-            copy_cmd: copy build\release\bin.exe muuk.exe
+            copy_cmd: copy build\release\muuk.exe muuk.exe
 
           - os: macos-latest
             compiler: clang
@@ -30,7 +30,7 @@ jobs:
             artifact_name: muuk-macos
             zip_name: muuk-macos.zip
             muuk_exec: ./muuk
-            copy_cmd: cp build/release/bin muuk
+            copy_cmd: cp build/release/muuk muuk
 
           - os: ubuntu-latest
             compiler: gcc
@@ -38,7 +38,7 @@ jobs:
             artifact_name: muuk-linux
             zip_name: muuk-linux.zip
             muuk_exec: ./muuk
-            copy_cmd: cp build/release/bin muuk
+            copy_cmd: cp build/release/muuk muuk
 
     steps:
       - name: Checkout code

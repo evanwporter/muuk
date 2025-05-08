@@ -19,11 +19,16 @@ namespace fs = std::filesystem;
 
 namespace muuk {
 
-    Result<void> execute_build(const std::string& profile) {
+    Result<void> execute_build(const std::string& profile, const std::string& target_build, const std::string& jobs) {
         muuk::logger::info("Starting build for profile: {}", profile);
 
         std::string build_dir = "build/" + profile;
         std::string ninja_command = "ninja -C " + build_dir;
+        if (!target_build.empty())
+            ninja_command += " " + target_build;
+        if (!jobs.empty())
+            ninja_command += " -j " + jobs;
+
         muuk::logger::info("Running Ninja build: {}", ninja_command);
 
         int result = util::command_line::execute_command(ninja_command.c_str());
@@ -123,7 +128,7 @@ namespace muuk {
     Result<void> generate_compile_commands(build::BuildManager& build_manager, const std::string& profile, const muuk::Compiler& compiler, const std::string& archiver, const std::string& linker) {
         muuk::logger::info("Generating compile_commands.json for profile '{}'", profile);
         build::CompileCommandsBackend backend(build_manager, compiler, archiver, linker);
-        backend.generate_build_file("compile_commands", profile);
+        backend.generate_build_file(profile);
         muuk::logger::info("compile_commands.json generated successfully.");
         return {};
     }
@@ -186,12 +191,12 @@ namespace muuk {
             selected_archiver,
             selected_linker);
 
-        build_backend.generate_build_file(target_build, selected_profile);
+        build_backend.generate_build_file(selected_profile);
 
         muuk::logger::info("Generating Ninja file for '{}'", selected_profile);
-        build_backend.generate_build_file(target_build, selected_profile);
+        build_backend.generate_build_file(selected_profile);
 
-        execute_build(selected_profile);
+        execute_build(selected_profile, target_build, jobs);
         generate_compile_commands(
             *build_manager,
             selected_profile,

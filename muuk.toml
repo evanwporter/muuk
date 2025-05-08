@@ -21,7 +21,8 @@ include = ['include']
 # ]
 # modules = ["modules/math.ixx"]
 sources = [
-    { path = 'src/muuker.cpp', cflags = [] }, # demonstrates per-file cflags
+    # { path = 'src/muuker.cpp', cflags = [] }, # demonstrates per-file cflags
+    'src/muuker.cpp',
     'src/muuk.cpp',
     'src/util/*.cpp',
     'src/logger.cpp',
@@ -51,7 +52,7 @@ spdlog = { version = '3335c380a08c5e0f5117a66622df6afdb3d74959', features = [
 ] }
 toml11 = 'a01fe3b4c14c6d7b99ee3f07c9e80058c6403097'
 
-[build.bin]
+[build.muuk]
 profile = ['release', 'debug']
 sources = ['src/main.cpp']
 dependencies = { argparse = 'd924b84eba1f0f0adf38b20b7b4829f6f65b6570' }
@@ -63,6 +64,7 @@ dependencies = { googletest = '3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f' }
 
 [profile.base]
 cflags = ['-std=c++20', '/utf-8', '/EHsc', '/FS', '/nologo']
+lflags = ['/nologo']
 
 [profile.release]
 cflags = ['/O2', '/DNDEBUG', '/GL']

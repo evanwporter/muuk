@@ -13,7 +13,8 @@ namespace muuk {
         Warnings,
         Advanced,
         Modules,
-        Version
+        Version,
+        Logo
     };
 
     struct FlagInfo {
@@ -63,5 +64,8 @@ namespace muuk {
         { "module_cache_path", FlagCategory::Modules, { "-fmodules-cache-path=", "-fmodules-cache-path=", "/ifcOutput" } },
 
         { "standard_version", FlagCategory::Version, { "-std=c++", "-std=c++", "/std:c++" } },
+
+        { "no_logo", FlagCategory::Logo, { "", "", "/nologo" } },
+
     };
-}
+};

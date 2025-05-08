@@ -34,7 +34,6 @@ namespace muuk {
             }
 
             virtual void generate_build_file(
-                const std::string& target_build,
                 const std::string& profile)
                 = 0;
         };
@@ -51,7 +50,6 @@ namespace muuk {
                 const std::string& linker);
 
             void generate_build_file(
-                const std::string& target_build,
                 const std::string& profile) override;
 
         private:
@@ -60,7 +58,7 @@ namespace muuk {
             std::string generate_rule(const LinkTarget& target);
             void generate_rule(const ExternalTarget& target);
 
-            void generate_build_rules(std::ostringstream& out, const std::string& target_build);
+            void generate_build_rules(std::ostringstream& out);
             void write_header(std::ostringstream& out, std::string profile);
         };
 
@@ -76,7 +74,6 @@ namespace muuk {
                 const std::string& linker);
 
             void generate_build_file(
-                const std::string& target_build,
                 const std::string& profile) override;
 
         private:

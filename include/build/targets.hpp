@@ -77,7 +77,11 @@ namespace muuk {
 
         class LinkTarget : public BuildTarget {
         public:
-            LinkTarget(std::string exe, std::vector<std::string> objs, std::vector<std::string> libs, std::vector<std::string> lflags);
+            LinkTarget(
+                std::string exe,
+                std::vector<std::string> objs,
+                std::vector<std::string> libs,
+                std::vector<std::string> lflags);
             virtual ~LinkTarget() = default;
         };
 

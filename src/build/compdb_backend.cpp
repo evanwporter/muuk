@@ -22,8 +22,7 @@ namespace muuk {
             const std::string& linker) :
             BuildBackend(build_manager, compiler, archiver, linker) { }
 
-        void CompileCommandsBackend::generate_build_file(const std::string& target_build, const std::string& profile) {
-            (void)target_build;
+        void CompileCommandsBackend::generate_build_file(const std::string& profile) {
             muuk::logger::info("");
             muuk::logger::info("  Generating compile_commands.json for '{}'", profile);
             muuk::logger::info("----------------------------------------------");
