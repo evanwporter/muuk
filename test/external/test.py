@@ -115,7 +115,7 @@ def module_project_dir():
 def test_muuk_build(request, project_dir_fixture):
     project_dir = request.getfixturevalue(project_dir_fixture)
 
-    muuk_executable = os.path.join(PROJECT_ROOT, "build", "debug", "bin.exe")
+    muuk_executable = os.path.join(PROJECT_ROOT, "build", "debug", "muuk.exe")
 
     result = subprocess.run(
         [muuk_executable, "build", "-c", "cl", "-p", "debug"],
