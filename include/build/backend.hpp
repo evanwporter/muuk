@@ -15,7 +15,7 @@ namespace muuk {
         class BuildBackend {
         protected:
             const BuildManager& build_manager;
-            muuk::Compiler compiler_;
+            const Compiler compiler_;
             const std::string archiver_;
             const std::string linker_;
 
@@ -24,7 +24,7 @@ namespace muuk {
 
             BuildBackend(
                 const BuildManager& build_manager,
-                const muuk::Compiler compiler,
+                const Compiler compiler,
                 const std::string archiver,
                 const std::string linker) :
                 build_manager(build_manager),
@@ -45,7 +45,7 @@ namespace muuk {
         public:
             NinjaBackend(
                 const BuildManager& build_manager,
-                const muuk::Compiler compiler,
+                const Compiler compiler,
                 const std::string& archiver,
                 const std::string& linker);
 
@@ -53,13 +53,13 @@ namespace muuk {
                 const std::string& profile) override;
 
         private:
-            std::string generate_rule(const CompilationTarget& target);
-            std::string generate_rule(const ArchiveTarget& target);
-            std::string generate_rule(const LinkTarget& target);
+            std::string generate_rule(const CompilationTarget& target) const;
+            std::string generate_rule(const ArchiveTarget& target) const;
+            std::string generate_rule(const LinkTarget& target) const;
             void generate_rule(const ExternalTarget& target);
 
-            void generate_build_rules(std::ostringstream& out);
-            void write_header(std::ostringstream& out, std::string profile);
+            void generate_build_rules(std::ostringstream& out) const;
+            void write_header(std::ostringstream& out, std::string profile) const;
         };
 
         class CompileCommandsBackend : public BuildBackend {
@@ -69,7 +69,7 @@ namespace muuk {
         public:
             CompileCommandsBackend(
                 const BuildManager& build_manager,
-                const muuk::Compiler compiler,
+                const Compiler compiler,
                 const std::string& archiver,
                 const std::string& linker);
 
@@ -77,7 +77,7 @@ namespace muuk {
                 const std::string& profile) override;
 
         private:
-            nlohmann::json generate_compile_commands(const std::string& profile_cflags);
+            nlohmann::json generate_compile_commands(const std::string& profile_cflags) const;
         };
     } // namespace build
 } // namespace muuk

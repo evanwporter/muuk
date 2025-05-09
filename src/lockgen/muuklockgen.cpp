@@ -225,7 +225,7 @@ namespace muuk {
             if (fs::exists(dep_path))
                 TRYV(parse_muuk_toml(dep_path.string()));
             else
-                return Err("muuk.toml for dependency '{}' version '{}' not found in '{}'", package_name, version, search_dir.string());
+                return Err("{} for dependency '{}' version '{}' not found in '{}'", MUUK_TOML_FILE, package_name, version, search_dir.string());
 
             return {};
         }

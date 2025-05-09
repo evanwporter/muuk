@@ -102,7 +102,10 @@ namespace muuk {
         std::string license = util::git::get_license_of_github_repo(author, repo).value_or("Unknown");
         muuk::logger::info("Detected license: {}", license);
 
-        muuk::logger::info("Fetching top-level directories from GitHub repo '{}/{}'", author, repo);
+        muuk::logger::info(
+            "Fetching top-level directories from GitHub repo '{}/{}'",
+            author,
+            repo);
 
         // Get remote directories
         auto remote_dirs = util::git::get_top_level_dirs_of_github(author, repo);

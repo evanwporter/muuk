@@ -135,7 +135,9 @@ int main(int argc, char* argv[]) {
         if (program.is_subcommand_used("remove")) {
             const auto package_name = remove_command.get<std::string>("package_name");
             muuk::logger::info("Removing dependency: {}", package_name);
-            return check_and_report(muuk::remove_package(package_name, "muuk.toml", MUUK_CACHE_FILE));
+            return check_and_report(muuk::remove_package(
+                package_name,
+                "muuk.toml"));
         }
 
         if (program.is_subcommand_used("add")) {
@@ -164,7 +166,7 @@ int main(int argc, char* argv[]) {
                 target_section);
 
             if (!result) {
-                muuk::logger::error("Failed to add dependency: {}", result.error());
+                muuk::logger::error(result);
                 return 1;
             }
 
@@ -184,7 +186,7 @@ int main(int argc, char* argv[]) {
             return 1;
         }
 
-        toml::table muuk_config = parse_result.value().as_table();
+        auto muuk_config = parse_result.value().as_table();
 
         if (program.is_subcommand_used("clean")) {
             return check_and_report(muuk::clean(muuk_config));
@@ -197,7 +199,10 @@ int main(int argc, char* argv[]) {
                 muuk::logger::error("No script name provided for 'run'.");
                 return 1;
             }
-            return check_and_report(muuk::run_script(muuk_config, script.value(), extra_args));
+            return check_and_report(muuk::run_script(
+                muuk_config,
+                script.value(),
+                extra_args));
         }
 
         if (program.is_subcommand_used("build")) {

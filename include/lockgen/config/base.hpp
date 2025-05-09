@@ -34,6 +34,15 @@ static inline void maybe_set(toml::value& out, const char* key, const T& contain
         maybe_set(out, #field, arr);                     \
     }
 
+/// Serializes a vector of source files to a TOML array.
+#define SERIALIZE_SOURCES(field)             \
+    if constexpr (Derived::enable_##field) { \
+        toml::array arr;                     \
+        for (const auto& s : field)          \
+            arr.push_back(s.serialize());    \
+        maybe_set(out, #field, arr);         \
+    }
+
 #define LOAD_TOML_SET_FIELD(enable_macro, field_name) \
     if constexpr (Derived::enable_##enable_macro)     \
     field_name = toml::try_find_or<std::unordered_set<std::string>>(v, #field_name, {})
@@ -83,7 +92,9 @@ namespace muuk {
         struct lib_file {
             std::string path;
             std::vector<std::string> lflags;
-            std::optional<muuk::Compiler> compiler;
+            std::optional<Compiler> compiler;
+
+            toml::value serialize() const;
             // TODO: Platform: if platform doesn't match then skip this lib
             // If compiler is MSVC and platform is not Windows, skip this lib
         };
@@ -95,7 +106,7 @@ namespace muuk {
 
         /// Parses and appends the base path to the library paths.
         /// If the path is already absolute, it will be used as is.
-        std::unordered_set<std::string> parse_libs(
+        std::vector<lib_file> parse_libs(
             const toml::value& section,
             const std::string& base_path);
 
@@ -106,7 +117,8 @@ namespace muuk {
         struct BaseFields {
             std::vector<source_file> sources;
             std::vector<module_file> modules;
-            std::unordered_set<std::string> libs, include, defines, undefines;
+            std::vector<lib_file> libs;
+            std::unordered_set<std::string> include, defines, undefines;
             std::unordered_set<std::string> cflags, cxxflags, aflags, lflags;
             DependencyVersionMap<Dependency> dependencies;
 
@@ -156,6 +168,8 @@ namespace muuk {
                 SERIALIZE_GLOB_SOURCES(modules);
                 SERIALIZE_GLOB_SOURCES(sources);
 
+                SERIALIZE_SOURCES(libs);
+
                 MAYBE_SET_FIELD(include, include);
                 MAYBE_SET_FIELD(defines, defines);
                 MAYBE_SET_FIELD(undefines, undefines);
@@ -163,7 +177,6 @@ namespace muuk {
                 MAYBE_SET_FIELD(cxxflags, cxxflags);
                 MAYBE_SET_FIELD(aflags, aflags);
                 MAYBE_SET_FIELD(lflags, lflags);
-                MAYBE_SET_FIELD(libs, libs);
 
                 // TODO: Uncomment when full logic is implemented
                 // if constexpr (Derived::enable_dependencies) {

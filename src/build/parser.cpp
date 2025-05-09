@@ -321,13 +321,19 @@ namespace muuk {
                             outputs.push_back(out.as_string());
 
                     } else
-                        return Err("Missing 'outputs' field for external target '{}'", name);
+                        return Err(
+                            "Missing 'outputs' field for external target '{}'",
+                            name);
 
                     externals.emplace_back(name, version, type, path, args, outputs);
-                    muuk::logger::info("Parsed external target '{}'", name);
+                    muuk::logger::info(
+                        "Parsed external target '{}'",
+                        name);
 
                 } catch (const std::exception& e) {
-                    return Err("Failed to parse [external] entry: {}", e.what());
+                    return Err(
+                        "Failed to parse [external] entry: {}",
+                        e.what());
                 }
             }
 

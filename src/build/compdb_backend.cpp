@@ -50,7 +50,7 @@ namespace muuk {
             muuk::logger::info("compile_commands.json generated successfully!");
         }
 
-        json CompileCommandsBackend::generate_compile_commands(const std::string& profile_cflags) {
+        json CompileCommandsBackend::generate_compile_commands(const std::string& profile_cflags) const {
             json compile_commands = json::array();
 
             for (const auto& target : build_manager.get_compilation_targets()) {

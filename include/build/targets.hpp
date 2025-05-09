@@ -23,10 +23,17 @@ namespace muuk {
 
         class BuildTarget {
         public:
-            std::string name; // Unique target name (e.g., obj file, archive, executable)
-            std::vector<std::string> inputs; // Input files (source files or dependencies)
-            std::string output; // Output file (e.g., .o, .a, executable)
-            std::vector<std::string> flags; // Compiler, linker, or archive flags
+            /// Unique target name/path (e.g., obj file, archive, executable)
+            std::string name;
+
+            /// Input files (source files)
+            std::vector<std::string> inputs;
+
+            /// Output file (e.g., .o, .a, executable)
+            std::string output;
+
+            /// Compiler, linker, or archive flags
+            std::vector<std::string> flags;
 
             BuildTarget(std::string target_name, std::string target_output);
             virtual ~BuildTarget() = default;
@@ -52,7 +59,10 @@ namespace muuk {
 
         class ArchiveTarget : public BuildTarget {
         public:
-            ArchiveTarget(std::string lib, std::vector<std::string> objs, std::vector<std::string> aflags);
+            ArchiveTarget(
+                std::string lib,
+                std::vector<std::string> objs,
+                std::vector<std::string> aflags);
             virtual ~ArchiveTarget() = default;
         };
 

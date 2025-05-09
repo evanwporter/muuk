@@ -8,6 +8,5 @@
 namespace muuk {
     Result<void> remove_package(
         const std::string& package_name,
-        const std::string& toml_path = "muuk.toml",
-        const std::string& lockfile_path = MUUK_CACHE_FILE);
+        const std::string& toml_path = MUUK_TOML_FILE);
 }

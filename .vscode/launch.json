@@ -123,5 +123,22 @@
       "console": "integratedTerminal",
       "symbolSearchPath": "${workspaceFolder}/build/debug",
     },
+    {
+      "name": "(Windows) Run Script",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/debug/muuk.exe",
+      "args": [
+        "run",
+        "muuk"
+        // "aappleby/smhasher"
+      ],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "console": "integratedTerminal",
+      "symbolSearchPath": "${workspaceFolder}/build/debug",
+      "preLaunchTask": "Build Debug (MSVC)"
+    },
   ]
 }

@@ -1,4 +1,7 @@
 #pragma once
+#ifndef BUILD_CONFIG_H
+#define BUILD_CONFIG_H
+
 #include <string>
 #include <unordered_set>
 
@@ -32,3 +35,5 @@ inline const std::unordered_set<std::string> HEADER_FILE_EXTS {
 };
 
 const std::string HASH_FILE_NAME = ".muuk.hash";
+
+#endif // BUILD_CONFIG_H

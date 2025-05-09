@@ -4,6 +4,7 @@
 
 #include <toml.hpp>
 
+#include "compiler.hpp"
 #include "lockgen/config/base.hpp"
 #include "logger.hpp"
 #include "toml_ext.hpp"
@@ -77,17 +78,72 @@ namespace muuk {
             return temp_sources;
         }
 
-        std::unordered_set<std::string> parse_libs(const toml::value& section, const std::string& base_path) {
-            std::unordered_set<std::string> resolved_libs;
+        std::vector<lib_file> parse_libs(const toml::value& section, const std::string& base_path) {
+            std::vector<lib_file> libs;
 
-            auto raw_libs = toml::try_find_or<std::unordered_set<std::string>>(section, "libs", {});
-            for (const auto& lib : raw_libs) {
-                std::filesystem::path lib_path(lib);
-                if (!lib_path.is_absolute())
-                    lib_path = std::filesystem::path(base_path) / lib_path;
-                resolved_libs.insert(util::file_system::to_linux_path(lib_path.lexically_normal().string()));
+            if (!section.contains("libs"))
+                return libs;
+
+            auto libs_array = section.at("libs").as_array();
+            for (const auto& lib : libs_array) {
+                lib_file lib_entry;
+
+                // (1)
+                if (lib.is_string()) {
+                    fs::path lib_path = lib.as_string();
+                    if (!lib_path.is_absolute())
+                        lib_path = fs::path(base_path) / lib_path;
+                    lib_entry.path = util::file_system::to_linux_path(
+                        lib_path.lexically_normal().string());
+                }
+
+                // (2)
+                else if (lib.is_table()) {
+                    const auto lib_table = lib.as_table();
+
+                    // Parse platform
+                    if (lib_table.contains("platform")) {
+#ifdef _WIN32
+                        if (lib_table.at("platform").as_string() != "windows")
+                            continue;
+#elif __APPLE__
+                        if (lib_table.at("platform").as_string() != "apple")
+                            continue;
+#elif __linux__
+                        if (lib_table.at("platform").as_string() != "linux")
+                            continue;
+#endif
+                    }
+
+                    // Parse compiler
+                    if (lib_table.contains("compiler")) {
+                        const auto compiler_result = Compiler::from_string(
+                            lib_table.at("compiler").as_string());
+                        const auto compiler = compiler_result.value();
+                        lib_entry.compiler = compiler;
+                    }
+
+                    // Parse path
+                    if (lib_table.contains("path")) {
+                        fs::path lib_path = lib_table.at("path").as_string();
+                        if (!lib_path.is_absolute())
+                            lib_path = fs::path(base_path) / lib_path;
+                        lib_entry.path = util::file_system::to_linux_path(
+                            lib_path.lexically_normal().string());
+                    }
+                }
+
+                libs.push_back(lib_entry);
             }
-            return resolved_libs;
+            return libs;
+        }
+
+        toml::value lib_file::serialize() const {
+            toml::value v;
+            v["path"] = path;
+            if (!compiler)
+                v["compiler"] = compiler->to_string();
+            return v;
         }
 
         std::vector<source_file> expand_glob_sources(const std::vector<source_file>& input_sources) {

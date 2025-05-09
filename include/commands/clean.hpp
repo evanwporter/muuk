@@ -7,7 +7,7 @@
 #include "rustify.hpp"
 
 namespace muuk {
-    Result<void> clean(const toml::table& config);
+    Result<void> clean(const toml::ordered_table& config);
 }
 
 #endif // CLEAN_HPP

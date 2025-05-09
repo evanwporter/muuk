@@ -55,7 +55,7 @@ namespace muuk {
             muuk::logger::info("Ninja build file '{}' generated successfully!", ninja_file_);
         }
 
-        std::string NinjaBackend::generate_rule(const CompilationTarget& target) {
+        std::string NinjaBackend::generate_rule(const CompilationTarget& target) const {
             std::ostringstream rule;
 
             const bool is_module = target.compilation_unit_type == CompilationUnitType::Module;
@@ -107,7 +107,7 @@ namespace muuk {
             return rule.str();
         }
 
-        std::string NinjaBackend::generate_rule(const ArchiveTarget& target) {
+        std::string NinjaBackend::generate_rule(const ArchiveTarget& target) const {
             std::ostringstream rule;
             rule << "build " << target.output << ": archive";
             for (const auto& obj : target.inputs)
@@ -161,7 +161,7 @@ namespace muuk {
             muuk::logger::info("Generated external Ninja file: {}", output_path.string());
         }
 
-        std::string NinjaBackend::generate_rule(const LinkTarget& target) {
+        std::string NinjaBackend::generate_rule(const LinkTarget& target) const {
             std::ostringstream rule;
             rule << "build " << target.output << ": link";
             for (const auto& obj : target.inputs)
@@ -179,7 +179,7 @@ namespace muuk {
             return rule.str();
         }
 
-        void NinjaBackend::write_header(std::ostringstream& out, std::string profile) {
+        void NinjaBackend::write_header(std::ostringstream& out, std::string profile) const {
             muuk::logger::info("Writing Ninja header...");
 
             out << "# ------------------------------------------------------------\n"
@@ -288,7 +288,7 @@ namespace muuk {
                 << "  description = Building external project\n\n";
         }
 
-        void NinjaBackend::generate_build_rules(std::ostringstream& out) {
+        void NinjaBackend::generate_build_rules(std::ostringstream& out) const {
             std::ostringstream build_rules;
             std::ostringstream phony_rules;
 

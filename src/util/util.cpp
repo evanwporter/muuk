@@ -260,4 +260,16 @@ namespace util {
         return (*p == 0);
     }
 
+    namespace string_ops {
+        std::string to_lower(const std::string& s) {
+            std::string result;
+            result.reserve(s.size());
+            std::transform(
+                result.begin(),
+                result.end(),
+                result.begin(),
+                [](unsigned char c) -> char { return static_cast<char>(std::tolower(c)); });
+            return s;
+        }
+    }
 } // namespace util

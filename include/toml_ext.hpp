@@ -3,6 +3,7 @@
 // Also it uses the `Result` type from Rustify for error handling.
 
 #pragma once
+#include "toml11/types.hpp"
 #ifndef MUUK_TOML_EXT_HPP
 #define MUUK_TOML_EXT_HPP
 
@@ -12,10 +13,10 @@
 
 namespace toml {
 
+    using ordered = ordered_type_config;
+
     template <typename T>
-    std::enable_if_t<
-        std::is_same_v<T, int64_t> || std::is_same_v<T, double> || std::is_same_v<T, bool> || std::is_same_v<T, std::string>,
-        Result<T>>
+    std::enable_if_t<std::is_same_v<T, int64_t> || std::is_same_v<T, double> || std::is_same_v<T, bool> || std::is_same_v<T, std::string>, Result<T>>
     try_get(const value& v) {
         const auto loc = v.location();
 

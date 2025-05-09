@@ -6,21 +6,23 @@
 
 #include "buildconfig.h"
 #include "commands/remove.hpp"
-#include "lockgen/muuklockgen.hpp"
 #include "muuk_parser.hpp"
 #include "muukterminal.hpp"
 #include "rustify.hpp"
+#include "toml11/types.hpp"
 
 namespace fs = std::filesystem;
 
 namespace muuk {
-    Result<void> remove_package(const std::string& package_name, const std::string& toml_path, const std::string& lockfile_path) {
+    Result<void> remove_package(const std::string& package_name, const std::string& toml_path) {
         using namespace muuk::terminal;
 
         std::cout << style::CYAN << "Removing dependency: " << style::BOLD << package_name << style::RESET << "\n";
 
         try {
-            auto parsed = muuk::parse_muuk_file(toml_path, false);
+            auto parsed = muuk::parse_muuk_file<toml::ordered_type_config>(
+                toml_path,
+                false);
             if (!parsed)
                 return Err(parsed);
             auto root = parsed.value();
@@ -58,14 +60,6 @@ namespace muuk {
                 fs::remove_all(dep_path);
             }
 
-            auto lockgen = lockgen::MuukLockGenerator::create(lockfile_path);
-            if (!lockgen)
-                return Err(lockgen.error());
-
-            auto lockfile = lockgen->generate_lockfile(lockfile_path);
-            if (!lockfile)
-                return Err(lockfile.error());
-
             // Write the updated TOML
             std::ofstream file_out(toml_path, std::ios::trunc);
             if (!file_out.is_open())
@@ -74,7 +68,10 @@ namespace muuk {
             file_out << toml::format(root);
             file_out.close();
 
-            std::cout << style::GREEN << style::BOLD << "Successfully removed '" << package_name << "' from muuk.toml!" << style::RESET << "\n";
+            std::cout << style::GREEN << style::BOLD
+                      << "Successfully removed '"
+                      << package_name << "' from muuk.toml!"
+                      << style::RESET << "\n";
             return {};
 
         } catch (const std::exception& e) {

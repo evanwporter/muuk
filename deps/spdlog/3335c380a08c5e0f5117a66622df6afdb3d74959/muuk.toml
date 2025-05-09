@@ -20,6 +20,9 @@ sources = [
     'src/file_sinks.cpp',
 ]
 
+[external]
+type = 'cmake'
+
 [features]
 default = ["fmt", "compiled_lib"] # Use fmtlib by default
 fmt = ["D:SPDLOG_FMT_EXTERNAL", "dep:fmt"] # Link against fmtlib

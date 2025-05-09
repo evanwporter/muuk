@@ -101,6 +101,11 @@ namespace util {
         }
     }
 
+    namespace string_ops {
+        /// Convert a string to lowercase
+        std::string to_lower(const std::string& str);
+    }
+
     /// Checks if a string is a valid positive integer
     bool is_integer(const std::string& s);
 } // namespace Utils

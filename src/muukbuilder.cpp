@@ -13,6 +13,8 @@
 #include "logger.hpp"
 #include "muuk_parser.hpp"
 #include "rustify.hpp"
+#include "toml11/types.hpp"
+#include "toml_ext.hpp"
 #include "util.hpp"
 
 namespace fs = std::filesystem;
@@ -94,31 +96,29 @@ namespace muuk {
     Result<void> add_script(const std::string& profile, const std::string& build_name) {
         (void)build_name;
 
-        auto result = muuk::parse_muuk_file("muuk.toml");
+        auto result = muuk::parse_muuk_file<toml::ordered>("muuk.toml");
         if (!result)
             return Err(result.error());
 
-        toml::value config = result.value();
+        auto config = result.value();
 
 #ifdef _WIN32
         std::string executable_path = "build/"
-            + profile + "/" + build_name
-            + "/" + build_name + ".exe";
+            + profile + "/" + build_name + ".exe";
 #else
         std::string executable_path = "./build/"
-            + profile + "/" + build_name
-            + "/" + build_name + ".exe";
+            + profile + "/" + build_name + ".exe";
 #endif
 
         if (!config.contains("scripts") || !config["scripts"].is_table()) {
-            config["scripts"] = toml::table {};
+            config["scripts"] = toml::ordered_table {};
         }
 
-        config["scripts"].as_table()[build_name] = toml::value(executable_path);
+        config["scripts"].as_table()[build_name] = executable_path;
 
-        std::ofstream out("muuk.toml");
+        std::ofstream out(MUUK_TOML_FILE);
         if (!out)
-            return make_error<EC::FileNotFound>("muuk.toml");
+            return make_error<EC::FileNotFound>(MUUK_TOML_FILE);
         out << toml::format(config);
 
         muuk::logger::info("Successfully added run script to 'muuk.toml': {}", executable_path);
@@ -139,7 +139,7 @@ namespace muuk {
         if (!jobs.empty() && !util::is_integer(jobs))
             return Err("Invalid number of jobs specified: " + jobs);
 
-        auto muuk_result = parse_muuk_file("muuk.toml");
+        auto muuk_result = muuk::parse_muuk_file<toml::ordered_type_config>("muuk.toml", false);
         if (!muuk_result)
             return Err(muuk_result);
 
@@ -170,14 +170,13 @@ namespace muuk {
 
         auto build_manager = std::make_unique<build::BuildManager>();
 
-        // TODO: IMPLEMENT
-        // if (muuk_file.contains("build")) {
-        //     const auto& builds = muuk_file["build"].as_table();
-        //     for (const auto& [build_name, _] : builds) {
-        //         muuk::logger::info("Adding script for build target '{}'", build_name);
-        //         TRYV(add_script(selected_profile, build_name));
-        //     }
-        // }
+        if (muuk_file.contains("build")) {
+            const auto& builds = muuk_file["build"].as_table();
+            for (const auto& [build_name, _] : builds) {
+                muuk::logger::info("Adding script for build target '{}'", build_name);
+                TRYV(add_script(selected_profile, build_name));
+            }
+        }
 
         TRYV(parse(
             *build_manager,

@@ -16,6 +16,7 @@ namespace muuk {
             std::vector<std::string> defines;
         };
 
+        /// Contains each of the targets to be built.
         class BuildManager {
             std::vector<CompilationTarget> compilation_targets;
             std::vector<ArchiveTarget> archive_targets;

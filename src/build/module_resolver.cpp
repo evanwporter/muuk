@@ -97,7 +97,10 @@ namespace muuk {
                         if (provide.contains("logical-name") && provide["logical-name"].is_string()) {
                             std::string logical_name = provide["logical-name"];
                             primary_target->logical_name = logical_name;
-                            muuk::logger::info("Associated module '{}' with target '{}'", logical_name, primary_output);
+                            muuk::logger::info(
+                                "Associated module '{}' with target '{}'",
+                                logical_name,
+                                primary_output);
                         }
                     }
                 }
@@ -131,7 +134,10 @@ namespace muuk {
                         CompilationTarget* required_target = build_manager.find_compilation_target("input", required_source);
                         if (required_target) {
                             primary_target->dependencies.push_back(required_target);
-                            muuk::logger::info("Added dependency: Target '{}' requires '{}'", primary_output, required_source);
+                            muuk::logger::info(
+                                "Added dependency: Target '{}' requires '{}'",
+                                primary_output,
+                                required_source);
                         } else {
                             muuk::logger::warn("Could not find compilation target for required module '{}'", required_source);
                         }
@@ -149,13 +155,17 @@ namespace muuk {
             // Write to output file (dependency-db.json)
             std::ofstream out_file(dependency_db);
             if (!out_file) {
-                muuk::logger::warn("Could not open output file {} for writing!", dependency_db);
+                muuk::logger::warn(
+                    "Could not open output file {} for writing!",
+                    dependency_db);
                 return;
             }
             out_file << compdb.dump(4); // Pretty-print JSON with 4-space indentation
             out_file.close();
 
-            muuk::logger::info("Compilation database written to {}", dependency_db);
+            muuk::logger::info(
+                "Compilation database written to {}",
+                dependency_db);
 
             nlohmann::json dependencies = parse_dependency_db(dependency_db);
             if (dependencies.empty())

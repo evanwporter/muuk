@@ -4,11 +4,8 @@ version = '1.0.0'
 edition = '20'
 
 [scripts]
-hello = 'echo Hello!'
-run = './build/debug/muuk'
-
-[clean]
-patterns = ['*.obj', '*.lib', '*.pdb']
+muuk = "build/release/muuk.exe"
+test = "build/release/test.exe"
 
 [library]
 cflags = ['/W4']
@@ -39,7 +36,6 @@ sources = [
     'src/compiler.cpp',
     'src/muuk_toml_handler.cpp',
     'src/muuk_parser.cpp',
-    # 'src/test.cpp',
 ]
 
 [dependencies]

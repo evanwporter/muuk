@@ -19,7 +19,7 @@ namespace muuk {
 
         Result<void> parse(
             BuildManager& build_manager,
-            const muuk::Compiler compiler,
+            const Compiler compiler,
             const std::filesystem::path& build_dir,
             const std::string& profile);
 

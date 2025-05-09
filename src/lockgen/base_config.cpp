@@ -159,10 +159,10 @@ namespace muuk {
         }
 
         void Library::External::load(const toml::value& v) {
-            type = toml::find_or<std::string>(v, "type", "");
-            path = toml::find_or<std::string>(v, "path", "");
-            args = toml::find_or<std::vector<std::string>>(v, "args", {});
-            outputs = toml::find_or<std::vector<std::string>>(v, "outputs", {});
+            type = toml::try_find_or<std::string>(v, "type", "");
+            path = toml::try_find_or<std::string>(v, "path", "");
+            args = toml::try_find_or<std::vector<std::string>>(v, "args", {});
+            outputs = toml::try_find_or<std::vector<std::string>>(v, "outputs", {});
         }
 
         void Library::External::serialize(toml::value& out) const {
