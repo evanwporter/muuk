@@ -50,8 +50,9 @@ namespace muuk {
             flags = args_;
         }
 
-        LinkTarget::LinkTarget(const std::string exe, const std::vector<std::string> objs, const std::vector<std::string> libs, const std::vector<std::string> lflags) :
-            BuildTarget(exe, exe) {
+        LinkTarget::LinkTarget(const std::string exe, const std::vector<std::string> objs, const std::vector<std::string> libs, const std::vector<std::string> lflags, const BuildLinkType link_type_) :
+            BuildTarget(exe, exe),
+            link_type(link_type_) {
             inputs = objs;
             inputs.insert(inputs.end(), libs.begin(), libs.end());
             flags = lflags;

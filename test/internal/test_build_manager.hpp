@@ -1,8 +1,15 @@
-#include "../include/build/manager.hpp"
-#include "build/targets.hpp"
+#pragma once
+#ifndef TEST_BUILD_MANAGER_HPP
+#define TEST_BUILD_MANAGER_HPP
 #include <algorithm>
+
 #include <gtest/gtest.h>
 
+#include "../../include/compiler.hpp"
+#include "build/manager.hpp"
+#include "build/targets.hpp"
+
+using namespace muuk;
 using namespace muuk::build;
 
 class BuildManagerTest : public ::testing::Test {
@@ -71,7 +78,7 @@ TEST_F(BuildManagerTest, AddDuplicateArchiveTarget) {
 
 // Test adding a link target
 TEST_F(BuildManagerTest, AddLinkTarget) {
-    build_manager.add_link_target("myprogram", { "source.o", "utils.o" }, { "libmylib.a" }, { "-Llib" });
+    build_manager.add_link_target("myprogram", { "source.o", "utils.o" }, { "libmylib.a" }, { "-Llib" }, BuildLinkType::EXECUTABLE);
 
     auto link_targets = build_manager.get_link_targets();
     ASSERT_EQ(link_targets.size(), 1);
@@ -94,14 +101,14 @@ TEST_F(BuildManagerTest, AddEmptyArchiveTarget) {
 
 // Test adding link target with empty file paths
 TEST_F(BuildManagerTest, AddEmptyLinkTarget) {
-    build_manager.add_link_target("", {}, {}, {});
+    build_manager.add_link_target("", {}, {}, {}, BuildLinkType::EXECUTABLE);
     EXPECT_TRUE(build_manager.get_link_targets().empty()); // Should not add an empty entry
 }
 
 // Test circular dependency where an object depends on itself
 TEST_F(BuildManagerTest, CircularDependency) {
     build_manager.add_compilation_target("source.cpp", "source.o", {}, {});
-    build_manager.add_link_target("source.o", { "source.o" }, {}, {});
+    build_manager.add_link_target("source.o", { "source.o" }, {}, {}, BuildLinkType::EXECUTABLE);
 
     auto link_targets = build_manager.get_link_targets();
     ASSERT_EQ(link_targets.size(), 1);
@@ -154,7 +161,7 @@ TEST_F(BuildManagerTest, DuplicateObjectFilesInArchive) {
 
 // Test adding an executable that links against itself
 TEST_F(BuildManagerTest, ExecutableLinksToItself) {
-    build_manager.add_link_target("self_exec", { "self_exec" }, {}, {});
+    build_manager.add_link_target("self_exec", { "self_exec" }, {}, {}, BuildLinkType::EXECUTABLE);
 
     auto link_targets = build_manager.get_link_targets();
     ASSERT_EQ(link_targets.size(), 1);
@@ -162,3 +169,5 @@ TEST_F(BuildManagerTest, ExecutableLinksToItself) {
     // Ensure executable is incorrectly listed as an input
     EXPECT_NE(std::find(link_targets[0].inputs.begin(), link_targets[0].inputs.end(), "self_exec"), link_targets[0].inputs.end());
 }
+
+#endif // TEST_BUILD_MANAGER_HPP

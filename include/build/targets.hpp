@@ -1,4 +1,5 @@
 #pragma once
+#include "compiler.hpp"
 #ifndef NINJA_ENTRIES_H
 #define NINJA_ENTRIES_H
 
@@ -88,10 +89,14 @@ namespace muuk {
         class LinkTarget : public BuildTarget {
         public:
             LinkTarget(
-                std::string exe,
-                std::vector<std::string> objs,
-                std::vector<std::string> libs,
-                std::vector<std::string> lflags);
+                const std::string exe,
+                const std::vector<std::string> objs,
+                const std::vector<std::string> libs,
+                const std::vector<std::string> lflags,
+                const BuildLinkType link_type_);
+
+            const BuildLinkType link_type;
+
             virtual ~LinkTarget() = default;
         };
 

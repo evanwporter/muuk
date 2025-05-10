@@ -21,7 +21,7 @@ namespace muuk {
             static constexpr bool enable_compilers = false;
             static constexpr bool enable_platforms = false;
 
-            muuk::BuildLinkType link_type = muuk::BuildLinkType::BINARY;
+            muuk::BuildLinkType link_type = muuk::BuildLinkType::EXECUTABLE;
 
             void merge(const Package& package);
             Result<void> serialize(toml::value& out) const;

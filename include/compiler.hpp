@@ -86,12 +86,14 @@ namespace muuk {
     };
 
     enum class BuildLinkType {
-        BINARY,
+        EXECUTABLE,
         STATIC,
         SHARED
     };
 
     std::string to_string(BuildLinkType type);
+
+    BuildLinkType build_link_from_string(const std::string& str);
 
     std::string to_string(LinkType type);
 

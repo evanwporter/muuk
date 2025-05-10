@@ -93,14 +93,30 @@ namespace muuk {
         return Err("No valid profiles found in lockfile.");
     }
 
+    bool is_default_profile(const std::string& profile, const toml::value& config) {
+        if (!config.contains("profile") || !config.at("profile").is_table())
+            return false;
+
+        const auto& profiles = config.at("profile").as_table();
+        if (!profiles.contains(profile))
+            return false;
+
+        if (!profiles.at(profile).contains("default"))
+            return false;
+
+        return profiles.at(profile).at("default").as_boolean();
+    }
+
     Result<void> add_script(const std::string& profile, const std::string& build_name) {
-        (void)build_name;
 
         auto result = muuk::parse_muuk_file<toml::ordered>("muuk.toml");
         if (!result)
             return Err(result.error());
 
         auto config = result.value();
+
+        if (!is_default_profile(profile, config))
+            return {};
 
 #ifdef _WIN32
         std::string executable_path = "build/"

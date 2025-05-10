@@ -2,6 +2,7 @@
 
 #include "build/manager.hpp"
 #include "build/targets.hpp"
+#include "compiler.hpp"
 #include "logger.hpp"
 
 namespace muuk {
@@ -35,14 +36,14 @@ namespace muuk {
             }
         }
 
-        void BuildManager::add_link_target(const std::string exe, const std::vector<std::string> objs, const std::vector<std::string> libs, const std::vector<std::string> lflags) {
+        void BuildManager::add_link_target(const std::string exe, const std::vector<std::string> objs, const std::vector<std::string> libs, const std::vector<std::string> lflags, const BuildLinkType link_type) {
             if (exe.empty() || objs.empty()) {
                 // TODO: It can have no object files
                 muuk::logger::error("Link target must have an executable name and at least one object file.");
                 return;
             }
 
-            link_targets.emplace_back(exe, objs, libs, lflags);
+            link_targets.emplace_back(exe, objs, libs, lflags, link_type);
         }
 
         std::vector<CompilationTarget>& BuildManager::get_compilation_targets() {

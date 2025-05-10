@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "build/targets.hpp"
+#include "compiler.hpp"
 
 namespace muuk {
     namespace build {
@@ -42,7 +43,8 @@ namespace muuk {
                 const std::string exe,
                 const std::vector<std::string> objs,
                 const std::vector<std::string> libs,
-                const std::vector<std::string> lflags);
+                const std::vector<std::string> lflags,
+                const BuildLinkType link_type);
 
             std::vector<CompilationTarget>& get_compilation_targets();
             const std::vector<CompilationTarget>& get_compilation_targets() const;

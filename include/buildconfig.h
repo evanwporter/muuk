@@ -7,12 +7,18 @@
 
 #ifdef _WIN32
 constexpr const char* OBJ_EXT = ".obj";
-constexpr const char* LIB_EXT = ".lib";
+constexpr const char* LIB_EXT = ".lib"; // static
+constexpr const char* SHARED_LIB_EXT = ".dll"; // shared
 constexpr const char* EXE_EXT = ".exe";
 #else // Linux/macOS
 constexpr const char* OBJ_EXT = ".o";
-constexpr const char* LIB_EXT = ".a";
+constexpr const char* LIB_EXT = ".a"; // static
 constexpr const char* EXE_EXT = "";
+#ifdef __APPLE__
+constexpr const char* SHARED_LIB_EXT = ".dylib"; // shared
+#elif __linux__
+constexpr const char* SHARED_LIB_EXT = ".so"; // shared
+#endif
 #endif
 
 constexpr const char* DEPENDENCY_FOLDER = "deps";

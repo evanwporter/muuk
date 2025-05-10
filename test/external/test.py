@@ -20,7 +20,7 @@ def print_directory_tree(root_path):
 
 
 @pytest.fixture
-def simple_project_dir():
+def test_simple_setup():
     with tempfile.TemporaryDirectory() as temp_dir:
         src_dir = os.path.join(temp_dir, "src")
         os.makedirs(src_dir, exist_ok=True)
@@ -57,7 +57,7 @@ def simple_project_dir():
 
 
 @pytest.fixture
-def module_project_dir():
+def test_modules():
     with tempfile.TemporaryDirectory() as temp_dir:
         src_dir = os.path.join(temp_dir, "src")
         os.makedirs(src_dir, exist_ok=True)
@@ -109,8 +109,81 @@ def module_project_dir():
         yield temp_dir
 
 
+@pytest.fixture
+def test_static_lib():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        src_dir = os.path.join(temp_dir, "src")
+        os.makedirs(src_dir, exist_ok=True)
+
+        build_path = os.path.join(temp_dir, "build")
+        os.makedirs(build_path, exist_ok=True)
+
+        # Create a basic C++ source file
+        with open(os.path.join(src_dir, "lib.cpp"), "w") as f:
+            f.write("int add(int a, int b) { return a + b; }")
+
+        toml_content = textwrap.dedent("""\
+            [package]
+            name = "tiny_lib"
+            version = "0.1.0"
+            edition = "20"
+
+            [build.bin]
+            profile = ["debug"]
+            link = "static"
+            sources = ["src/lib.cpp"]
+            
+            [profile.debug]
+            cflags = ["-g", "/FS"]
+            lflags = []
+            default = true
+        """)
+
+        with open(os.path.join(temp_dir, "muuk.toml"), "w") as f:
+            f.write(toml_content)
+
+        yield temp_dir
+
+
+@pytest.fixture
+def test_shared_lib():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        src_dir = os.path.join(temp_dir, "src")
+        os.makedirs(src_dir, exist_ok=True)
+
+        build_path = os.path.join(temp_dir, "build")
+        os.makedirs(build_path, exist_ok=True)
+
+        # Create a basic C++ source file
+        with open(os.path.join(src_dir, "lib.cpp"), "w") as f:
+            f.write("int add(int a, int b) { return a + b; }")
+
+        toml_content = textwrap.dedent("""\
+            [package]
+            name = "tiny_lib"
+            version = "0.1.0"
+            edition = "20"
+
+            [build.bin]
+            profile = ["debug"]
+            link = "shared"
+            sources = ["src/lib.cpp"]
+            
+            [profile.debug]
+            cflags = ["-g", "/FS"]
+            lflags = []
+            default = true
+        """)
+
+        with open(os.path.join(temp_dir, "muuk.toml"), "w") as f:
+            f.write(toml_content)
+
+        yield temp_dir
+
+
 @pytest.mark.parametrize(
-    "project_dir_fixture", ["simple_project_dir", "module_project_dir"]
+    "project_dir_fixture",
+    ["test_simple_setup", "test_modules", "test_static_lib", "test_shared_lib"],
 )
 def test_muuk_build(request, project_dir_fixture):
     project_dir = request.getfixturevalue(project_dir_fixture)
@@ -140,8 +213,25 @@ def test_muuk_build(request, project_dir_fixture):
         else:
             print("\n--- build.ninja not found ---")
 
-    expected_bin = os.path.join(project_dir, "build", "debug", "bin.exe")
-    assert os.path.isfile(expected_bin), f"Expected binary not found: {expected_bin}"
+        if "static_lib" in project_dir_fixture:
+            expected_lib = os.path.join(
+                project_dir, "build", "debug", "bin.lib"
+            )  # TODO: `.a` for Unix
+            assert os.path.isfile(expected_lib), (
+                f"Expected library not found: {expected_lib}"
+            )
+        elif "shared_lib" in project_dir_fixture:
+            expected_lib = os.path.join(
+                project_dir, "build", "debug", "bin.dll"
+            )  # TODO: `.so` for Linux
+            assert os.path.isfile(expected_lib), (
+                f"Expected library not found: {expected_lib}"
+            )
+        else:
+            expected_bin = os.path.join(project_dir, "build", "debug", "bin.exe")
+            assert os.path.isfile(expected_bin), (
+                f"Expected binary not found: {expected_bin}"
+            )
 
 
 if __name__ == "__main__":

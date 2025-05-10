@@ -4,8 +4,8 @@ version = '1.0.0'
 edition = '20'
 
 [scripts]
-muuk = "build/release/muuk.exe"
-test = "build/release/test.exe"
+muuk = "build/debug/muuk.exe"
+test = "build/debug/test.exe"
 
 [library]
 cflags = ['/W4']

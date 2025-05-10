@@ -186,7 +186,7 @@ namespace muuk {
 
     std::string to_string(BuildLinkType type) {
         switch (type) {
-        case BuildLinkType::BINARY:
+        case BuildLinkType::EXECUTABLE:
             return "binary";
         case BuildLinkType::STATIC:
             return "static";
@@ -195,6 +195,17 @@ namespace muuk {
         default:
             return "";
         }
+    }
+
+    BuildLinkType build_link_from_string(const std::string& str) {
+        if (str == "binary")
+            return BuildLinkType::EXECUTABLE;
+        else if (str == "static")
+            return BuildLinkType::STATIC;
+        else if (str == "shared")
+            return BuildLinkType::SHARED;
+        else
+            return BuildLinkType::EXECUTABLE; // Default
     }
 
     std::string to_string(LinkType type) {

@@ -12,6 +12,7 @@
 #include "build/parser.hpp"
 #include "build/targets.hpp"
 #include "buildconfig.h"
+#include "compiler.hpp"
 #include "logger.hpp"
 #include "muuk.hpp"
 #include "muuk_parser.hpp"
@@ -360,6 +361,8 @@ namespace muuk {
                 const auto& build_table = entry.as_table();
                 const std::string executable_name = build_table.at("name").as_string();
 
+                const auto link_type = build_link_from_string(build_table.at("link").as_string());
+
                 // Profile matching
                 if (build_table.contains("profiles")) {
                     bool matched = false;
@@ -373,9 +376,22 @@ namespace muuk {
                         continue;
                 }
 
-                // Prepare build paths
-                const auto exe_path = util::file_system::to_linux_path(
-                    (build_dir / (executable_name + EXE_EXT)).string(), "../../");
+                std::string extension;
+                switch (link_type) {
+                case BuildLinkType::SHARED:
+                    extension = SHARED_LIB_EXT; // e.g. ".dll", ".so", ".dylib"
+                    break;
+                case BuildLinkType::STATIC:
+                    extension = LIB_EXT; // e.g. ".lib", ".a"
+                    break;
+                case BuildLinkType::EXECUTABLE:
+                default:
+                    extension = EXE_EXT; // e.g. ".exe" or ""
+                    break;
+                }
+
+                const auto output_path = util::file_system::to_linux_path(
+                    (build_dir / (executable_name + extension)).string(), "../../");
 
                 std::vector<std::string> obj_files;
                 std::vector<std::string> libs;
@@ -432,9 +448,14 @@ namespace muuk {
                 muuk::normalize_flags_inplace(lflags, compiler);
 
                 // Register build
-                build_manager.add_link_target(exe_path, obj_files, libs, lflags);
+                build_manager.add_link_target(
+                    output_path,
+                    obj_files,
+                    libs,
+                    lflags,
+                    link_type);
 
-                muuk::logger::info("Added link target: {}", exe_path);
+                muuk::logger::info("Added link target: {}", output_path);
                 muuk::logger::trace("  - Object Files: '{}'", fmt::join(obj_files, "', '"));
                 muuk::logger::trace("  - Libraries: '{}'", fmt::join(libs, "', '"));
                 muuk::logger::trace("  - Linker Flags: '{}'", fmt::join(lflags, "', '"));

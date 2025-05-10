@@ -163,7 +163,22 @@ namespace muuk {
 
         std::string NinjaBackend::generate_rule(const LinkTarget& target) const {
             std::ostringstream rule;
-            rule << "build " << target.output << ": link";
+
+            switch (target.link_type) {
+            case BuildLinkType::STATIC:
+                rule << "build " << target.output << ": archive";
+                break;
+
+            case BuildLinkType::SHARED:
+                rule << "build " << target.output << ": link_shared";
+                break;
+
+            case BuildLinkType::EXECUTABLE:
+            default:
+                rule << "build " << target.output << ": link";
+                break;
+            }
+
             for (const auto& obj : target.inputs)
                 rule << " " << obj;
 
@@ -258,7 +273,11 @@ namespace muuk {
 
                     << "rule link\n"
                     << "  command = $linker $in /OUT:$out $lflags $profile_lflags $libraries\n"
-                    << "  description = Linking $out\n\n";
+                    << "  description = Linking $out\n\n"
+
+                    << "rule link_shared\n"
+                    << "  command = $linker $in /DLL /OUT:$out $lflags $profile_lflags $libraries\n"
+                    << "  description = Linking shared library $out\n\n";
 
             } else {
                 // MinGW or Clang on Windows / Unix
@@ -272,7 +291,11 @@ namespace muuk {
 
                     << "rule link\n"
                     << "  command = $linker $in -o $out $lflags $profile_lflags $libraries\n"
-                    << "  description = Linking $out\n\n";
+                    << "  description = Linking $out\n\n"
+
+                    << "rule link_shared\n"
+                    << "  command = $cxx -shared $in -o $out $lflags $profile_lflags $libraries\n"
+                    << "  description = Linking shared library $out\n\n";
             }
 
             out << "# ------------------------------------------------------------\n"

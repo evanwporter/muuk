@@ -260,13 +260,11 @@ namespace muuk {
             profiles = toml::try_find_or<std::unordered_set<std::string>>(v, "profile", {});
 
             // Get the link type
-            const auto& link_res = toml::try_find_or<std::string>(v, "link", "");
-            if (link_res == "static")
-                link_type = muuk::BuildLinkType::STATIC;
-            else if (link_res == "shared")
-                link_type = muuk::BuildLinkType::SHARED;
-            else if (link_res == "binary")
-                link_type = muuk::BuildLinkType::BINARY;
+            link_type = build_link_from_string(
+                toml::try_find_or<std::string>(
+                    v,
+                    "link",
+                    ""));
 
             // Load dependencies
             for (const auto& [dep_name, versions] : dependencies)
