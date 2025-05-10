@@ -8,8 +8,6 @@
 
 #include <toml.hpp>
 
-#include "rustify.hpp"
-
 namespace muuk {
 
     namespace validation {
@@ -129,7 +127,8 @@ namespace muuk {
         const SchemaMap package_schema = {
             {"name", {true, TomlType::String}},
             {"version", {true, TomlType::String}},
-            {"edition", {false, TomlType::String}},
+            {"cxx_standard", {false, TomlType::String}},
+            {"c_standard", {false, TomlType::String}},
             {"git", {false, TomlType::String}},
             {"description", {false, TomlType::String}},
             {"license", {false, TomlType::String}},

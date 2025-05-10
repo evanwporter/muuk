@@ -161,7 +161,9 @@ namespace muuk {
             // Fallback to pkg-config or system tools
             if (include_path.empty() || lib_path.empty()) {
 #ifdef _WIN32
-                muuk::logger::warn("System dependency '{}' resolution on Windows is limited. Ensure proper path is provided.", package_name);
+                muuk::logger::warn(
+                    "System dependency '{}' resolution on Windows is limited. Ensure proper path is provided.",
+                    package_name);
 #else
                 muuk::logger::info("Using pkg-config for '{}'", package_name);
                 include_path = util::command_line::execute_command("pkg-config --cflags-only-I " + package_name + " | sed 's/-I//' | tr -d '\n'");

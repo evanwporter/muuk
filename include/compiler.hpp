@@ -40,7 +40,9 @@ namespace muuk {
         Type type_;
     };
 
-    class Edition {
+    // Inspired by Ken Matsui @ Cabin
+    // https://github.com/cabinpkg/cabin/blob/1031568a40abb4d9e915bb1c537d62a502603d1c/src/Manifest.hpp#L25-L60
+    class CXX_Standard {
     public:
         enum class Year {
             Cpp98 = 1998,
@@ -54,26 +56,84 @@ namespace muuk {
             Unknown = 0
         };
 
-        Edition() :
+        CXX_Standard() :
             year_(Year::Unknown) { }
 
-        explicit Edition(Year year) :
+        explicit CXX_Standard(Year year) :
             year_(year) { }
 
-        static std::optional<Edition> from_string(const std::string& str);
+        static CXX_Standard from_string(const std::string& str);
         std::string to_string() const;
         std::string to_flag(const Compiler& compiler) const;
         std::string to_flag() const;
 
-        static const Edition Cpp98;
-        static const Edition Cpp03;
-        static const Edition Cpp11;
-        static const Edition Cpp14;
-        static const Edition Cpp17;
-        static const Edition Cpp20;
-        static const Edition Cpp23;
-        static const Edition Cpp26;
-        static const Edition Unknown;
+        // Comparison operators
+        bool operator==(const CXX_Standard& other) const {
+            return year_ == other.year_;
+        }
+
+        bool operator!=(const CXX_Standard& other) const {
+            return !(*this == other);
+        }
+
+        bool operator<(const CXX_Standard& other) const {
+            return static_cast<int>(year_) < static_cast<int>(other.year_);
+        }
+
+        bool operator<=(const CXX_Standard& other) const {
+            return *this < other || *this == other;
+        }
+
+        bool operator>(const CXX_Standard& other) const {
+            return !(*this <= other);
+        }
+
+        bool operator>=(const CXX_Standard& other) const {
+            return !(*this < other);
+        }
+
+        static const CXX_Standard Cpp98;
+        static const CXX_Standard Cpp03;
+        static const CXX_Standard Cpp11;
+        static const CXX_Standard Cpp14;
+        static const CXX_Standard Cpp17;
+        static const CXX_Standard Cpp20;
+        static const CXX_Standard Cpp23;
+        static const CXX_Standard Cpp26;
+        static const CXX_Standard Unknown;
+
+    private:
+        Year year_;
+    };
+
+    class C_Standard {
+    public:
+        enum class Year {
+            C89 = 1989,
+            C99 = 1999,
+            C11 = 2011,
+            C17 = 2017,
+            C23 = 2023,
+            Unknown = 0
+        };
+
+        C_Standard() :
+            year_(Year::Unknown) { }
+
+        explicit C_Standard(Year year) :
+            year_(year) { }
+
+        static std::optional<C_Standard> from_string(const std::string& str);
+        std::string to_string() const;
+        std::string to_flag(const Compiler& compiler) const;
+        std::string to_flag() const;
+
+        static const C_Standard C89;
+        static const C_Standard C99;
+        static const C_Standard C11;
+        static const C_Standard C17;
+        static const C_Standard C23;
+        static const C_Standard Unknown;
 
     private:
         Year year_;

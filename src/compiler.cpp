@@ -81,17 +81,17 @@ namespace muuk {
         return to_string();
     }
 
-    const Edition Edition::Cpp98(Edition::Year::Cpp98);
-    const Edition Edition::Cpp03(Edition::Year::Cpp03);
-    const Edition Edition::Cpp11(Edition::Year::Cpp11);
-    const Edition Edition::Cpp14(Edition::Year::Cpp14);
-    const Edition Edition::Cpp17(Edition::Year::Cpp17);
-    const Edition Edition::Cpp20(Edition::Year::Cpp20);
-    const Edition Edition::Cpp23(Edition::Year::Cpp23);
-    const Edition Edition::Cpp26(Edition::Year::Cpp26);
-    const Edition Edition::Unknown(Edition::Year::Unknown);
+    const CXX_Standard CXX_Standard::Cpp98(CXX_Standard::Year::Cpp98);
+    const CXX_Standard CXX_Standard::Cpp03(CXX_Standard::Year::Cpp03);
+    const CXX_Standard CXX_Standard::Cpp11(CXX_Standard::Year::Cpp11);
+    const CXX_Standard CXX_Standard::Cpp14(CXX_Standard::Year::Cpp14);
+    const CXX_Standard CXX_Standard::Cpp17(CXX_Standard::Year::Cpp17);
+    const CXX_Standard CXX_Standard::Cpp20(CXX_Standard::Year::Cpp20);
+    const CXX_Standard CXX_Standard::Cpp23(CXX_Standard::Year::Cpp23);
+    const CXX_Standard CXX_Standard::Cpp26(CXX_Standard::Year::Cpp26);
+    const CXX_Standard CXX_Standard::Unknown(CXX_Standard::Year::Unknown);
 
-    std::optional<Edition> Edition::from_string(const std::string& str) {
+    CXX_Standard CXX_Standard::from_string(const std::string& str) {
         static const std::unordered_map<std::string, Year> editionMap = {
             { "98", Year::Cpp98 },
             { "03", Year::Cpp03 },
@@ -109,7 +109,7 @@ namespace muuk {
         };
 
         if (str.size() < 2) {
-            return std::nullopt; // Not enough characters to determine edition
+            return CXX_Standard::Unknown; // Not enough characters to determine edition
         }
 
         // Extract the last two characters
@@ -117,12 +117,12 @@ namespace muuk {
 
         auto it = editionMap.find(lastTwo);
         if (it != editionMap.end()) {
-            return Edition(it->second);
+            return CXX_Standard(it->second);
         }
-        return std::nullopt;
+        return CXX_Standard::Unknown;
     }
 
-    std::string Edition::to_string() const {
+    std::string CXX_Standard::to_string() const {
         switch (year_) {
         case Year::Cpp98:
             return "C++98";
@@ -145,8 +145,8 @@ namespace muuk {
         }
     }
 
-    // Convert an Edition to a compiler-specific flag
-    std::string Edition::to_flag(const Compiler& compiler) const {
+    // Convert an CXX_Standard to a compiler-specific flag
+    std::string CXX_Standard::to_flag(const Compiler& compiler) const {
         static const std::unordered_map<Year, std::string> gccClangFlags = {
             { Year::Cpp98, "-std=c++98" },
             { Year::Cpp03, "-std=c++03" },
@@ -180,7 +180,7 @@ namespace muuk {
         }
     }
 
-    std::string Edition::to_flag() const {
+    std::string CXX_Standard::to_flag() const {
         return to_flag(Compiler::GCC); // Default to GCC
     }
 

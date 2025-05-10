@@ -1,7 +1,9 @@
 [package]
 name = 'muuk'
-version = '1.0.0'
+version = '0.0.5'
 edition = '20'
+cxx_standard = '20'
+c_standard = "c23"
 
 [scripts]
 muuk = "build/debug/muuk.exe"

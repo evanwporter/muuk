@@ -14,6 +14,7 @@
 #include "muuk.hpp"
 #include "muuk_parser.hpp"
 #include "rustify.hpp"
+#include "toml_ext.hpp"
 #include "util.hpp"
 
 namespace fs = std::filesystem;
@@ -37,8 +38,6 @@ namespace muuk {
         /// Generates a Package object from the parsed muuk.toml file.
         Result<void> MuukLockGenerator::parse_muuk_toml(const std::string& path, bool is_base) {
             muuk::logger::trace("Attempting to parse muuk.toml: {}", path);
-            if (!fs::exists(path))
-                return make_error<EC::FileNotFound>(path);
 
             auto result_muuk = muuk::parse_muuk_file(path);
             if (!result_muuk)
@@ -88,12 +87,36 @@ namespace muuk {
             if (data.contains("platform"))
                 package->platforms_config.load(data["platform"], base_path);
 
+            auto edition = CXX_Standard::from_string(
+                toml::try_find_or(
+                    data["package"],
+                    "cxx_standard",
+                    std::string {}));
+
+            // If this is the base project, just store its edition
+            if (is_base) {
+                base_cxx_standard = edition;
+            }
+
+            // If one of the dependencies requires a newer standard, upgrade the base standard
+            else {
+                if (edition > base_cxx_standard) {
+                    muuk::logger::warn(
+                        "Dependency '{}' (v{}) requires C++ standard {}, which is newer than base project's standard {}. "
+                        "Upgrading base standard to {}.",
+                        package_name,
+                        package_version,
+                        edition.to_string(),
+                        base_cxx_standard.to_string(),
+                        edition.to_string());
+                    base_cxx_standard = edition;
+                }
+            }
+
             resolved_packages[package_name][package_version] = package;
 
             if (is_base) {
-                // TODO parse this out of regular libraries as well
-                // and compare with the base package
-                edition_ = muuk::Edition::from_string(data["package"]["edition"].as_string()).value_or(muuk::Edition::Unknown);
+
                 parse_profile(data);
 
                 base_package_ = package;

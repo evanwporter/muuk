@@ -1,3 +1,4 @@
+#pragma once
 #ifndef MUUK_LOCK_GEN_H
 #define MUUK_LOCK_GEN_H
 
@@ -35,7 +36,12 @@ namespace muuk {
             Result<void> generate_cache(const std::string& output_path);
 
         private:
-            muuk::Edition edition_;
+            // TODO: Use this somewhere`
+            /// The C++ standard to use for the project.
+            CXX_Standard base_cxx_standard;
+
+            /// The C standard to use for the project.
+            C_Standard base_c_standard;
 
             std::string base_path_;
 
