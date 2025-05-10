@@ -56,8 +56,17 @@ namespace muuk {
             /// Library build settings (cflags, sources, modules, etc.) `[library]`.
             Library library_config;
 
-            /// (BUILD ONLY) profiles parsed from [profile.*] sections.
-            std::unordered_map<std::string, ProfileConfig> profiles_config;
+            /// This is chiefly used for the resolve_system_dependency function
+            /// to add include paths to the library config.
+            void add_include_path(std::string path) {
+                library_config.include.insert(path);
+            }
+
+            /// This is chiefly used for the resolve_system_dependency function
+            /// to add library paths to the library config.
+            void add_lib_path(std::string path) {
+                library_config.libs.push_back(lib_file(path));
+            }
 
         private:
             static void serialize_dependencies(

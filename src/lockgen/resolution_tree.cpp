@@ -123,82 +123,82 @@ namespace muuk {
 
         // TODO: This need to be redone
         void MuukLockGenerator::resolve_system_dependency(const std::string& package_name, std::shared_ptr<Package> package) {
-            //     muuk::logger::info("Resolving system dependency: '{}'", package_name);
+            muuk::logger::info("Resolving system dependency: '{}'", package_name);
 
-            //     std::string include_path, lib_path;
+            std::string include_path, lib_path;
 
-            //     // Attempt to find the dependency in the main dependency map
-            //     std::shared_ptr<Dependency> dep_info;
-            //     if (dependencies_.count(package_name)) {
-            //         for (const auto& [_, ptr] : dependencies_[package_name]) {
-            //             if (ptr) {
-            //                 dep_info = ptr;
-            //                 break;
-            //             }
-            //         }
-            //     }
+            // Attempt to find the dependency in the main dependency map
+            std::shared_ptr<Dependency> dep_info;
+            if (dependencies_.count(package_name)) {
+                for (const auto& [_, ptr] : dependencies_[package_name]) {
+                    if (ptr) {
+                        dep_info = ptr;
+                        break;
+                    }
+                }
+            }
 
-            //     std::optional<std::string> custom_path;
-            //     if (dep_info && !dep_info->path.empty()) {
-            //         custom_path = dep_info->path;
-            //         muuk::logger::info("Using custom path '{}' for system dependency '{}'", *custom_path, package_name);
-            //     }
+            std::optional<std::string> custom_path;
+            if (dep_info && !dep_info->path.empty()) {
+                custom_path = dep_info->path;
+                muuk::logger::info("Using custom path '{}' for system dependency '{}'", *custom_path, package_name);
+            }
 
-            //     // Check custom path
-            //     if (custom_path && fs::exists(*custom_path)) {
-            //         muuk::logger::info("Checking custom path for '{}': {}", package_name, *custom_path);
+            // Check custom path
+            if (custom_path && fs::exists(*custom_path)) {
+                muuk::logger::info("Checking custom path for '{}': {}", package_name, *custom_path);
 
-            //         // Search for include and lib manually under path
-            //         fs::path inc_dir = fs::path(*custom_path) / "include";
-            //         fs::path lib_dir = fs::path(*custom_path) / "lib";
+                // Search for include and lib manually under path
+                fs::path inc_dir = fs::path(*custom_path) / "include";
+                fs::path lib_dir = fs::path(*custom_path) / "lib";
 
-            //         if (fs::exists(inc_dir))
-            //             include_path = inc_dir.string();
-            //         if (fs::exists(lib_dir))
-            //             lib_path = lib_dir.string();
-            //     }
+                if (fs::exists(inc_dir))
+                    include_path = inc_dir.string();
+                if (fs::exists(lib_dir))
+                    lib_path = lib_dir.string();
+            }
 
-            //     // Fallback to pkg-config or system tools
-            //     if (include_path.empty() || lib_path.empty()) {
-            // #ifdef _WIN32
-            //         muuk::logger::warn("System dependency '{}' resolution on Windows is limited. Ensure proper path is provided.", package_name);
-            // #else
-            //         muuk::logger::info("Using pkg-config for '{}'", package_name);
-            //         include_path = util::command_line::execute_command("pkg-config --cflags-only-I " + package_name + " | sed 's/-I//' | tr -d '\n'");
-            //         lib_path = util::command_line::execute_command("pkg-config --libs-only-L " + package_name + " | sed 's/-L//' | tr -d '\n'");
-            // #endif
-            //     }
+            // Fallback to pkg-config or system tools
+            if (include_path.empty() || lib_path.empty()) {
+#ifdef _WIN32
+                muuk::logger::warn("System dependency '{}' resolution on Windows is limited. Ensure proper path is provided.", package_name);
+#else
+                muuk::logger::info("Using pkg-config for '{}'", package_name);
+                include_path = util::command_line::execute_command("pkg-config --cflags-only-I " + package_name + " | sed 's/-I//' | tr -d '\n'");
+                lib_path = util::command_line::execute_command("pkg-config --libs-only-L " + package_name + " | sed 's/-L//' | tr -d '\n'");
+#endif
+            }
 
-            //     // Save resolved paths
-            //     if (!include_path.empty() && util::file_system::path_exists(include_path)) {
-            //         system_include_paths_.insert(include_path);
-            //         if (package)
-            //             package->add_include_path(include_path);
-            //         muuk::logger::info("  - Resolved Include Path: {}", include_path);
-            //     } else {
-            //         muuk::logger::warn("  - Include path for '{}' not found.", package_name);
-            //     }
+            // Save resolved paths
+            if (!include_path.empty() && util::file_system::path_exists(include_path)) {
+                system_include_paths_.insert(include_path);
+                if (package)
+                    package->add_include_path(include_path);
+                muuk::logger::info("  - Resolved Include Path: {}", include_path);
+            } else {
+                muuk::logger::warn("  - Include path for '{}' not found.", package_name);
+            }
 
-            //     if (!lib_path.empty() && fs::exists(lib_path)) {
-            //         system_library_paths_.insert(lib_path);
-            //         if (package)
-            //             package->libs.push_back(lib_path);
-            //         muuk::logger::info("  - Resolved Library Path: {}", lib_path);
-            //     } else {
-            //         muuk::logger::warn("  - Library path for '{}' not found.", package_name);
-            //     }
+            if (!lib_path.empty() && fs::exists(lib_path)) {
+                system_library_paths_.insert(lib_path);
+                if (package)
+                    package->add_lib_path(lib_path);
+                muuk::logger::info("  - Resolved Library Path: {}", lib_path);
+            } else {
+                muuk::logger::warn("  - Library path for '{}' not found.", package_name);
+            }
 
-            //     // Add specified libs to package
-            //     if (package && dep_info && !dep_info->libs.empty()) {
-            //         muuk::logger::info("  - Linking specified libs for '{}': {}", package_name, fmt::join(dep_info->libs, ", "));
-            //         for (const auto& lib : dep_info->libs) {
-            //             package->libs.push_back(lib);
-            //         }
-            //     }
+            // Add specified libs to package
+            if (package && dep_info && !dep_info->libs.empty()) {
+                // muuk::logger::info("  - Linking specified libs for '{}': {}", package_name, fmt::join(dep_info->libs, ", "));
+                for (const auto& lib : dep_info->libs) {
+                    package->add_lib_path(lib);
+                }
+            }
 
-            //     if (include_path.empty() && lib_path.empty() && (!dep_info || dep_info->libs.empty())) {
-            //         muuk::logger::error("Failed to resolve system dependency '{}'. Provide a valid path or ensure it is installed.", package_name);
-            //     }
+            if (include_path.empty() && lib_path.empty() && (!dep_info || dep_info->libs.empty())) {
+                muuk::logger::error("Failed to resolve system dependency '{}'. Provide a valid path or ensure it is installed.", package_name);
+            }
         }
 
         // Cycle detection using Kahn's algorithm

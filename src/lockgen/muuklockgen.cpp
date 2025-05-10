@@ -105,12 +105,6 @@ namespace muuk {
                     builds_[build_name] = build;
                 }
 
-                if (data.contains("profile"))
-                    for (const auto& [profile_name, profile_data] : data["profile"].as_table()) {
-                        package->profiles_config[profile_name] = {};
-                        package->profiles_config[profile_name].load(profile_data.as_table(), profile_name, base_path);
-                    }
-
             } // if (is_base)
 
             return {};
