@@ -54,7 +54,6 @@ namespace muuk {
 
         { "lto", FlagCategory::Advanced, { "-flto", "-flto", "/GL" } },
         { "march_native", FlagCategory::Advanced, { "-march=native", "-march=native", "/arch:AVX2" } },
-        { "cpp_std_17", FlagCategory::Advanced, { "-std=c++17", "-std=c++17", "/std:c++17" } },
         { "no_exceptions", FlagCategory::Advanced, { "-fno-exceptions", "-fno-exceptions", "/EHs-c-" } },
         { "no_rtti", FlagCategory::Advanced, { "-fno-rtti", "-fno-rtti", "/GR-" } },
 

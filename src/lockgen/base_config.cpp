@@ -147,7 +147,12 @@ namespace muuk {
         void ProfileConfig::load(const toml::value& v, const std::string& profile_name, const std::string& base_path) {
             BaseConfig<ProfileConfig>::load(v, base_path);
             name = profile_name;
-            inherits = toml::find_or<std::vector<std::string>>(v, "inherits", {});
+            inherits = toml::try_find_or<std::vector<std::string>>(
+                v,
+                "inherits",
+                {});
+            lockgen::load(settings, v);
+            lockgen::load(sanitizers, v);
         }
 
         void ProfileConfig::serialize(toml::value& out) const {
@@ -156,6 +161,9 @@ namespace muuk {
             // Serialize inheritance
             if (!inherits.empty())
                 out["inherits"] = inherits;
+
+            lockgen::serialize(settings, out);
+            lockgen::serialize(sanitizers, out);
         }
 
         void Library::External::load(const toml::value& v) {
