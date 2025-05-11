@@ -16,6 +16,7 @@
 #include "logger.hpp"
 #include "muuk.hpp"
 #include "muuk_parser.hpp"
+#include "opt_level.hpp"
 #include "rustify.hpp"
 #include "util.hpp"
 
@@ -41,13 +42,95 @@ namespace muuk {
             if (!profile_table.contains(profile))
                 return Err("Profile '{}' does not exist in the configuration.", profile);
 
-            auto profile_entry = profile_table.at(profile).as_table();
+            auto profile_entry = profile_table.at(profile);
 
             BuildProfile build_profile;
             build_profile.cflags = muuk::parse_array_as_vec(profile_entry, "cflags");
             build_profile.aflags = muuk::parse_array_as_vec(profile_entry, "aflags");
             build_profile.lflags = muuk::parse_array_as_vec(profile_entry, "lflags");
             build_profile.defines = muuk::parse_array_as_vec(profile_entry, "defines", "-D");
+
+            // --- Link Type Optimization ---
+            if (profile_entry.at("lto").as_boolean()) {
+                muuk::logger::info("LTO enabled for profile '{}'", profile);
+                switch (compiler.getType()) {
+                case Compiler::Type::GCC:
+                case Compiler::Type::Clang:
+                    build_profile.cflags.push_back("-flto");
+                    build_profile.lflags.push_back("-flto");
+                    break;
+                case Compiler::Type::MSVC:
+                    build_profile.cflags.push_back("/GL");
+                    build_profile.lflags.push_back("/LTCG");
+                    break;
+                }
+            }
+
+            // --- Debug ---
+            if (profile_entry.at("debug").as_boolean()) {
+                muuk::logger::info("LTO enabled for profile '{}'", profile);
+                switch (compiler.getType()) {
+                case Compiler::Type::GCC:
+                case Compiler::Type::Clang:
+                    build_profile.cflags.push_back("-g");
+                    break;
+                case Compiler::Type::MSVC:
+                    build_profile.cflags.push_back("/Zi");
+                    build_profile.lflags.push_back("/DEBUG");
+                    break;
+                }
+            }
+
+            // --- Debug Assertions ---
+            if (!profile_entry.at("debug-assertions").as_boolean()) {
+                muuk::logger::info("LTO enabled for profile '{}'", profile);
+                switch (compiler.getType()) {
+                case Compiler::Type::GCC:
+                case Compiler::Type::Clang:
+                    build_profile.cflags.push_back("-DNDEBUG");
+                    break;
+                case Compiler::Type::MSVC:
+                    build_profile.cflags.push_back("/DNDEBUG");
+                    break;
+                }
+            }
+
+            // --- Optimization Level ---
+            build_profile.cflags.push_back(to_flag(
+                opt_lvl_from_string(profile_entry.at("opt-level").as_string()),
+                compiler.getType()));
+
+            // --- Sanitizers ---
+            if (profile_entry.contains("sanitizers") && profile_entry.at("sanitizers").is_array()) {
+                for (const auto& item : profile_entry.at("sanitizers").as_array()) {
+                    if (!item.is_string())
+                        continue;
+
+                    const std::string name = item.as_string();
+
+                    switch (compiler.getType()) {
+                    case Compiler::Type::GCC:
+                    case Compiler::Type::Clang:
+                        if (name == "address")
+                            build_profile.cflags.push_back("-fsanitize=address");
+                        else if (name == "thread")
+                            build_profile.cflags.push_back("-fsanitize=thread");
+                        else if (name == "undefined")
+                            build_profile.cflags.push_back("-fsanitize=undefined");
+                        else if (name == "memory")
+                            build_profile.cflags.push_back("-fsanitize=memory");
+                        else if (compiler.getType() == Compiler::Type::Clang && name == "leak")
+                            build_profile.cflags.push_back("-fsanitize=leak");
+                        break;
+
+                    case Compiler::Type::MSVC:
+                        if (name == "address")
+                            build_profile.cflags.push_back("/fsanitize=address");
+                        // No leak, memory, or thread sanitizers in MSVC
+                        break;
+                    }
+                }
+            }
 
             muuk::normalize_flags_inplace(build_profile.cflags, compiler);
             muuk::normalize_flags_inplace(build_profile.aflags, compiler);

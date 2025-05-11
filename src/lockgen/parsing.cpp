@@ -43,17 +43,37 @@ namespace muuk {
         }
 
         Result<void> MuukLockGenerator::parse_profile(const toml::value& data) {
+            // Default Profiles (debug and release)
+            {
+                ProfileConfig debug_profile;
+                debug_profile.name = "debug";
+                debug_profile.settings.debug = true;
+                debug_profile.settings.optimization_level = OptimizationLevel::O0;
+                debug_profile.settings.debug_assertions = true;
+                debug_profile.settings.lto = false;
+                debug_profile.sanitizers.address = true;
+                debug_profile.sanitizers.undefined = true;
+
+                ProfileConfig release_profile;
+                release_profile.name = "release";
+                release_profile.settings.debug = false;
+                release_profile.settings.optimization_level = OptimizationLevel::O3;
+                debug_profile.settings.debug_assertions = false;
+                release_profile.settings.lto = true;
+                debug_profile.sanitizers.undefined = true;
+
+                profiles_config_["debug"] = std::move(debug_profile);
+                profiles_config_["release"] = std::move(release_profile);
+            }
+
             // Two pass parsing for profiles
             // First pass: Load all profiles
             if (data.contains("profile") && data.at("profile").is_table()) {
                 for (const auto& [profile_name, profile_data] : data.at("profile").as_table()) {
-                    if (!profile_data.is_table())
-                        continue;
+                    // this will create or get an existing profile
+                    ProfileConfig& config = profiles_config_[profile_name];
 
-                    ProfileConfig config;
-                    config.name = profile_name;
-                    config.load(profile_data, profile_name, base_path_); // assuming you have `base_path_`
-                    profiles_config_[profile_name] = std::move(config);
+                    config.load(profile_data, profile_name, base_path_);
                 }
             }
 
