@@ -7,12 +7,12 @@
 #include <compiler.hpp>
 #include <logger.hpp>
 
-#define OPTIMIZATION_LEVELS(X)           \
-    X(O0, '0', "-O0", "-O0", "/Od")      \
-    X(O1, '1', "-O1", "-O1", "/O1")      \
-    X(O2, '2', "-O2", "-O2", "/O2")      \
-    X(O3, '3', "-O3", "-O3", "/Ox /Ob2") \
-    X(Os, 's', "-Os", "-Os", "/Os")      \
+#define OPTIMIZATION_LEVELS(X)      \
+    X(O0, '0', "-O0", "-O0", "/Od") \
+    X(O1, '1', "-O1", "-O1", "/O1") \
+    X(O2, '2', "-O2", "-O2", "/O2") \
+    X(O3, '3', "-O3", "-O3", "/O2") \
+    X(Os, 's', "-Os", "-Os", "/Os") \
     X(Oz, 'z', "-Os", "-Oz", "/Os")
 //              CLANG,  GCC,   MSVC
 

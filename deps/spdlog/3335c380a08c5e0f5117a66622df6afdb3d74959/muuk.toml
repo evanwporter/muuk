@@ -20,8 +20,12 @@ sources = [
     'src/file_sinks.cpp',
 ]
 
-[external]
-type = 'cmake'
+# [external]
+# type = 'cmake'
+# outputs = [
+#     { path = "spdlogd.lib", profile = "debug" },
+#     { path = "spdlog.lib", profile = "release" },
+# ]
 
 [features]
 default = ["fmt", "compiled_lib"] # Use fmtlib by default

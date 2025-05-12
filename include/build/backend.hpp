@@ -56,7 +56,7 @@ namespace muuk {
             std::string generate_rule(const CompilationTarget& target) const;
             std::string generate_rule(const ArchiveTarget& target) const;
             std::string generate_rule(const LinkTarget& target) const;
-            void generate_rule(const ExternalTarget& target);
+            std::string generate_rule(const ExternalTarget& target) const;
 
             void generate_build_rules(std::ostringstream& out) const;
             void write_header(std::ostringstream& out, std::string profile) const;

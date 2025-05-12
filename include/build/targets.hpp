@@ -69,19 +69,36 @@ namespace muuk {
 
         class ExternalTarget : public BuildTarget {
         public:
-            std::string version;
-            std::string type; // "cmake", "make", etc.
-            std::string path; // Path to the external project
+            /// "cmake", "make", etc.
+            std::string type;
+
+            /// Path to the external project
+            std::string build_path;
+
             std::vector<std::string> args; // Build configuration arguments
-            std::vector<std::string> outputs; // List of produced artifacts (e.g. .a, .so, .dll)
+
+            /// List of produced artifacts (e.g. .a, .so, .dll)
+            std::vector<std::string> outputs;
+
+            /// Path to the source directory.
+            std::string source_path;
+
+            /// Path to the source file. Treated as an input file.
+            /// (eg. CMakeLists.txt)
+            std::string source_file;
+
+            /// Cache file path.
+            /// ie: CMakeCache.txt.
+            /// This is used to check if the external project has already been configured.
+            std::string cache_file;
 
             ExternalTarget(
-                const std::string& name,
-                const std::string& version,
-                const std::string& type,
-                const std::string& path,
-                const std::vector<std::string>& args,
-                std::vector<std::string>& outputs);
+                const std::string& type_,
+                const std::vector<std::string>& outputs_,
+                const std::string& build_path_,
+                const std::string& source_path_,
+                const std::string& source_file_,
+                const std::string& cache_file_);
 
             virtual ~ExternalTarget() = default;
         };

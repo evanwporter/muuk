@@ -21,7 +21,9 @@ namespace muuk {
         class BuildManager {
             std::vector<CompilationTarget> compilation_targets;
             std::vector<ArchiveTarget> archive_targets;
+            std::vector<ExternalTarget> external_targets;
             std::vector<LinkTarget> link_targets;
+
             std::unordered_map<std::string, std::string> object_registry;
             std::unordered_map<std::string, std::string> library_registry;
 
@@ -39,6 +41,14 @@ namespace muuk {
                 const std::vector<std::string> objs,
                 const std::vector<std::string> aflags);
 
+            void add_external_target(
+                const std::string& type_,
+                const std::vector<std::string>& outputs,
+                const std::string& build_path,
+                const std::string& source_path,
+                const std::string& source_file,
+                const std::string& cache_file);
+
             void add_link_target(
                 const std::string exe,
                 const std::vector<std::string> objs,
@@ -51,6 +61,9 @@ namespace muuk {
 
             std::vector<ArchiveTarget>& get_archive_targets();
             const std::vector<ArchiveTarget>& get_archive_targets() const;
+
+            std::vector<ExternalTarget>& get_external_targets();
+            const std::vector<ExternalTarget>& get_external_targets() const;
 
             std::vector<LinkTarget>& get_link_targets();
             const std::vector<LinkTarget>& get_link_targets() const;

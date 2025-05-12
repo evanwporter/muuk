@@ -123,42 +123,28 @@ namespace muuk {
             return rule.str();
         }
 
-        void NinjaBackend::generate_rule(const ExternalTarget& target) {
-            const fs::path folder_path = fs::absolute(target.path);
+        std::string NinjaBackend::generate_rule(const ExternalTarget& target) const {
             const std::string safe_id = "ext_" + target.name;
             const fs::path output_path = build_dir_ / (safe_id + ".ninja");
 
             std::ostringstream out;
-
-            out << "# ----------------------------------------\n"
-                << "# External Project: " << target.name << "\n"
-                << "# ----------------------------------------\n\n";
 
             // Configure args
             std::string configure_args;
             for (const auto& arg : target.args)
                 configure_args += " " + arg;
 
-            const std::string configure_stamp = (folder_path / "build" / "build.ninja").string();
+            out << "build " << target.cache_file << ": configure_external " << target.source_file << "\n"
+                << "  build_dir = " << target.build_path << "\n"
+                << "  source_dir = " << target.source_path << "\n"
+                << "  configure_args = " << configure_args << "\n";
 
-            out << "build " << configure_stamp << ": configure_external " << folder_path / "CMakeLists.txt"
-                << "\n";
-            out << "  configure_args =" << configure_args << "\n\n";
-
-            out << "build build_" << safe_id << ": build_external || " << configure_stamp << "\n";
-            out << "  description = Building " << target.name << "\n\n";
-
-            // Final alias
-            out << "build " << safe_id << ": phony build_" << safe_id << "\n";
-
-            std::ofstream fout(output_path);
-            if (!fout.is_open())
-                throw std::runtime_error("Failed to write external build file: " + output_path.string());
-
-            fout << out.str();
-            fout.close();
+            out << "build " << target.outputs[0] << " : build_external " << target.cache_file << "\n"
+                << "  build_dir = " << target.build_path << "\n\n";
 
             muuk::logger::info("Generated external Ninja file: {}", output_path.string());
+
+            return out.str();
         }
 
         std::string NinjaBackend::generate_rule(const LinkTarget& target) const {
@@ -255,7 +241,7 @@ namespace muuk {
             }
 
             out << "# ------------------------------------------------------------\n"
-                << "# Compilation, Archiving, and Linking Rules\n"
+                << "# Rules\n"
                 << "# ------------------------------------------------------------\n";
 
             if (compiler_ == muuk::Compiler::MSVC) {
@@ -298,16 +284,19 @@ namespace muuk {
                     << "  description = Linking shared library $out\n\n";
             }
 
-            out << "# ------------------------------------------------------------\n"
-                << "# Rules for External Targets\n"
-                << "# ------------------------------------------------------------\n";
+            std::string cmake_build_type;
+
+            if (profile == "release")
+                cmake_build_type = "Release";
+            else if (profile == "debug")
+                cmake_build_type = "Debug";
 
             out << "rule configure_external\n"
-                << "  command = cmake -B build -S . -G Ninja $configure_args\n"
+                << "  command = cmake -B $build_dir -S $source_dir -G Ninja $configure_args -DCMAKE_BUILD_TYPE=" << cmake_build_type << "\n"
                 << "  description = Configuring external project\n\n";
 
             out << "rule build_external\n"
-                << "  command = ninja -C build\n"
+                << "  command = ninja -C $build_dir\n"
                 << "  description = Building external project\n\n";
         }
 
@@ -316,18 +305,36 @@ namespace muuk {
             std::ostringstream phony_rules;
 
             // Generate compilation rules
+            build_rules << "# ----------------------------------\n"
+                        << "# Compililed Targets\n"
+                        << "# ----------------------------------\n";
             for (const auto& target : build_manager.get_compilation_targets())
                 build_rules << generate_rule(target);
 
             build_rules << "\n";
 
             // Generate archive rules
+            build_rules << "# ----------------------------------\n"
+                        << "# Archived Targets\n"
+                        << "# ----------------------------------\n";
             for (const auto& target : build_manager.get_archive_targets())
                 build_rules << generate_rule(target);
 
             build_rules << "\n";
 
+            // Generate external_archive rules
+            build_rules << "# ----------------------------------\n"
+                        << "# External Targets\n"
+                        << "# ----------------------------------\n";
+            for (const auto& target : build_manager.get_external_targets())
+                build_rules << generate_rule(target);
+
+            build_rules << "\n";
+
             // Generate link rules
+            build_rules << "# ----------------------------------\n"
+                        << "# Link Targets\n"
+                        << "# ----------------------------------\n";
             for (const auto& target : build_manager.get_link_targets()) {
                 build_rules << generate_rule(target);
 

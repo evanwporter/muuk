@@ -1,3 +1,4 @@
+#include <filesystem>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -11,6 +12,8 @@
 #include "lockgen/config/package.hpp"
 #include "rustify.hpp"
 #include "toml_ext.hpp"
+
+namespace fs = std::filesystem;
 
 #define LOAD_IF_PRESENT(key, target) \
     if (v.contains(#key))            \
@@ -166,47 +169,82 @@ namespace muuk {
             lockgen::serialize(sanitizers, out);
         }
 
-        void Library::External::load(const toml::value& v) {
-            type = toml::try_find_or<std::string>(v, "type", "");
-            path = toml::try_find_or<std::string>(v, "path", "");
-            args = toml::try_find_or<std::vector<std::string>>(v, "args", {});
-            outputs = toml::try_find_or<std::vector<std::string>>(v, "outputs", {});
-        }
-
-        void Library::External::serialize(toml::value& out) const {
-            // BaseConfig<Library>::serialize(out);
-
-            toml::value external_section = toml::table {};
-            if (!type.empty())
-                external_section["type"] = type;
-            if (!path.empty())
-                external_section["path"] = path;
-            if (!args.empty())
-                external_section["args"] = args;
-            if (!outputs.empty())
-                external_section["outputs"] = outputs;
-
-            out["external"] = external_section;
-        }
-
         void Library::load(const std::string& name_, const std::string& version_, const std::string& base_path_, const toml::value& v) {
             name = name_;
             version = version_;
 
             BaseConfig<Library>::load(v, base_path_);
-            if (v.contains("external"))
-                external.load(toml::find(v, "external"));
         }
 
         void Library::serialize(toml::value& out, Platforms platforms_, Compilers compilers_) const {
             out["name"] = name;
             out["version"] = version;
             BaseConfig<Library>::serialize(out);
-            external.serialize(out);
             out["profiles"] = profiles;
 
             platforms_.serialize(out);
             compilers_.serialize(out);
+        }
+
+        void External::load(const std::string& name_, const std::string& version_, const std::string& base_path_, const toml::value& v) {
+            name = name_;
+            version = version_;
+
+            fs::path base_path = base_path_;
+            path = base_path.string();
+
+            // TODO: If type is empty then what are we doing here?
+            type = toml::try_find_or<std::string>(v, "type", "");
+            args = toml::try_find_or<std::vector<std::string>>(v, "args", {});
+
+            if (type == "cmake")
+                source_file = (base_path / "CMakeLists.txt").string();
+
+            if (v.contains("outputs")) {
+                // Same thing here
+                for (const auto& entry : v.at("outputs").as_array()) {
+                    if (!entry.is_table())
+                        continue;
+                    ExternalOutput out;
+
+                    // TODO Can be string or table
+
+                    out.path = (base_path / toml::try_find_or(entry, "path", std::string {})).lexically_normal().string();
+                    out.profile = toml::try_find_or(entry, "profile", std::string {});
+
+                    outputs.push_back(std::move(out));
+                }
+            }
+        }
+
+        void External::serialize(toml::value& out) const {
+            if (name.empty())
+                return;
+
+            out["name"] = name;
+            out["version"] = version;
+            out["source"] = source_file;
+            out["path"] = path;
+
+            if (!type.empty())
+                out["type"] = type;
+
+            if (!args.empty())
+                out["args"] = args;
+
+            if (!outputs.empty()) {
+                toml::array outputs_array;
+                for (const auto& output : outputs) {
+                    toml::value entry = toml::table {};
+
+                    entry["path"] = output.path;
+                    entry["profile"] = output.profile;
+
+                    outputs_array.push_back(entry);
+                }
+
+                out["outputs"] = outputs_array;
+            }
         }
 
         void Build::merge(const Package& package) {

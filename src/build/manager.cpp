@@ -36,6 +36,16 @@ namespace muuk {
             }
         }
 
+        void BuildManager::add_external_target(const std::string& type_, const std::vector<std::string>& outputs, const std::string& build_path, const std::string& source_path, const std::string& source_file, const std::string& cache_file) {
+            external_targets.emplace_back(
+                type_,
+                outputs,
+                build_path,
+                source_path,
+                source_file,
+                cache_file);
+        }
+
         void BuildManager::add_link_target(const std::string exe, const std::vector<std::string> objs, const std::vector<std::string> libs, const std::vector<std::string> lflags, const BuildLinkType link_type) {
             if (exe.empty() || objs.empty()) {
                 // TODO: It can have no object files
@@ -60,6 +70,14 @@ namespace muuk {
 
         const std::vector<ArchiveTarget>& BuildManager::get_archive_targets() const {
             return archive_targets;
+        }
+
+        std::vector<ExternalTarget>& BuildManager::get_external_targets() {
+            return external_targets;
+        }
+
+        const std::vector<ExternalTarget>& BuildManager::get_external_targets() const {
+            return external_targets;
         }
 
         std::vector<LinkTarget>& BuildManager::get_link_targets() {

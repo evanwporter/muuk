@@ -77,6 +77,15 @@ namespace muuk {
                     base_path,
                     data["library"].as_table());
 
+            // TODO: Perhaps make it mutually exclusive with `library`?
+            // TODO: Or combine them?
+            if (data.contains("external") && data["external"].is_table())
+                package->external_config.load(
+                    package_name,
+                    package_version,
+                    base_path,
+                    data["external"].as_table());
+
             parse_features(data, package);
 
             package->source = package_source;
@@ -363,6 +372,36 @@ namespace muuk {
 
             library_array.as_array_fmt().fmt = toml::array_format::array_of_tables;
             root["library"] = library_array;
+
+            // Write external libraries
+            toml::value external_array = toml::array {};
+            for (const auto& [package_name, version] : resolved_order_) {
+                const auto package = find_package(package_name, version);
+                if (!package)
+                    continue;
+
+                toml::value external_table = toml::table {};
+                package->external_config.serialize(
+                    external_table);
+
+                // TODO: flattern it a bunch
+                if (external_table.is_table()) {
+                    auto& table = external_table.as_table();
+                    if (table.contains("outputs") && table.at("outputs").is_array()) {
+                        table.at("outputs").as_array_fmt().fmt = toml::array_format::multiline;
+                    }
+                }
+
+                // TODO: More robust way of checking for external
+                if (external_table.contains("name"))
+                    external_array.as_array().push_back(external_table);
+
+                muuk::logger::info("Written external package '{}' to lockfile.", package_name);
+            }
+
+            external_array.as_array_fmt().fmt = toml::array_format::array_of_tables;
+            if (!external_array.is_empty())
+                root["external"] = external_array;
 
             // Write builds
             toml::value build_array = toml::array {};

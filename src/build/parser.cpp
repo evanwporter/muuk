@@ -372,56 +372,55 @@ namespace muuk {
             }
         };
 
-        Result<std::vector<ExternalTarget>> parse_external_targets(const toml::value& muuk_file) {
+        void parse_external_targets(BuildManager& build_manager, const toml::value& muuk_file, const std::string& profile, const fs::path& build_dir) {
             std::vector<ExternalTarget> externals;
 
             if (!muuk_file.contains("external"))
-                return externals;
+                return;
 
-            const auto& ext_array = muuk_file.at("external").as_array();
-
-            for (const auto& entry : ext_array) {
+            for (const auto& entry : muuk_file.at("external").as_array()) {
                 if (!entry.is_table())
                     continue;
 
                 const auto& ext_table = entry.as_table();
 
-                try {
-                    const std::string name = ext_table.at("name").as_string();
-                    const std::string version = ext_table.at("version").as_string();
-                    const std::string type = ext_table.at("type").as_string();
-                    const std::string path = ext_table.at("path").as_string();
+                const std::string name = ext_table.at("name").as_string();
+                const std::string version = ext_table.at("version").as_string();
+                const std::string type = ext_table.at("type").as_string();
+                const auto outputs = ext_table.at("outputs").as_array();
+                const std::string base_path = ext_table.at("path").as_string();
 
-                    std::vector<std::string> args;
-                    if (ext_table.contains("args")) {
-                        for (const auto& arg : ext_table.at("args").as_array()) {
-                            args.push_back(arg.as_string());
-                        }
-                    }
+                const auto source_path = util::file_system::to_linux_path(ext_table.at("path").as_string(), "../../");
+                const std::string source_file = util::file_system::to_linux_path(ext_table.at("source").as_string(), "../../");
+                const std::string cache_file = util::file_system::to_linux_path(base_path, "../../" + build_dir.string() + "/") + "/CMakeCache.txt";
 
-                    std::vector<std::string> outputs;
-                    if (ext_table.contains("outputs")) {
-                        for (const auto& out : ext_table.at("outputs").as_array())
-                            outputs.push_back(out.as_string());
+                const std::string build_path = util::file_system::to_linux_path(
+                    (build_dir / base_path).string(), "../../");
 
-                    } else
-                        return Err(
-                            "Missing 'outputs' field for external target '{}'",
-                            name);
+                std::vector<std::string> paths;
+                for (const auto& out : outputs) {
+                    const auto& out_table = out.as_table();
+                    if (!out_table.contains("path"))
+                        continue;
 
-                    externals.emplace_back(name, version, type, path, args, outputs);
-                    muuk::logger::info(
-                        "Parsed external target '{}'",
-                        name);
+                    const auto output_path = util::file_system::to_linux_path(
+                        (out_table.at("path").as_string()), "../../" + build_dir.string() + "/");
 
-                } catch (const std::exception& e) {
-                    return Err(
-                        "Failed to parse [external] entry: {}",
-                        e.what());
+                    const auto profile_name = out_table.at("profile").as_string();
+                    if (profile_name != profile)
+                        continue;
+
+                    paths.push_back(output_path);
                 }
-            }
 
-            return externals;
+                build_manager.add_external_target(
+                    type,
+                    paths,
+                    build_path,
+                    source_path,
+                    source_file,
+                    cache_file);
+            }
         }
 
         void parse_executables(BuildManager& build_manager, const muuk::Compiler compiler, const std::filesystem::path& build_dir, const std::filesystem::path& build_artifact_dir, const std::string& profile_, const toml::value& muuk_file) {
@@ -574,6 +573,11 @@ namespace muuk {
                 build_artifact_dir,
                 muuk_file,
                 profile);
+            parse_external_targets(
+                build_manager,
+                muuk_file,
+                profile,
+                build_artifact_dir);
             parse_executables(
                 build_manager,
                 compiler,

@@ -32,22 +32,19 @@ namespace muuk {
         }
 
         ExternalTarget::ExternalTarget(
-            const std::string& name_,
-            const std::string& version_,
             const std::string& type_,
-            const std::string& path_,
-            const std::vector<std::string>& args_,
-            std::vector<std::string>& outputs_) :
+            const std::vector<std::string>& paths_,
+            const std::string& build_path_,
+            const std::string& source_path_,
+            const std::string& source_file_,
+            const std::string& cache_file_) :
             BuildTarget("", "") {
-            name = name_;
-            version = version_;
             type = type_;
-            path = path_;
-            args = args_;
-            outputs = outputs_;
-
-            output = "";
-            flags = args_;
+            build_path = build_path_;
+            outputs = paths_;
+            source_path = source_path_;
+            source_file = source_file_;
+            cache_file = cache_file_;
         }
 
         LinkTarget::LinkTarget(const std::string exe, const std::vector<std::string> objs, const std::vector<std::string> libs, const std::vector<std::string> lflags, const BuildLinkType link_type_) :

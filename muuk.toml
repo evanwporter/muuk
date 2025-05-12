@@ -1,7 +1,6 @@
 [package]
 name = 'muuk'
-version = '0.0.5'
-edition = '20'
+version = '0.1.1'
 cxx_standard = '20'
 c_standard = "c23"
 
@@ -20,14 +19,14 @@ include = ['include']
 # ]
 # modules = ["modules/math.ixx"]
 sources = [
-    # { path = 'src/muuker.cpp', cflags = [] }, # demonstrates per-file cflags
-    'src/muuker.cpp',
+    # demonstrates per-file cflags
+    { path = 'src/muuker.cpp', cflags = [] },
     'src/muuk.cpp',
     'src/util/*.cpp',
     'src/logger.cpp',
     'src/muukfiler.cpp',
     'src/muukbuilder.cpp',
-    'src/lockgen/*.cpp',
+    'src/lockgen/**/*.cpp',
     'src/package_manager/*.cpp',
     'src/muukinitializer.cpp',
     'src/flags.cpp',

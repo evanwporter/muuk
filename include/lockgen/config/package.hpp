@@ -56,6 +56,9 @@ namespace muuk {
             /// Library build settings (cflags, sources, modules, etc.) `[library]`.
             Library library_config;
 
+            /// External build settings (cmake, meson, etc.) `[external]`.
+            External external_config;
+
             /// This is chiefly used for the resolve_system_dependency function
             /// to add include paths to the library config.
             void add_include_path(std::string path) {
