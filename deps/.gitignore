@@ -14,9 +14,9 @@
 
 !/glob
 /glob/*
-!/glob/d025092c0e1eb1a8b226d3a799fd32680d2fd13f
-/glob/d025092c0e1eb1a8b226d3a799fd32680d2fd13f/*
-!/glob/d025092c0e1eb1a8b226d3a799fd32680d2fd13f/muuk.toml
+!/glob/2fd211ae02efac6dbbc1e47d900a7df3d8438a9a
+/glob/2fd211ae02efac6dbbc1e47d900a7df3d8438a9a/*
+!/glob/2fd211ae02efac6dbbc1e47d900a7df3d8438a9a/muuk.toml
 
 !/json
 /json/*

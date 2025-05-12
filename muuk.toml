@@ -26,7 +26,7 @@ sources = [
     'src/logger.cpp',
     'src/muukfiler.cpp',
     'src/muukbuilder.cpp',
-    'src/lockgen/**/*.cpp',
+    'src/lockgen/*.cpp',
     'src/package_manager/*.cpp',
     'src/muukinitializer.cpp',
     'src/flags.cpp',
@@ -42,7 +42,7 @@ sources = [
 [dependencies]
 expected = '41d3e1f48d682992a2230b2a715bca38b848b269'
 fmt = '577fd3be883accf8629423ed77fcca8a24bccee2'
-glob = 'd025092c0e1eb1a8b226d3a799fd32680d2fd13f'
+glob = '2fd211ae02efac6dbbc1e47d900a7df3d8438a9a'
 json = '0b6881a95f8aaf60bd2324ecdf2258a65bf33baf'
 spdlog = { version = '3335c380a08c5e0f5117a66622df6afdb3d74959', features = [
     'fmt',

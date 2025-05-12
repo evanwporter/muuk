@@ -2,6 +2,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include <glob/glob.hpp>
 #include <toml.hpp>
 
 #include "compiler.hpp"
@@ -151,7 +152,7 @@ namespace muuk {
 
             for (const auto& s : input_sources) {
                 try {
-                    std::vector<std::filesystem::path> globbed_paths = glob::glob(s.path);
+                    auto globbed_paths = glob::rglob(s.path);
                     for (const auto& path : globbed_paths)
                         expanded.emplace_back(util::file_system::to_linux_path(path.string()), s.cflags);
 

@@ -4,7 +4,6 @@
 #include <string>
 #include <unordered_set>
 
-#include <glob/glob.hpp>
 #include <toml.hpp>
 
 #include "compiler.hpp"
