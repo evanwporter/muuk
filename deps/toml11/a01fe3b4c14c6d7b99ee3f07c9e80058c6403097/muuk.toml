@@ -9,3 +9,11 @@ git = 'https://github.com/ToruNiina/toml11.git'
 include = ['include']
 sources = ["src/*.cpp"]
 cflags = ['/DTOML11_COMPILE_SOURCES']
+
+# [external]
+# type = 'cmake'
+# outputs = [
+#     { path = "src/toml11.lib", profile = "debug" },
+#     { path = "src/toml11.lib", profile = "release" },
+# ]
+# args = ['-DCMAKE_CXX_STANDARD=20']
