@@ -46,7 +46,15 @@ namespace muuk {
             auto data = result_muuk.value();
 
             const auto package_name = data["package"]["name"].as_string();
-            const auto package_version = data["package"]["version"].as_string();
+
+            return parse_muuk_toml(data, path, is_base);
+        }
+
+        /// Generates a Package object from the parsed muuk.toml value.
+        Result<void> MuukLockGenerator::parse_muuk_toml(const toml::basic_value<toml::ordered_type_config>& data, const std::string& path, bool is_base) {
+
+            const auto package_name = data.at("package").at("name").as_string();
+            const auto package_version = data.at("package").at("version").as_string();
             const auto package_source = data.at("package").contains("git")
                 ? data.at("package").at("git").as_string()
                 : std::string();
@@ -70,35 +78,35 @@ namespace muuk {
                     if (dep_ptr)
                         package->all_dependencies_array.insert(dep_ptr);
 
-            if (data.contains("library") && data["library"].is_table())
+            if (data.contains("library") && data.at("library").is_table())
                 package->library_config.load(
                     package_name,
                     package_version,
                     base_path,
-                    data["library"].as_table());
+                    data.at("library").as_table());
 
             // TODO: Perhaps make it mutually exclusive with `library`?
             // TODO: Or combine them?
-            if (data.contains("external") && data["external"].is_table())
+            if (data.contains("external") && data.at("external").is_table())
                 package->external_config.load(
                     package_name,
                     package_version,
                     base_path,
-                    data["external"].as_table());
+                    data.at("external").as_table());
 
             parse_features(data, package);
 
             package->source = package_source;
 
             if (data.contains("compiler"))
-                package->compilers_config.load(data["compiler"], base_path);
+                package->compilers_config.load(data.at("compiler"), base_path);
 
             if (data.contains("platform"))
-                package->platforms_config.load(data["platform"], base_path);
+                package->platforms_config.load(data.at("platform"), base_path);
 
             auto edition = CXX_Standard::from_string(
                 toml::try_find_or(
-                    data["package"],
+                    data.at("package"),
                     "cxx_standard",
                     std::string {}));
 
@@ -125,12 +133,11 @@ namespace muuk {
             resolved_packages[package_name][package_version] = package;
 
             if (is_base) {
-
                 parse_profile(data);
 
                 base_package_ = package;
 
-                for (const auto& [build_name, build_pkg] : data["build"].as_table()) {
+                for (const auto& [build_name, build_pkg] : data.at("build").as_table()) {
                     // TODO: Make sure build key exists
                     auto build = std::make_shared<Build>();
                     build->load(build_pkg, base_path);
@@ -143,7 +150,7 @@ namespace muuk {
         }
 
         void MuukLockGenerator::generate_gitignore() {
-            std::ofstream out(std::string(DEPENDENCY_FOLDER) + "/.gitignore");
+            std::ofstream out(DEPENDENCY_FOLDER + "/.gitignore");
             if (!out.is_open()) {
                 muuk::logger::warn("Failed to open deps/.gitignore for writing.");
                 return;
@@ -248,10 +255,37 @@ namespace muuk {
                 return Err("Dependency '{}' version '{}' not found in '{}'", package_name, version, search_dir.string());
 
             fs::path dep_path = search_dir / MUUK_TOML_FILE;
-            if (fs::exists(dep_path))
-                TRYV(parse_muuk_toml(dep_path.string()));
-            else
-                return Err("{} for dependency '{}' version '{}' not found in '{}'", MUUK_TOML_FILE, package_name, version, search_dir.string());
+
+            if (!fs::exists(dep_path))
+                return Err(
+                    "{} for dependency '{}' version '{}' not found in '{}'",
+                    MUUK_TOML_FILE,
+                    package_name,
+                    version,
+                    search_dir.string());
+
+            auto result_muuk = muuk::parse_muuk_file(dep_path.string());
+            if (!result_muuk)
+                return Err(result_muuk);
+
+            const auto& data = result_muuk.value();
+
+            const auto actual_name = data.at("package").at("name").as_string();
+            const auto actual_version = data.at("package").at("version").as_string();
+
+            if (actual_name != package_name || actual_version != version) {
+                return Err(
+                    // TODO: Better error message
+                    "Mismatch in dependency at '{}': expected '{}@{}', found '{}@{}' in `{}`.",
+                    dep_path.string(),
+                    package_name,
+                    version,
+                    actual_name,
+                    actual_version,
+                    MUUK_TOML_FILE);
+            }
+
+            TRYV(parse_muuk_toml(data, dep_path.string()));
 
             return {};
         }
@@ -262,22 +296,18 @@ namespace muuk {
             muuk::logger::info(" Generating muuk.lock.toml...");
             muuk::logger::info("------------------------------");
 
-            // TODO: Remove 2x parse
-            TRYV(parse_muuk_toml(base_path_ + MUUK_TOML_FILE, true));
-
             // TODO: Make it be base_path + "/" <= check for file
             // Extract the package name and version from the base muuk.toml
             auto base_muuk_result = muuk::parse_muuk_file(base_path_ + MUUK_TOML_FILE);
             if (!base_muuk_result)
                 Err(base_muuk_result);
 
-            auto base_data
-                = base_muuk_result.value();
-            if (!base_data.contains("package") || !base_data["package"].is_table())
-                return Err("Missing 'package' section in base {} file.", MUUK_TOML_FILE);
+            const auto base_data = base_muuk_result.value();
 
-            const std::string base_package_name = base_data["package"]["name"].as_string();
-            const std::string base_package_version = base_data["package"]["version"].as_string();
+            TRYV(parse_muuk_toml(base_data, base_path_ + MUUK_TOML_FILE, true));
+
+            const std::string base_package_name = base_data.at("package").at("name").as_string();
+            const std::string base_package_version = base_data.at("package").at("version").as_string();
             muuk::logger::info(
                 "Base package name extracted: {}, version: {}",
                 base_package_name,
@@ -497,20 +527,19 @@ namespace muuk {
 
                     written_packages.insert({ dep_name, dep_version });
 
-                    const auto& source = !package->source.empty()
-                        ? package->source
-                        : dep_ptr->git_url;
-
                     cargo_style_lock << "[[package]]\n";
                     cargo_style_lock << "name = \"" << dep_name << "\"\n";
                     cargo_style_lock << "version = \"" << dep_version << "\"\n";
 
                     // TODO: better way of differentiating between source and path
-                    // if (!dep_ptr->git_url.empty()) {
-                    cargo_style_lock << "source = \"git+" << source << "\"\n";
-                    // }
                     if (!dep_ptr->path.empty()) {
                         cargo_style_lock << "source = \"path+" << dep_ptr->path << "\"\n";
+                    } else if (!dep_ptr->git_url.empty()) {
+                        cargo_style_lock << "source = \"git+" << dep_ptr->git_url << "\"\n";
+                    } else if (!package->source.empty()) {
+                        cargo_style_lock << "source = \"" << package->source << "\"";
+                    } else {
+                        muuk::logger::warn("No source or path found for package `{}`.", dep_name);
                     }
 
                     if (!dep_ptr->enabled_features.empty()) {

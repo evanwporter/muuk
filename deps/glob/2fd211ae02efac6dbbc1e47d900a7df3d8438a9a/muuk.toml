@@ -4,4 +4,4 @@ version = '2fd211ae02efac6dbbc1e47d900a7df3d8438a9a'
 git = 'https://github.com/p-ranav/glob.git'
 
 [library]
-include = ['single_include/']
+include = ['single_include']

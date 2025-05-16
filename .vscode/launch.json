@@ -15,17 +15,13 @@
         "cl",
         "--profile",
         "release",
-        // "install"
-        // "add",
-        // "Neargye/magic_enum"
-        // "aappleby/smhasher"
       ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],
       "console": "integratedTerminal",
       "symbolSearchPath": "${workspaceFolder}/build/debug",
-      "preLaunchTask": "Build Debug (MSVC)"
+      // "preLaunchTask": "Build Debug (MSVC)"
     },
     {
       "name": "(Windows) Build Clang",
@@ -38,10 +34,6 @@
         "clang",
         "--profile",
         "release"
-        // "install"
-        // "add",
-        // "Neargye/magic_enum"
-        // "aappleby/smhasher"
       ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
