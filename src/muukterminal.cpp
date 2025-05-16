@@ -43,7 +43,6 @@ namespace muuk {
             return ch;
         }
 
-        // Optional: handle escape sequences for arrow keys
         int get_arrow_key() {
             int c = getch();
             if (c == 27) { // Escape

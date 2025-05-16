@@ -53,24 +53,28 @@ namespace util {
             return exists;
         }
 
-        std::vector<std::string> to_linux_path(const std::vector<std::string>& paths, const std::string& prefix) {
+        std::vector<std::string> to_unix_path(const std::vector<std::string>& paths, const std::string& prefix) {
             std::vector<std::string> new_paths;
             new_paths.reserve(paths.size()); // Reserve space for efficiency
 
-            std::transform(paths.begin(), paths.end(), std::back_inserter(new_paths), [&prefix](const std::string& path) { return to_linux_path(path, prefix); });
+            std::transform(
+                paths.begin(),
+                paths.end(),
+                std::back_inserter(new_paths),
+                [&prefix](const std::string& path) { return to_unix_path(path, prefix); });
 
             return new_paths;
         }
 
-        std::set<std::string> to_linux_path(const std::set<std::string>& paths, const std::string& prefix) {
+        std::set<std::string> to_unix_path(const std::set<std::string>& paths, const std::string& prefix) {
             std::set<std::string> new_paths;
             for (const auto& path : paths) {
-                new_paths.insert(to_linux_path(path, prefix));
+                new_paths.insert(to_unix_path(path, prefix));
             }
             return new_paths;
         }
 
-        std::string to_linux_path(const std::string& path, const std::string& prefix) {
+        std::string to_unix_path(const std::string& path, const std::string& prefix) {
             std::string new_path = path;
             std::replace(new_path.begin(), new_path.end(), '\\', '/');
 

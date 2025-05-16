@@ -186,7 +186,7 @@ namespace muuk {
                 continue;
             }
 
-            const std::string target_dir = std::string(DEPENDENCY_FOLDER) + "/" + name + "/" + version;
+            const std::string target_dir = DEPENDENCY_FOLDER + "/" + name + "/" + version;
 
             if (fs::exists(target_dir) && is_package_installed(target_dir)) {
                 std::cout << style::YELLOW << "Already installed - skipping.\n"

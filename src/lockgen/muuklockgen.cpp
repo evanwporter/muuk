@@ -354,7 +354,7 @@ namespace muuk {
                     package->platforms_config,
                     package->compilers_config);
 
-                lib_table["path"] = util::file_system::to_linux_path(package->base_path);
+                lib_table["path"] = util::file_system::to_unix_path(package->base_path);
 
                 if (lib_table.contains("external"))
                     lib_table.at("external").as_table_fmt().fmt = toml::table_format::oneline;

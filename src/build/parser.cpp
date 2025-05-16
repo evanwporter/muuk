@@ -137,9 +137,9 @@ namespace muuk {
             muuk::normalize_flags_inplace(build_profile.lflags, compiler);
             muuk::normalize_flags_inplace(build_profile.defines, compiler);
 
-            muuk::logger::trace("Profile '{}' CFLAGS: {}", profile, fmt::join(build_profile.cflags, " "));
-            muuk::logger::trace("Profile '{}' AFLAGS: {}", profile, fmt::join(build_profile.cflags, " "));
-            muuk::logger::trace("Profile '{}' LFLAGS: {}", profile, fmt::join(build_profile.lflags, " "));
+            muuk::logger::trace("Profile '{}' CFlags: {}", profile, fmt::join(build_profile.cflags, " "));
+            muuk::logger::trace("Profile '{}' AFlags: {}", profile, fmt::join(build_profile.cflags, " "));
+            muuk::logger::trace("Profile '{}' LFlags: {}", profile, fmt::join(build_profile.lflags, " "));
             muuk::logger::trace("Profile '{}' Defines: {}", profile, fmt::join(build_profile.defines, " "));
 
             return build_profile;
@@ -193,13 +193,13 @@ namespace muuk {
 
             const std::string raw_path = unit_entry.at("path").as_string();
 
-            const std::string src_path = util::file_system::to_linux_path(
+            const std::string src_path = util::file_system::to_unix_path(
                 std::filesystem::absolute(
                     std::filesystem::path(raw_path))
                     .string());
 
             const std::string obj_path = util::file_system::sanitize_path(
-                util::file_system::to_linux_path(
+                util::file_system::to_unix_path(
                     (build_dir.string() + "/" + raw_path + OBJ_EXT),
                     "../../"));
 
@@ -234,6 +234,7 @@ namespace muuk {
             }
         }
 
+        /// Parses compilation targets from the `[library]` and `[build]` sections of the cache file.
         void parse_compilation_targets(BuildManager& build_manager, const muuk::Compiler compiler, const std::filesystem::path& build_dir, const toml::value& muuk_file, const std::string& profile) {
             bool has_modules = false;
 
@@ -308,17 +309,21 @@ namespace muuk {
                     }
                 }
             }
+
+            // TODO: Parse modules and sources from the compiler and platform sections
+
             if (has_modules)
                 resolve_modules(build_manager, build_dir.string());
         };
 
+        /// Parse libraries from the `[library]` section of the cache file. Generates archive targets.
         void parse_libraries(BuildManager& build_manager, const muuk::Compiler compiler, const std::filesystem::path& build_dir, const toml::value& muuk_file, const std::string& profile) {
             for (const auto& library_table : muuk_file.at("library").as_array()) {
                 const auto library_name = library_table.at("name").as_string();
                 const auto library_version = library_table.at("version").as_string();
                 const auto lib_path_dir = (build_dir / library_table.at("path").as_string()).lexically_normal();
 
-                const auto lib_path = util::file_system::to_linux_path(
+                const auto lib_path = util::file_system::to_unix_path(
                     (lib_path_dir / (library_name + LIB_EXT)).string(),
                     "../../");
 
@@ -390,11 +395,11 @@ namespace muuk {
                 const auto outputs = ext_table.at("outputs").as_array();
                 const std::string base_path = ext_table.at("path").as_string();
 
-                const auto source_path = util::file_system::to_linux_path(ext_table.at("path").as_string(), "../../");
-                const std::string source_file = util::file_system::to_linux_path(ext_table.at("source").as_string(), "../../");
-                const std::string cache_file = util::file_system::to_linux_path(base_path, "../../" + build_dir.string() + "/") + "/CMakeCache.txt";
+                const auto source_path = util::file_system::to_unix_path(ext_table.at("path").as_string(), "../../");
+                const std::string source_file = util::file_system::to_unix_path(ext_table.at("source").as_string(), "../../");
+                const std::string cache_file = util::file_system::to_unix_path(base_path, "../../" + build_dir.string() + "/") + "/CMakeCache.txt";
 
-                const std::string build_path = util::file_system::to_linux_path(
+                const std::string build_path = util::file_system::to_unix_path(
                     (build_dir / base_path).string(), "../../");
 
                 std::vector<std::string> paths;
@@ -403,7 +408,7 @@ namespace muuk {
                     if (!out_table.contains("path"))
                         continue;
 
-                    const auto output_path = util::file_system::to_linux_path(
+                    const auto output_path = util::file_system::to_unix_path(
                         (out_table.at("path").as_string()), "../../" + build_dir.string() + "/");
 
                     const auto profile_name = out_table.at("profile").as_string();
@@ -423,12 +428,14 @@ namespace muuk {
             }
         }
 
+        /// Parses builds from the TOML array
         void parse_executables(BuildManager& build_manager, const muuk::Compiler compiler, const std::filesystem::path& build_dir, const std::filesystem::path& build_artifact_dir, const std::string& profile_, const toml::value& muuk_file) {
             if (!muuk_file.contains("build") || !muuk_file.contains("library"))
                 return;
 
             const auto& build_sections = muuk_file.at("build").as_array();
             const auto& library_sections = muuk_file.at("library").as_array();
+            const auto& external_sections = muuk_file.at("external").as_array();
 
             // Index libraries by name + version
             std::unordered_map<std::string, std::unordered_map<std::string, toml::value>> lib_map;
@@ -438,6 +445,16 @@ namespace muuk {
                 const auto& version = lib_table.at("version").as_string();
                 lib_map[name][version] = lib;
             }
+
+            // std::unordered_map<std::string, std::unordered_map<std::string, toml::value>> ext_map;
+            // for (const auto& ext : external_sections) {
+            //     const auto& ext_table = ext.as_table();
+            //     const auto& name = ext_table.at("name").as_string();
+            //     const auto& version = ext_table.at("version").as_string();
+            //     ext_map[name][version] = ext;
+            // }
+
+            bool build_profile_match = false;
 
             for (const auto& entry : build_sections) {
                 const auto& build_table = entry.as_table();
@@ -472,7 +489,7 @@ namespace muuk {
                     break;
                 }
 
-                const auto output_path = util::file_system::to_linux_path(
+                const auto output_path = util::file_system::to_unix_path(
                     (build_dir / (executable_name + extension)).string(), "../../");
 
                 std::vector<std::string> obj_files;
@@ -507,13 +524,30 @@ namespace muuk {
 
                             const auto lib_path_dir = (build_artifact_dir / lib_table.at("path").as_string()).lexically_normal();
 
-                            // If it doesn't have these keys, then its an empty library so we should skip it
+                            // If it doesn't have any sources or modules, then its an empty library so we should skip it
                             if (lib_table.contains("sources") || lib_table.contains("modules")) {
-                                const auto lib_path = util::file_system::to_linux_path(
+                                const auto lib_path = util::file_system::to_unix_path(
                                     (lib_path_dir / (lib_name + LIB_EXT)).string(), "../../");
                                 libs.push_back(lib_path);
                             }
                         }
+
+                        // TODO: Put some kind of warning so we don't add libs twice
+
+                        // External dependencies (ie: CMake)
+                        // if (ext_map.contains(lib_name) && ext_map.at(lib_name).contains(version)) {
+                        //     const auto& ext_table = ext_map.at(lib_name).at(version).as_table();
+
+                        //     // We need to get one of the outputs
+                        //     const auto ext_path_dir = (build_artifact_dir / ext_table.at("path").as_string()).lexically_normal();
+
+                        //     // If it doesn't have any sources or modules, then its an empty library so we should skip it
+                        //     if (ext_table.contains("sources") || ext_table.contains("modules")) {
+                        //         const auto lib_path = util::file_system::to_unix_path(
+                        //             (ext_path_dir / (lib_name + LIB_EXT)).string(), "../../");
+                        //         libs.push_back(lib_path);
+                        //     }
+                        // }
                     }
                 }
 
@@ -542,6 +576,11 @@ namespace muuk {
                 muuk::logger::trace("  - Libraries: '{}'", fmt::join(libs, "', '"));
                 muuk::logger::trace("  - Linker Flags: '{}'", fmt::join(lflags, "', '"));
             }
+
+            if (!build_profile_match)
+                muuk::logger::warn(
+                    "No builds are enabled for the profile '{}'",
+                    profile_);
         }
 
         Result<void> parse(BuildManager& build_manager, const muuk::Compiler compiler, const std::filesystem::path& build_dir, const std::string& profile) {

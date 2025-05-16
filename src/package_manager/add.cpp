@@ -83,7 +83,7 @@ namespace muuk {
             const std::string final_git_url = git_url.empty()
                 ? "https://github.com/" + author + "/" + repo_name + ".git"
                 : git_url;
-            const std::string target_dir = std::string(DEPENDENCY_FOLDER) + "/" + repo_name + "/" + version;
+            const std::string target_dir = DEPENDENCY_FOLDER + "/" + repo_name + "/" + version;
 
             // Ensure dependency folder exists
             util::file_system::ensure_directory_exists(

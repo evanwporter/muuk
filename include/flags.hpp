@@ -62,6 +62,7 @@ namespace muuk {
         { "module_output", FlagCategory::Modules, { "-o mymod.gcm", "-o mymod.pcm", "mymod.ifc" } },
         { "module_cache_path", FlagCategory::Modules, { "-fmodules-cache-path=", "-fmodules-cache-path=", "/ifcOutput" } },
 
+        { "latest_version", FlagCategory::Version, { "-std=c++23", "-std=c++23", "/std:c++latest" } },
         { "standard_version", FlagCategory::Version, { "-std=c++", "-std=c++", "/std:c++" } },
 
         { "no_logo", FlagCategory::Logo, { "", "", "/nologo" } },

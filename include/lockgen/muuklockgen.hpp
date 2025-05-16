@@ -100,6 +100,11 @@ namespace muuk {
             /// Parse a single muuk.toml file representing a package
             Result<void> parse_muuk_toml(const std::string& path, bool is_base = false);
 
+            Result<void> parse_muuk_toml(
+                const toml::basic_value<toml::ordered>& data,
+                const std::string& path,
+                bool is_base = false);
+
             Result<void> resolve_dependencies(
                 const std::string& package_name,
                 std::optional<std::string> version = std::nullopt,

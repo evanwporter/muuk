@@ -50,7 +50,7 @@ namespace muuk {
                         full_path = std::filesystem::path(base_path) / full_path;
 
                     temp_sources.emplace_back(
-                        util::file_system::to_linux_path(full_path.lexically_normal().string()),
+                        util::file_system::to_unix_path(full_path.lexically_normal().string()),
                         extracted_cflags);
                 }
 
@@ -71,7 +71,7 @@ namespace muuk {
                         {});
 
                     temp_sources.emplace_back(
-                        util::file_system::to_linux_path(path.lexically_normal().string()),
+                        util::file_system::to_unix_path(path.lexically_normal().string()),
                         cflags);
                 }
             }
@@ -94,7 +94,7 @@ namespace muuk {
                     fs::path lib_path = lib.as_string();
                     if (!lib_path.is_absolute())
                         lib_path = fs::path(base_path) / lib_path;
-                    lib_entry.path = util::file_system::to_linux_path(
+                    lib_entry.path = util::file_system::to_unix_path(
                         lib_path.lexically_normal().string());
                 }
 
@@ -129,7 +129,7 @@ namespace muuk {
                         fs::path lib_path = lib_table.at("path").as_string();
                         if (!lib_path.is_absolute())
                             lib_path = fs::path(base_path) / lib_path;
-                        lib_entry.path = util::file_system::to_linux_path(
+                        lib_entry.path = util::file_system::to_unix_path(
                             lib_path.lexically_normal().string());
                     }
                 }
@@ -154,7 +154,7 @@ namespace muuk {
                 try {
                     auto globbed_paths = glob::rglob(s.path);
                     for (const auto& path : globbed_paths)
-                        expanded.emplace_back(util::file_system::to_linux_path(path.string()), s.cflags);
+                        expanded.emplace_back(util::file_system::to_unix_path(path.string()), s.cflags);
 
                 } catch (const std::exception& e) {
                     muuk::logger::warn("Error while globbing '{}': {}", s.path, e.what());

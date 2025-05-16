@@ -40,7 +40,7 @@
 
 //     auto compilation_targets = build_manager->get_compilation_targets();
 //     ASSERT_EQ(compilation_targets.size(), 1);
-//     EXPECT_EQ(compilation_targets[0].inputs[0], util::file_system::to_linux_path((fs::current_path() / "src/test.cpp").string()));
+//     EXPECT_EQ(compilation_targets[0].inputs[0], util::file_system::to_unix_path((fs::current_path() / "src/test.cpp").string()));
 //     EXPECT_EQ(compilation_targets[0].flags[0], "-O2");
 // }
 

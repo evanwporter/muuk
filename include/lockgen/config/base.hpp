@@ -142,7 +142,7 @@ namespace muuk {
                 if constexpr (Derived::enable_include) {
                     auto raw_includes = toml::try_find_or<std::unordered_set<std::string>>(v, "include", {});
                     for (const auto& inc : raw_includes)
-                        include.insert(util::file_system::to_linux_path((std::filesystem::path(base_path) / inc).lexically_normal().string()));
+                        include.insert(util::file_system::to_unix_path((std::filesystem::path(base_path) / inc).lexically_normal().string()));
                 }
 
                 LOAD_TOML_SET_FIELD(defines, defines);

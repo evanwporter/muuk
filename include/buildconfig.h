@@ -21,8 +21,8 @@ constexpr const char* SHARED_LIB_EXT = ".so"; // shared
 #endif
 #endif
 
-constexpr const char* DEPENDENCY_FOLDER = "deps";
-constexpr std::string_view BUILD_FOLDER = "build";
+const std::string DEPENDENCY_FOLDER = "deps";
+const std::string BUILD_FOLDER = "build";
 
 const std::string MUUK_CACHE_FILE = "build/muuk.lock.toml";
 const std::string MUUK_TOML_FILE = "muuk.toml";

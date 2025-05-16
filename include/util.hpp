@@ -22,9 +22,9 @@ namespace util {
         /// Check if a path exists
         bool path_exists(const std::string& path);
 
-        std::string to_linux_path(const std::string& path, const std::string& prefix = "");
-        std::set<std::string> to_linux_path(const std::set<std::string>& paths, const std::string& prefix = "");
-        std::vector<std::string> to_linux_path(const std::vector<std::string>& paths, const std::string& prefix = "");
+        std::string to_unix_path(const std::string& path, const std::string& prefix = "");
+        std::set<std::string> to_unix_path(const std::set<std::string>& paths, const std::string& prefix = "");
+        std::vector<std::string> to_unix_path(const std::vector<std::string>& paths, const std::string& prefix = "");
 
         std::string sanitize_path(const std::string& input);
 

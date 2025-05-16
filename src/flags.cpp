@@ -54,7 +54,7 @@ namespace muuk {
             flag = normalize_flag(flag, compiler);
             auto validation_result = validation::validate_flag(compiler, flag);
             if (!validation_result) {
-                muuk::logger::warn("Skipping invalid flag `{}` for compiler `{}`: {}", flag, compiler.to_string(), validation_result.error());
+                muuk::logger::warn("Skipping invalid flag. {}", validation_result.error());
                 continue;
             }
             valid_flags.push_back(flag);

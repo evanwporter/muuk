@@ -29,13 +29,13 @@ struct Error {
     ErrorCode code = ErrorCode::Unknown;
 
     Error(std::string msg, ErrorCode c = ErrorCode::Unknown) :
-        message(std::move(msg)), code(c) { }
+        message(msg), code(c) { }
 
-    // Allow implicit conversion from just a string
+    // Implicit conversion from a string
     Error(const char* msg) :
         message(msg), code(ErrorCode::Unknown) { }
 
-    // Allow formatting-style constructor
+    /// Formatting-style constructor
     template <typename... Args>
     static Error formatted(ErrorCode code, fmt::format_string<Args...> fmt_str, Args&&... args) {
         return Error(fmt::format(fmt_str, std::forward<Args>(args)...), code);
