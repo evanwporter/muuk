@@ -1,3 +1,4 @@
+#include <regex>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -143,6 +144,16 @@ namespace util {
             }
 
             return Err("License information not found for " + author + "/" + repo);
+        }
+
+        bool is_git_url(const std::string& input) {
+            // Match Git over HTTPS, SSH, Git, or file protocol
+            std::regex urlPattern(R"(^(https?|git|ssh|file)://)");
+
+            // Match SCP-like Git syntax (e.g., git@github.com:user/repo.git)
+            std::regex scpPattern(R"(^\w+@[\w.-]+:[\w./-]+(\.git)?$)");
+
+            return std::regex_search(input, urlPattern) || std::regex_match(input, scpPattern);
         }
 
     } // namespace git

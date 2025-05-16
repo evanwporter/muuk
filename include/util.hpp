@@ -75,6 +75,7 @@ namespace util {
 
         Result<std::string> get_license_of_github_repo(const std::string& author, const std::string& repo);
 
+        bool is_git_url(const std::string& input);
     }
 
     // ==========================

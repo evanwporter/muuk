@@ -537,7 +537,10 @@ namespace muuk {
                     } else if (!dep_ptr->git_url.empty()) {
                         cargo_style_lock << "source = \"git+" << dep_ptr->git_url << "\"\n";
                     } else if (!package->source.empty()) {
-                        cargo_style_lock << "source = \"" << package->source << "\"";
+                        if (util::git::is_git_url(package->source))
+                            cargo_style_lock << "source = \"git+" << package->source << "\"\n";
+                        else // assume it's a path
+                            cargo_style_lock << "source = \"path+" << package->source << "\"";
                     } else {
                         muuk::logger::warn("No source or path found for package `{}`.", dep_name);
                     }
