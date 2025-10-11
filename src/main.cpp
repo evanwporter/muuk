@@ -7,7 +7,6 @@
 #include <fmt/ostream.h>
 #include <nlohmann/json.hpp>
 
-#include "buildconfig.h"
 #include "commands/add.hpp"
 #include "commands/build.hpp"
 #include "commands/clean.hpp"
@@ -135,9 +134,7 @@ int main(int argc, char* argv[]) {
         if (program.is_subcommand_used("remove")) {
             const auto package_name = remove_command.get<std::string>("package_name");
             muuk::logger::info("Removing dependency: {}", package_name);
-            return check_and_report(muuk::remove_package(
-                package_name,
-                "muuk.toml"));
+            return check_and_report(muuk::remove_package(package_name, "muuk.toml"));
         }
 
         if (program.is_subcommand_used("add")) {
@@ -199,10 +196,7 @@ int main(int argc, char* argv[]) {
                 muuk::logger::error("No script name provided for 'run'.");
                 return 1;
             }
-            return check_and_report(muuk::run_script(
-                muuk_config,
-                script.value(),
-                extra_args));
+            return check_and_report(muuk::run_script(muuk_config, script.value(), extra_args));
         }
 
         if (program.is_subcommand_used("build")) {
@@ -210,12 +204,7 @@ int main(int argc, char* argv[]) {
             std::string compiler = build_command.get<std::string>("--compiler");
             std::string profile = build_command.get<std::string>("--profile");
             std::string jobs = build_command.get<std::string>("--jobs");
-            return check_and_report(muuk::build_cmd(
-                target_build,
-                compiler,
-                profile,
-                muuk_config,
-                jobs));
+            return check_and_report(muuk::build_cmd(target_build, compiler, profile, muuk_config, jobs));
         }
     } catch (const std::runtime_error& err) {
         muuk::logger::error(std::string(err.what()) + "\n");

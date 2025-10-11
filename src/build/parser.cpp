@@ -266,6 +266,12 @@ namespace muuk {
                     auto iflags = muuk::parse_array_as_vec(package_table, "include", "-I../../");
                     auto defines = muuk::parse_array_as_vec(package_table, "defines", "-D");
 
+                    if (package_table.contains("cxx_standard")) {
+                        const auto cxx_standard = CXX_Standard::from_string(package_table.at("cxx_standard").as_string());
+                        if (cxx_standard)
+                            cflags.push_back(cxx_standard->to_flag(compiler));
+                    }
+
                     // Extract platform-specific and compiler-specific flags
                     auto platform_cflags = extract_platform_flags(package_table);
                     auto compiler_cflags = extract_compiler_flags(package_table, compiler);

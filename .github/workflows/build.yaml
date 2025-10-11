@@ -51,15 +51,12 @@ jobs:
         if: matrix.compiler == 'msvc'
         uses: ilammy/msvc-dev-cmd@v1
 
-      - name: Install LLVM
+      - name: Use Apple Clang (Xcode)
         if: runner.os == 'macOS'
         run: |
-          brew install llvm
-          echo "/opt/homebrew/opt/llvm/bin" >> $GITHUB_PATH
-
-      - name: Verify clang-scan-deps
-        if: runner.os == 'macOS'
-        run: clang-scan-deps --version
+          echo "Using Apple Clang:"
+          clang++ --version
+          clang-scan-deps --version || echo "clang-scan-deps not available"
     
       - name: Install LLVM (Linux only)
         if: runner.os == 'Linux'

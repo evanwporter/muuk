@@ -62,7 +62,7 @@ namespace muuk {
         explicit CXX_Standard(Year year) :
             year_(year) { }
 
-        static CXX_Standard from_string(const std::string& str);
+        static std::optional<CXX_Standard> from_string(const std::string& str);
         std::string to_string() const;
         std::string to_flag(const Compiler& compiler) const;
         std::string to_flag() const;

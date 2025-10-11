@@ -104,29 +104,32 @@ namespace muuk {
             if (data.contains("platform"))
                 package->platforms_config.load(data.at("platform"), base_path);
 
-            auto edition = CXX_Standard::from_string(
+            const auto edition = CXX_Standard::from_string(
                 toml::try_find_or(
                     data.at("package"),
                     "cxx_standard",
                     std::string {}));
 
-            // If this is the base project, just store its edition
-            if (is_base) {
-                base_cxx_standard = edition;
-            }
+            if (edition.has_value()) {
 
-            // If one of the dependencies requires a newer standard, upgrade the base standard
-            else {
-                if (edition > base_cxx_standard) {
-                    muuk::logger::warn(
-                        "Dependency '{}' (v{}) requires C++ standard {}, which is newer than base project's standard {}. "
-                        "Upgrading base standard to {}.",
-                        package_name,
-                        package_version,
-                        edition.to_string(),
-                        base_cxx_standard.to_string(),
-                        edition.to_string());
-                    base_cxx_standard = edition;
+                // If this is the base project, just store its edition
+                if (is_base) {
+                    base_cxx_standard = *edition;
+                }
+
+                // If one of the dependencies requires a newer standard, upgrade the base standard
+                else {
+                    if (*edition > base_cxx_standard) {
+                        muuk::logger::warn(
+                            "Dependency '{}' (v{}) requires C++ standard {}, which is newer than base project's standard {}. "
+                            "Upgrading base standard to {}.",
+                            package_name,
+                            package_version,
+                            edition->to_string(),
+                            base_cxx_standard.to_string(),
+                            edition->to_string());
+                        base_cxx_standard = *edition;
+                    }
                 }
             }
 
@@ -395,6 +398,9 @@ namespace muuk {
                 if (lib_table.contains("modules"))
                     lib_table.at("modules").as_array_fmt().fmt = toml::array_format::multiline;
 
+                lib_table["cxx_standard"] = base_cxx_standard.to_string();
+                // lib_table["c_standard"] = base_c_standard.to_string();
+
                 library_array.as_array().push_back(lib_table);
 
                 muuk::logger::info("Written package '{}' to lockfile.", package_name);
@@ -444,6 +450,9 @@ namespace muuk {
 
                 build_table["name"] = build_name;
                 build_table["version"] = base_package_->version;
+
+                build_table["cxx_standard"] = base_cxx_standard.to_string();
+                // build_table["c_standard"] = base_c_standard.to_string();
 
                 if (build_table.contains("sources"))
                     build_table.at("sources").as_array_fmt().fmt = toml::array_format::multiline;

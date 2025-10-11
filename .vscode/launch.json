@@ -21,7 +21,7 @@
       "environment": [],
       "console": "integratedTerminal",
       "symbolSearchPath": "${workspaceFolder}/build/debug",
-      // "preLaunchTask": "Build Debug (MSVC)"
+      "preLaunchTask": "Build Debug (MSVC)"
     },
     {
       "name": "(Windows) Build Clang",

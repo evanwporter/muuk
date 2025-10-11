@@ -2,14 +2,6 @@ logs/
 __pycache__/
 /build/
 
-*.log
-*.obj
-*.exe
-*.ilk
-*.pdb
-*.lib
-*.ifc
-
 github_api_response.json
 .ninja_log
 .ninja_lock

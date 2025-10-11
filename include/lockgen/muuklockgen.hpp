@@ -38,7 +38,7 @@ namespace muuk {
         private:
             // TODO: Use this somewhere`
             /// The C++ standard to use for the project.
-            CXX_Standard base_cxx_standard;
+            CXX_Standard base_cxx_standard = CXX_Standard::Cpp17;
 
             /// The C standard to use for the project.
             C_Standard base_c_standard;

@@ -1,3 +1,4 @@
+#include <optional>
 #include <string>
 #include <unordered_map>
 
@@ -91,7 +92,7 @@ namespace muuk {
     const CXX_Standard CXX_Standard::Cpp26(CXX_Standard::Year::Cpp26);
     const CXX_Standard CXX_Standard::Unknown(CXX_Standard::Year::Unknown);
 
-    CXX_Standard CXX_Standard::from_string(const std::string& str) {
+    std::optional<CXX_Standard> CXX_Standard::from_string(const std::string& str) {
         static const std::unordered_map<std::string, Year> editionMap = {
             { "98", Year::Cpp98 },
             { "03", Year::Cpp03 },
@@ -119,7 +120,8 @@ namespace muuk {
         if (it != editionMap.end()) {
             return CXX_Standard(it->second);
         }
-        return CXX_Standard::Unknown;
+
+        return std::nullopt;
     }
 
     std::string CXX_Standard::to_string() const {
