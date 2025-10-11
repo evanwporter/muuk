@@ -1,6 +1,6 @@
 [package]
 name = 'glob'
-version = '2fd211ae02efac6dbbc1e47d900a7df3d8438a9a'
+version = 'e796e3ca94e0c514296425d9884e2198c41699ee'
 git = 'https://github.com/p-ranav/glob.git'
 
 [library]
