@@ -35,7 +35,7 @@ namespace muuk {
         using TomlTypeVariant = std::variant<TomlType, TomlArray, TomlTable, TomlUnionTypes>;
 
         struct SchemaNode;
-        typedef std::unordered_map<std::string, SchemaNode> SchemaMap;
+        using SchemaMap = std::unordered_map<std::string, SchemaNode>;
 
         struct TomlTable {
             SchemaMap fields;

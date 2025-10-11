@@ -293,7 +293,8 @@ namespace util {
             constexpr size_t buf_size = 8192;
             char buffer[buf_size];
             while (file.read(buffer, buf_size) || file.gcount() > 0) {
-                XXH64_update(state, buffer, file.gcount());
+                size_t bytes_read = static_cast<size_t>(file.gcount());
+                XXH64_update(state, buffer, bytes_read);
             }
 
             uint64_t hash = XXH64_digest(state);

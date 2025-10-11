@@ -23,7 +23,7 @@ namespace muuk {
 
         // { Dependency { Versioning { Package } } }
         /// Maps dependencies to their respective versions and associated packages.
-        typedef DependencyVersionMap<std::shared_ptr<Package>> DependencyMap;
+        using DependencyMap = DependencyVersionMap<std::shared_ptr<Package>>;
 
         class MuukLockGenerator {
         public:

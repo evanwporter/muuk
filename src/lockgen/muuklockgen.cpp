@@ -592,50 +592,35 @@ namespace muuk {
             const fs::path fingerprint_root = fs::path("build") / ".fingerprint";
             util::file_system::ensure_directory_exists(fingerprint_root.string(), false);
 
-            // --- Base project hash ---
-            const fs::path base_toml_path = fs::path(base_path_) / MUUK_TOML_FILE;
-            if (!fs::exists(base_toml_path))
-                return Err("Base muuk.toml not found at {}", base_toml_path.string());
-
-            const std::string base_hash = *util::hash::file64(base_toml_path.string());
-            const fs::path base_hash_path = fingerprint_root / "muuk.hash";
-
-            {
-                std::ofstream out(base_hash_path);
-                if (!out.is_open())
-                    return Err("Failed to open {} for writing", base_hash_path.string());
-                out << base_hash << "\n";
-                muuk::logger::info("Wrote base fingerprint: {}", base_hash_path.string());
-            }
-
-            // --- Dependency hashes ---
-            const fs::path deps_root = fingerprint_root / "deps";
-            util::file_system::ensure_directory_exists(deps_root.string(), false);
-
             for (const auto& [pkg_name, versions] : resolved_packages) {
                 for (const auto& [pkg_version, pkg_ptr] : versions) {
                     if (!pkg_ptr)
                         continue;
 
-                    fs::path dep_toml_path = fs::path(DEPENDENCY_FOLDER) / pkg_name / pkg_version / MUUK_TOML_FILE;
-                    if (!fs::exists(dep_toml_path)) {
-                        muuk::logger::warn("Skipping fingerprint: {}@{} has no muuk.toml", pkg_name, pkg_version);
+                    const fs::path toml_path = fs::path(pkg_ptr->base_path) / MUUK_TOML_FILE;
+                    if (!fs::exists(toml_path)) {
+                        muuk::logger::warn(
+                            "Skipping fingerprint: {}@{} has no muuk.toml ({})",
+                            pkg_name,
+                            pkg_version,
+                            toml_path.string());
                         continue;
                     }
 
-                    const std::string dep_hash = *util::hash::file64(dep_toml_path.string());
-                    fs::path dep_hash_dir = deps_root / pkg_name / pkg_version;
-                    util::file_system::ensure_directory_exists(dep_hash_dir.string(), true);
+                    const std::string hash = *util::hash::file64(toml_path.string());
 
-                    fs::path dep_hash_file = dep_hash_dir / "muuk.hash";
-                    std::ofstream out(dep_hash_file);
+                    const fs::path hash_dir = fingerprint_root / pkg_ptr->base_path;
+                    util::file_system::ensure_directory_exists(hash_dir.string(), true);
+
+                    const fs::path hash_file = hash_dir / "muuk.hash";
+                    std::ofstream out(hash_file);
                     if (!out.is_open()) {
-                        muuk::logger::warn("Failed to write {}", dep_hash_file.string());
+                        muuk::logger::warn("Failed to write {}", hash_file.string());
                         continue;
                     }
 
-                    out << dep_hash << "\n";
-                    muuk::logger::info("Fingerprinted {}@{} -> {}", pkg_name, pkg_version, dep_hash);
+                    out << hash << "\n";
+                    muuk::logger::info("Fingerprinted {}@{} -> {}", pkg_name, pkg_version, hash);
                 }
             }
 
