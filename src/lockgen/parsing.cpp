@@ -51,16 +51,16 @@ namespace muuk {
                 debug_profile.settings.optimization_level = OptimizationLevel::O0;
                 debug_profile.settings.debug_assertions = true;
                 debug_profile.settings.lto = false;
-                debug_profile.sanitizers.address = true;
+                debug_profile.sanitizers.address = false;
                 debug_profile.sanitizers.undefined = true;
 
                 ProfileConfig release_profile;
                 release_profile.name = "release";
                 release_profile.settings.debug = false;
                 release_profile.settings.optimization_level = OptimizationLevel::O3;
-                debug_profile.settings.debug_assertions = false;
+                release_profile.settings.debug_assertions = false;
                 release_profile.settings.lto = true;
-                debug_profile.sanitizers.undefined = true;
+                release_profile.sanitizers.undefined = true;
 
                 profiles_config_["debug"] = std::move(debug_profile);
                 profiles_config_["release"] = std::move(release_profile);

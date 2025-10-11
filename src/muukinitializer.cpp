@@ -67,6 +67,8 @@ It only covers the most common items, and tries to guess sensible defaults.
         library["libs"] = toml::array {};
         library["sources"] = toml::array { "src/" + project_name + ".cpp" };
 
+        root["library"] = library;
+
         ordered_toml project_build = {};
         project_build["cflags"] = toml::array {
             "/std:c++20",
@@ -74,7 +76,8 @@ It only covers the most common items, and tries to guess sensible defaults.
             "/EHsc",
             "/FS"
         };
-        project_build["sources"] = toml::array { "src/" + entry_point };
+        project_build["sources"] = toml::array { entry_point };
+        project_build["profile"] = toml::array {"debug", "release"};
 
         ordered_toml build = {};
         build[project_name] = project_build;
@@ -120,7 +123,7 @@ It only covers the most common items, and tries to guess sensible defaults.
         std::cout << "\nSuccessfully initialized muuk project!\n";
 
         // Create sample main file
-        std::ofstream main_file("src/" + entry_point);
+        std::ofstream main_file("src/main.cpp");
         if (main_file) {
             main_file << R"(#include <iostream>
 
@@ -144,7 +147,7 @@ void hello_muuk();)";
         std::ofstream lib_file("src/" + project_name + ".cpp");
         if (lib_file) {
             lib_file << "#include <iostream>\n"
-                     << "#include \"include/" << project_name << ".h\"\n\n"
+                     << "#include \"" << project_name << ".hpp\"\n\n"
                      << "void hello_muuk() {\n"
                      << "    std::cout << \"This is a file in " << project_name << " library!\" << std::endl;\n"
                      << "}";

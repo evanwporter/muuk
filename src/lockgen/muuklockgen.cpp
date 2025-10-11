@@ -612,7 +612,7 @@ namespace muuk {
                     const fs::path hash_dir = fingerprint_root / pkg_ptr->base_path;
                     util::file_system::ensure_directory_exists(hash_dir.string(), true);
 
-                    const fs::path hash_file = hash_dir / "muuk.hash";
+                    const fs::path hash_file = hash_dir / MUUK_HASH_FILE;
                     std::ofstream out(hash_file);
                     if (!out.is_open()) {
                         muuk::logger::warn("Failed to write {}", hash_file.string());

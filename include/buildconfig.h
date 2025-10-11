@@ -27,6 +27,8 @@ const std::string BUILD_FOLDER = "build";
 const std::string MUUK_CACHE_FILE = "build/muuk.lock.toml";
 const std::string MUUK_TOML_FILE = "muuk.toml";
 
+const std::string MUUK_HASH_FILE = "muuk.hash";
+
 /// Directory inside of `build/{profile}/` where the build artifacts
 // are stored. Its similar to CMake's `CMakeFiles` directory
 const std::string MUUK_FILES = "muukfiles";

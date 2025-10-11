@@ -1,0 +1,95 @@
+# https://github.com/opt-nc/mobitag/blob/main/.github/workflows/test-release.yml
+
+name: generate demo GIF
+
+# on:
+#   push:
+#     branches: [main, develop]
+#     paths:
+#       - '*.tape'
+
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  vhs-demo:
+    name: Generate Demo GIF
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.1'
+
+      - name: Configure zsh + starship
+        run: |
+          # Initialize Starship prompt in zsh
+          echo 'eval "$(starship init zsh)"' >> ~/.zshrc
+
+          # Optional: set a Starship theme configuration
+          mkdir -p ~/.config
+          cat << 'EOF' > ~/.config/starship.toml
+          [character]
+          success_symbol = "[❯](bold green)"
+          error_symbol = "[❯](bold red)"
+          vicmd_symbol = "[❮](bold yellow)"
+
+          [cmd_duration]
+          disabled = true
+
+          [directory]
+          style = "bold blue"
+
+          [shell]
+          disabled = true
+
+          [username]
+          disabled = true
+          EOF
+
+          # Link config to zsh
+          echo 'export STARSHIP_CONFIG=~/.config/starship.toml' >> ~/.zshrc
+
+      - name: Install dependencies (ffmpeg, ttyd, zsh, VHS)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg ttyd zsh
+          go install github.com/charmbracelet/vhs@latest
+        
+      - name: Install Starship prompt
+        run: |
+          curl -sS https://starship.rs/install.sh | sh -s -- -y
+          echo 'eval "$(starship init zsh)"' >> ~/.zshrc
+
+      - name: Download latest release
+        shell: bash
+        run: |
+          url=$(gh release view --json assets -q ".assets[] | select(.name == \"muuk-linux.zip\") | .url")
+          curl -L "$url" -o muuk.zip
+          unzip -o muuk.zip
+          chmod +x muuk
+          sudo mv muuk /usr/local/bin/muuk 
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run VHS
+        run: |
+          vhs demo.tape
+
+      - name: Commit generated GIFs
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update generated VHS demo"
+          commit_user_name: vhs-action
+          commit_user_email: actions@github.com
+          commit_author: vhs-action <actions@github.com>
+          file_pattern: '*.gif'
