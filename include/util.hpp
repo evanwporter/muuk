@@ -86,6 +86,13 @@ namespace util {
     }
 
     // ==========================
+    //  Hash Utilities
+    // ==========================
+    namespace hash {
+        Result<std::string> file64(const std::string& path);
+    }
+
+    // ==========================
     //  Array Utilities
     // ==========================
     namespace array_ops {

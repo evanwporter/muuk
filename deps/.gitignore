@@ -6,6 +6,12 @@
 /expected/41d3e1f48d682992a2230b2a715bca38b848b269/*
 !/expected/41d3e1f48d682992a2230b2a715bca38b848b269/muuk.toml
 
+!/xxHash
+/xxHash/*
+!/xxHash/c961fbe61ad1ee1e430b9c304735a0534fda1c6d
+/xxHash/c961fbe61ad1ee1e430b9c304735a0534fda1c6d/*
+!/xxHash/c961fbe61ad1ee1e430b9c304735a0534fda1c6d/muuk.toml
+
 !/fmt
 /fmt/*
 !/fmt/577fd3be883accf8629423ed77fcca8a24bccee2

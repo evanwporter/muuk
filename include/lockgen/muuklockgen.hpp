@@ -34,6 +34,7 @@ namespace muuk {
 
             Result<void> generate_lockfile(const std::string& output_path);
             Result<void> generate_cache(const std::string& output_path);
+            Result<void> generate_fingerprints();
 
         private:
             // TODO: Use this somewhere`

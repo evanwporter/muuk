@@ -167,6 +167,7 @@ namespace muuk {
             return Err(lock_generator_.error());
 
         TRYV(lock_generator_->generate_cache(MUUK_CACHE_FILE));
+        TRYV(lock_generator_->generate_fingerprints());
 
         auto compiler_result = compiler.empty()
             ? detect_default_compiler()

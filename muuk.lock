@@ -3,26 +3,49 @@
 [[package]]
 name = "argparse"
 version = "d924b84eba1f0f0adf38b20b7b4829f6f65b6570"
+hash = "b05cefeeb2bdb3e5"
 source = "git+https://github.com/p-ranav/argparse.git"
 
 [[package]]
 name = "expected"
 version = "41d3e1f48d682992a2230b2a715bca38b848b269"
+hash = "a9d71a15e92047fe"
 source = "git+https://github.com/TartanLlama/expected.git"
+
+[[package]]
+name = "xxHash"
+version = "c961fbe61ad1ee1e430b9c304735a0534fda1c6d"
+hash = "2e73048aa3b329c0"
+source = "git+https://github.com/Cyan4973/xxHash.git"
 
 [[package]]
 name = "fmt"
 version = "577fd3be883accf8629423ed77fcca8a24bccee2"
+hash = "771fee80449f46bc"
 source = "git+https://github.com/fmtlib/fmt.git"
+
+[[package]]
+name = "glob"
+version = "2fd211ae02efac6dbbc1e47d900a7df3d8438a9a"
+hash = "b70a8fe541148c51"
+source = "git+https://github.com/p-ranav/glob.git"
 
 [[package]]
 name = "json"
 version = "0b6881a95f8aaf60bd2324ecdf2258a65bf33baf"
+hash = "88a752119f65fd2a"
 source = "git+https://github.com/nlohmann/json.git"
+
+[[package]]
+name = "toml11"
+version = "a01fe3b4c14c6d7b99ee3f07c9e80058c6403097"
+hash = "c014001fc93d765e"
+source = "git+https://github.com/ToruNiina/toml11.git"
 
 [[package]]
 name = "spdlog"
 version = "3335c380a08c5e0f5117a66622df6afdb3d74959"
+hash = "43283dfcbb86bbb8"
 source = "git+https://github.com/gabime/spdlog.git"
 features = ["fmt"]
 dependencies = [
@@ -30,17 +53,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "toml11"
-version = "a01fe3b4c14c6d7b99ee3f07c9e80058c6403097"
-source = "git+https://github.com/ToruNiina/toml11.git"
-
-[[package]]
-name = "glob"
-version = "2fd211ae02efac6dbbc1e47d900a7df3d8438a9a"
-source = "git+https://github.com/p-ranav/glob.git"
-
-[[package]]
 name = "googletest"
 version = "3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f"
+hash = "de2eca19b10a3ed3"
 source = "git+https://github.com/google/googletest.git"
 

@@ -80,17 +80,17 @@ namespace muuk {
         // clang-format off
 
         const SchemaMap dependency_schema = {
-            { "version", { true, TomlType::String } },
-            { "git", { false, TomlType::String } },
-            { "path", { false, TomlType::String } },
-            { "features", { false, TomlArray { TomlType::String } } },
-            { "system", { false, TomlType::Boolean } },
-            { "libs", { false, TomlArray { TomlType::String } } }
+            {"version", { true, TomlType::String } },
+            {"git", { false, TomlType::String } },
+            {"path", { false, TomlType::String } },
+            {"features", { false, TomlArray { TomlType::String } } },
+            {"system", { false, TomlType::Boolean } },
+            {"libs", { false, TomlArray { TomlType::String } } }
         };
 
         const SchemaMap base_package_schema = {
-            { "include", { false, TomlArray { TomlType::String } } },
-            { "sources", { false, TomlArray {
+            {"include", { false, TomlArray { TomlType::String } } },
+            {"sources", { false, TomlArray {
                 TomlUnionTypes {
                     TomlType::String,
                     TomlTable({
@@ -98,7 +98,7 @@ namespace muuk {
                         {"cflags", { false, TomlArray { TomlType::String } } },
                     })
                 }}}},
-            { "libs", { false, TomlArray {
+            {"libs", { false, TomlArray {
                 TomlUnionTypes {
                     TomlType::String,
                     TomlTable({
@@ -108,19 +108,19 @@ namespace muuk {
                         {"platform", { false, TomlType::String } },
                     })
                 }}}},
-            { "cflags", { false, TomlArray { TomlType::String } } },
-            { "libflags", { false, TomlArray { TomlType::String } } },
-            { "lflags", { false, TomlArray { TomlType::String } } },
-            { "system_include", { false, TomlArray { TomlType::String } } }
+            {"cflags", { false, TomlArray { TomlType::String } } },
+            {"libflags", { false, TomlArray { TomlType::String } } },
+            {"lflags", { false, TomlArray { TomlType::String } } },
+            {"system_include", { false, TomlArray { TomlType::String } } }
         };
 
         const SchemaMap build_schema = {
-            { "*", { false, TomlTable({
-                { "include", { false, TomlArray{TomlType::String} } },
-                { "cflags", { false, TomlArray{TomlType::String} } },
-                { "system_include", { false, TomlArray{TomlType::String} } },
-                { "link", { false, TomlType::String } },
-                { "dependencies", { false, TomlTable({}) } }
+            {"*", { false, TomlTable({
+                {"include", { false, TomlArray{TomlType::String} } },
+                {"cflags", { false, TomlArray{TomlType::String} } },
+                {"system_include", { false, TomlArray{TomlType::String} } },
+                {"link", { false, TomlType::String } },
+                {"dependencies", { false, TomlTable({}) } }
             })}}
         }; 
 
@@ -143,10 +143,10 @@ namespace muuk {
         const SchemaMap muuk_schema = {
             {"package", {true, TomlTable(package_schema)}},
 
-            { "dependencies", { false, TomlUnionTypes{
+            {"dependencies", { false, TomlUnionTypes{
                 TomlType::String,
                 TomlTable({
-                    { "*", { false, TomlUnionTypes{
+                    {"*", { false, TomlUnionTypes{
                         TomlType::String,
                         TomlTable({dependency_schema})
                     }}}

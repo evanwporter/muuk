@@ -9,6 +9,8 @@
 #include <string>
 #include <vector>
 
+#include <xxhash.h>
+
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -276,4 +278,30 @@ namespace util {
             return s;
         }
     }
+
+    namespace hash {
+
+        Result<std::string> file64(const std::string& path) {
+            std::ifstream file(path, std::ios::binary);
+            if (!file.is_open()) {
+                return Err("Failed to open file {} for hashing.", path);
+            }
+
+            XXH64_state_t* state = XXH64_createState();
+            XXH64_reset(state, 0); // seed = 0
+
+            constexpr size_t buf_size = 8192;
+            char buffer[buf_size];
+            while (file.read(buffer, buf_size) || file.gcount() > 0) {
+                XXH64_update(state, buffer, file.gcount());
+            }
+
+            uint64_t hash = XXH64_digest(state);
+            XXH64_freeState(state);
+
+            char hex[17];
+            snprintf(hex, sizeof(hex), "%016llx", static_cast<unsigned long long>(hash));
+            return std::string(hex);
+        }
+    } // namespace hash
 } // namespace util

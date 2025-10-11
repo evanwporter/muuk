@@ -20,7 +20,7 @@ include = ['include']
 # modules = ["modules/math.ixx"]
 sources = [
     # demonstrates per-file cflags
-    { path = 'src/muuker.cpp', cflags = [] },
+    {path = 'src/muuker.cpp', cflags = []},
     'src/muuk.cpp',
     'src/util/*.cpp',
     'src/logger.cpp',
@@ -44,20 +44,21 @@ expected = '41d3e1f48d682992a2230b2a715bca38b848b269'
 fmt = '577fd3be883accf8629423ed77fcca8a24bccee2'
 glob = '2fd211ae02efac6dbbc1e47d900a7df3d8438a9a'
 json = '0b6881a95f8aaf60bd2324ecdf2258a65bf33baf'
-spdlog = { version = '3335c380a08c5e0f5117a66622df6afdb3d74959', features = [
+spdlog = {version = '3335c380a08c5e0f5117a66622df6afdb3d74959', features = [
     'fmt',
-] }
+]}
 toml11 = 'a01fe3b4c14c6d7b99ee3f07c9e80058c6403097'
+xxHash = "c961fbe61ad1ee1e430b9c304735a0534fda1c6d"
 
 [build.muuk]
 profile = ['release', 'debug']
 sources = ['src/main.cpp']
-dependencies = { argparse = 'd924b84eba1f0f0adf38b20b7b4829f6f65b6570' }
+dependencies = {argparse = 'd924b84eba1f0f0adf38b20b7b4829f6f65b6570'}
 
 [build.test]
 profile = ['debug']
 sources = ['test/internal/muuk_test.cpp']
-dependencies = { googletest = '3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f' }
+dependencies = {googletest = '3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f'}
 
 [profile.base]
 cflags = ['-std=c++20', '/utf-8', '/EHsc', '/nologo', '/MD']
@@ -71,3 +72,4 @@ inherits = ['base']
 default = true
 inherits = ['base']
 cflags = ['/DDEBUG', '/FC', "/RTC1"]
+
