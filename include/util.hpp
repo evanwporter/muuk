@@ -1,6 +1,7 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
@@ -89,7 +90,7 @@ namespace util {
     //  Hash Utilities
     // ==========================
     namespace hash {
-        Result<std::string> file64(const std::string& path);
+        std::optional<std::string> file64(const std::string& path);
     }
 
     // ==========================

@@ -5,6 +5,7 @@
 #include <ctime>
 #include <filesystem>
 #include <fstream>
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
@@ -281,10 +282,10 @@ namespace util {
 
     namespace hash {
 
-        Result<std::string> file64(const std::string& path) {
+        std::optional<std::string> file64(const std::string& path) {
             std::ifstream file(path, std::ios::binary);
             if (!file.is_open()) {
-                return Err("Failed to open file {} for hashing.", path);
+                return std::nullopt;
             }
 
             XXH64_state_t* state = XXH64_createState();

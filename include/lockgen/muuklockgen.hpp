@@ -36,6 +36,8 @@ namespace muuk {
             Result<void> generate_cache(const std::string& output_path);
             Result<void> generate_fingerprints();
 
+            static Result<bool> is_dirty();
+
         private:
             // TODO: Use this somewhere`
             /// The C++ standard to use for the project.

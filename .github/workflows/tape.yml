@@ -1,12 +1,4 @@
-# https://github.com/opt-nc/mobitag/blob/main/.github/workflows/test-release.yml
-
-name: generate demo GIF
-
-# on:
-#   push:
-#     branches: [main, develop]
-#     paths:
-#       - '*.tape'
+name: generate demo gif
 
 on:
   workflow_dispatch:
@@ -17,58 +9,16 @@ permissions:
   contents: write
 
 jobs:
-  vhs-demo:
-    name: Generate Demo GIF
+  build-muuk:
+    name: Build Muuk (Linux)
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.25.1'
-
-      - name: Configure zsh + starship
-        run: |
-          # Initialize Starship prompt in zsh
-          echo 'eval "$(starship init zsh)"' >> ~/.zshrc
-
-          # Optional: set a Starship theme configuration
-          mkdir -p ~/.config
-          cat << 'EOF' > ~/.config/starship.toml
-          [character]
-          success_symbol = "[❯](bold green)"
-          error_symbol = "[❯](bold red)"
-          vicmd_symbol = "[❮](bold yellow)"
-
-          [cmd_duration]
-          disabled = true
-
-          [directory]
-          style = "bold blue"
-
-          [shell]
-          disabled = true
-
-          [username]
-          disabled = true
-          EOF
-
-          # Link config to zsh
-          echo 'export STARSHIP_CONFIG=~/.config/starship.toml' >> ~/.zshrc
-
-      - name: Install dependencies (ffmpeg, ttyd, zsh, VHS)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg ttyd zsh
-          go install github.com/charmbracelet/vhs@latest
-        
-      - name: Install Starship prompt
-        run: |
-          curl -sS https://starship.rs/install.sh | sh -s -- -y
-          echo 'eval "$(starship init zsh)"' >> ~/.zshrc
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@v6
 
       - name: Download latest release
         shell: bash
@@ -77,13 +27,83 @@ jobs:
           curl -L "$url" -o muuk.zip
           unzip -o muuk.zip
           chmod +x muuk
-          sudo mv muuk /usr/local/bin/muuk 
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run VHS
+      - name: Install LLVM (Linux only)
+        if: runner.os == 'Linux'
         run: |
-          vhs demo.tape
+          sudo apt-get update
+          sudo apt-get install -y build-essential llvm clang lld
+          echo "LLVM installed at: $(llvm-config --prefix)"
+          echo "$(llvm-config --bindir)" >> $GITHUB_PATH
+
+      - name: Install dependencies with muuk
+        run: ./muuk install
+
+      - name: Create build directory
+        shell: bash
+        run: |
+          mkdir -p build/release
+
+      - name: Build project
+        run: ./muuk build -p release
+
+      - name: Upload Muuk artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: muuk-linux
+          path: build/release/muuk
+
+  vhs-demo:
+    name: Generate Demo GIF
+    runs-on: ubuntu-latest
+    needs: build-muuk
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Muuk artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: muuk-linux
+          path: .
+
+      - name: Make binary executable (Linux/macOS only)
+        run: |
+          sudo mv muuk /usr/local/bin/muuk
+          chmod +x /usr/local/bin/muuk
+          
+      - name: Install dependencies (ffmpeg, ttyd, zsh)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg ttyd zsh
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.1'
+
+      - name: Install VHS
+        run: go install github.com/charmbracelet/vhs@latest
+
+      - name: Install Starship
+        run: |
+          curl -sS https://starship.rs/install.sh | sh -s -- -y
+          mkdir -p ~/.config
+          starship preset nerd-font-symbols -o ~/.config/starship.toml
+          echo 'eval "$(starship init zsh)"' >> ~/.zshrc
+
+      - name: Verify environment
+        shell: zsh {0}
+        run: |
+          echo "ZSH version: $ZSH_VERSION"
+          starship --version
+          muuk -v
+
+      - name: Run VHS demo
+        run: vhs demo.tape
 
       - name: Commit generated GIFs
         uses: stefanzweifel/git-auto-commit-action@v5

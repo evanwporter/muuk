@@ -162,12 +162,17 @@ namespace muuk {
         auto muuk_file = muuk_result.value();
 
         // TODO: Pass the config to the lock generator
-        auto lock_generator_ = lockgen::MuukLockGenerator::create("./");
-        if (!lock_generator_)
-            return Err(lock_generator_.error());
+        const auto dirty_result = lockgen::MuukLockGenerator::is_dirty();
+        if (dirty_result.has_value() && dirty_result.value()) {
+            muuk::logger::info("muuk.lock.toml is out of date or dirty. Regenerating...");
 
-        TRYV(lock_generator_->generate_cache(MUUK_CACHE_FILE));
-        TRYV(lock_generator_->generate_fingerprints());
+            auto lock_generator_ = lockgen::MuukLockGenerator::create("./");
+            if (!lock_generator_)
+                return Err(lock_generator_.error());
+
+            TRYV(lock_generator_->generate_cache(MUUK_CACHE_FILE));
+            TRYV(lock_generator_->generate_fingerprints());
+        }
 
         auto compiler_result = compiler.empty()
             ? detect_default_compiler()

@@ -753,5 +753,90 @@ namespace muuk {
                 }
             }
         }
+
+        Result<bool> MuukLockGenerator::is_dirty() {
+            muuk::logger::info("Checking if project is dirty using lockfile: {}", MUUK_LOCK_FILE);
+
+            auto file_hash = [](const fs::path& path) -> std::optional<std::string> {
+                return fs::exists(path)
+                    ? util::hash::file64(path.string())
+                    : std::nullopt;
+            };
+
+            auto hashes_match = [&](const fs::path& file, const fs::path& fingerprint) -> bool {
+                auto hash_opt = file_hash(file);
+                if (!hash_opt) {
+                    muuk::logger::warn("Cannot hash '{}'", file.string());
+                    return false;
+                }
+
+                if (!fs::exists(fingerprint)) {
+                    muuk::logger::info("Missing fingerprint for {}", file.string());
+                    return false;
+                }
+
+                std::ifstream in(fingerprint);
+                std::string stored_hash;
+                std::getline(in, stored_hash);
+                return stored_hash == *hash_opt;
+            };
+
+            // Check root muuk.toml
+            const fs::path base_toml = "muuk.toml";
+            const fs::path base_hash = fs::path("build") / ".fingerprint" / MUUK_HASH_FILE;
+
+            if (!hashes_match(base_toml, base_hash)) {
+                muuk::logger::info("Base muuk.toml differs or missing fingerprint — dirty.");
+                return true;
+            }
+
+            // Parse lockfile
+            toml::value lock_data;
+            try {
+                lock_data = toml::parse(MUUK_LOCK_FILE);
+            } catch (const std::exception& e) {
+                return Err("Failed to parse lockfile '{}': {}", MUUK_LOCK_FILE, e.what());
+            }
+
+            if (!lock_data.contains("package")) {
+                muuk::logger::warn("No [[package]] section found in lockfile.");
+                return false; // Treat no deps as clean
+            }
+
+            // Check each package
+            for (const auto& pkg_entry : lock_data.at("package").as_array()) {
+                if (!pkg_entry.is_table())
+                    continue;
+                const auto& pkg = pkg_entry.as_table();
+                if (!pkg.contains("name") || !pkg.contains("version"))
+                    continue;
+
+                const std::string name = pkg.at("name").as_string();
+                const std::string version = pkg.at("version").as_string();
+
+                const fs::path dep_toml = fs::path(DEPENDENCY_FOLDER)
+                    / name
+                    / version
+                    / MUUK_TOML_FILE;
+                const fs::path dep_hash = fs::path("build")
+                    / ".fingerprint"
+                    / "deps"
+                    / name
+                    / version
+                    / MUUK_HASH_FILE;
+
+                if (!hashes_match(dep_toml, dep_hash)) {
+                    muuk::logger::info(
+                        "{}@{} is dirty (hash mismatch or missing).",
+                        name,
+                        version);
+                    return true;
+                }
+            }
+
+            muuk::logger::info("All fingerprints match lockfile. Project is clean.");
+            return false;
+        }
+
     } // namespace lockgen
 } // namespace muuk
