@@ -7,6 +7,7 @@
 #include "buildconfig.h"
 #include "commands/add.hpp"
 #include "logger.hpp"
+#include "muuk.hpp"
 #include "muuk_parser.hpp"
 #include "rustify.hpp"
 #include "toml11/types.hpp"
@@ -107,6 +108,8 @@ namespace muuk {
                     }
 #else
                     muuk::logger::warn("Failed to download muuk.toml from repo. Generating a default `muuk.toml`.");
+                    if (!qinit_library(author, repo_name, version))
+                        return Err("Failed to generate default muuk.toml.");
 #endif
                 }
             }

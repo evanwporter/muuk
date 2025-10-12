@@ -17,7 +17,7 @@
 #include "logger.hpp"
 #include "muuk_parser.hpp"
 #include "rustify.hpp"
-#include "version.h"
+#include "version.hpp"
 
 inline int check_and_report(const Result<void>& result) {
     if (!result) {
@@ -31,7 +31,7 @@ inline int check_and_report(const Result<void>& result) {
 
 int main(int argc, char* argv[]) {
 
-    argparse::ArgumentParser program("muuk", VERSION);
+    argparse::ArgumentParser program("muuk", muuk::version::string);
 
     program.add_argument("--muuk-path")
         .help("Specify the path to muuk.toml")
@@ -43,13 +43,16 @@ int main(int argc, char* argv[]) {
         .help("Build arguments passed to the build system")
         .default_value(std::vector<std::string> {});
 
-    argparse::ArgumentParser run_command("run", "Run a custom script");
-    run_command.add_argument("script")
-        .help("The script to run, as defined in muuk.json");
-    run_command.add_argument("extra_args")
-        .remaining()
-        .help("Extra arguments passed to the command")
-        .default_value(std::vector<std::string> {});
+    argparse::ArgumentParser run_command("run", "Run a build target");
+    run_command.add_argument("target")
+        .help("The build target to run, as defined in muuk.json")
+        .default_value(std::string(""));
+    run_command.add_argument("-p", "--profile")
+        .help("Specify the profile to run (e.g., debug, release)")
+        .default_value(std::string(""));
+    run_command.add_argument("--release")
+        .help("Run using the 'release' profile (equivalent to --profile release)")
+        .flag();
 
     argparse::ArgumentParser build_command("build", "Build the project");
     build_command.add_argument("-t", "--target-build")
@@ -68,8 +71,11 @@ int main(int argc, char* argv[]) {
         .nargs(1);
     build_command.add_argument("-p", "--profile")
         .help("Specify a build profile (e.g., debug, release)")
-        .default_value(std::string("")) // TODO: Eventually parse the default profile from the config file
+        .default_value(std::string("debug"))
         .nargs(1);
+    build_command.add_argument("--release")
+        .help("Build using the 'release' profile (equivalent to --profile release)")
+        .flag();
     build_command.add_argument("-j", "--jobs")
         .help("Number of jobs to run in parallel (0 means infinity)")
         .default_value(std::string("1"))
@@ -190,22 +196,36 @@ int main(int argc, char* argv[]) {
         }
 
         if (program.is_subcommand_used("run")) {
-            const auto script = run_command.present<std::string>("script");
-            const auto extra_args = run_command.get<std::vector<std::string>>("extra_args");
-            if (!script.has_value()) {
-                muuk::logger::error("No script name provided for 'run'.");
-                return 1;
-            }
-            return check_and_report(muuk::run_script(muuk_config, script.value(), extra_args));
+            std::string target = run_command.get<std::string>("target");
+            std::string profile = run_command.get<std::string>("--profile");
+            const bool release_flag = run_command.get<bool>("--release");
+
+            // Apply Cargo-style precedence:
+            // --release > --profile > default(debug)
+            if (release_flag)
+                profile = "release";
+            else if (profile.empty())
+                profile = "debug";
+
+            return check_and_report(
+                muuk::run_build_target(
+                    target,
+                    profile));
         }
 
         if (program.is_subcommand_used("build")) {
             std::string target_build = build_command.get<std::string>("--target-build");
             std::string compiler = build_command.get<std::string>("--compiler");
             std::string profile = build_command.get<std::string>("--profile");
+            bool release_flag = build_command.get<bool>("--release");
             std::string jobs = build_command.get<std::string>("--jobs");
-            return check_and_report(muuk::build_cmd(target_build, compiler, profile, muuk_config, jobs));
+
+            if (release_flag)
+                profile = "release";
+
+            return check_and_report(muuk::build_cmd(target_build, compiler, profile, jobs));
         }
+
     } catch (const std::runtime_error& err) {
         muuk::logger::error(std::string(err.what()) + "\n");
         return 1;

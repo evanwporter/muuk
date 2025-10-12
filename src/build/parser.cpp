@@ -16,8 +16,8 @@
 #include "logger.hpp"
 #include "muuk.hpp"
 #include "muuk_parser.hpp"
-#include "opt_level.hpp"
 #include "rustify.hpp"
+#include "structs/settings.hpp"
 #include "util.hpp"
 
 namespace fs = std::filesystem;
@@ -50,55 +50,10 @@ namespace muuk {
             build_profile.lflags = muuk::parse_array_as_vec(profile_entry, "lflags");
             build_profile.defines = muuk::parse_array_as_vec(profile_entry, "defines", "-D");
 
-            // --- Link Type Optimization ---
-            if (profile_entry.at("lto").as_boolean()) {
-                muuk::logger::info("LTO enabled for profile '{}'", profile);
-                switch (compiler.getType()) {
-                case Compiler::Type::GCC:
-                case Compiler::Type::Clang:
-                    build_profile.cflags.push_back("-flto");
-                    build_profile.lflags.push_back("-flto");
-                    break;
-                case Compiler::Type::MSVC:
-                    build_profile.cflags.push_back("/GL");
-                    build_profile.lflags.push_back("/LTCG");
-                    break;
-                }
-            }
+            muuk::Settings settings {};
+            muuk::load(settings, profile_entry);
 
-            // --- Debug ---
-            if (profile_entry.at("debug").as_boolean()) {
-                muuk::logger::info("LTO enabled for profile '{}'", profile);
-                switch (compiler.getType()) {
-                case Compiler::Type::GCC:
-                case Compiler::Type::Clang:
-                    build_profile.cflags.push_back("-g");
-                    break;
-                case Compiler::Type::MSVC:
-                    build_profile.cflags.push_back("/Zi");
-                    build_profile.lflags.push_back("/DEBUG");
-                    break;
-                }
-            }
-
-            // --- Debug Assertions ---
-            if (!profile_entry.at("debug-assertions").as_boolean()) {
-                muuk::logger::info("LTO enabled for profile '{}'", profile);
-                switch (compiler.getType()) {
-                case Compiler::Type::GCC:
-                case Compiler::Type::Clang:
-                    build_profile.cflags.push_back("-DNDEBUG");
-                    break;
-                case Compiler::Type::MSVC:
-                    build_profile.cflags.push_back("/DNDEBUG");
-                    break;
-                }
-            }
-
-            // --- Optimization Level ---
-            build_profile.cflags.push_back(to_flag(
-                opt_lvl_from_string(profile_entry.at("opt-level").as_string()),
-                compiler.getType()));
+            muuk::to_flags(settings, compiler, build_profile.cflags, build_profile.lflags);
 
             // --- Sanitizers ---
             if (profile_entry.contains("sanitizers") && profile_entry.at("sanitizers").is_array()) {
@@ -583,10 +538,10 @@ namespace muuk {
                 muuk::logger::trace("  - Linker Flags: '{}'", fmt::join(lflags, "', '"));
             }
 
-            if (!build_profile_match)
-                muuk::logger::warn(
-                    "No builds are enabled for the profile '{}'",
-                    profile_);
+            // if (!build_profile_match)
+            //     muuk::logger::warn(
+            //         "No builds are enabled for the profile '{}'",
+            //         profile_);
         }
 
         Result<void> parse(BuildManager& build_manager, const muuk::Compiler compiler, const std::filesystem::path& build_dir, const std::string& profile) {

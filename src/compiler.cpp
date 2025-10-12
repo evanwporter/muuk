@@ -167,8 +167,8 @@ namespace muuk {
             { Year::Cpp14, "/std:c++14" },
             { Year::Cpp17, "/std:c++17" },
             { Year::Cpp20, "/std:c++20" },
-            { Year::Cpp23, "/std:c++23" },
-            { Year::Cpp26, "/std:c++latest" } // MSVC doesn't have C++26 yet
+            { Year::Cpp23, "/std:c++latest" }, // TODO: update whenever MSVC supports
+            // { Year::Cpp26, "/std:c++latest" } // MSVC doesn't have C++26 yet
         };
 
         if (compiler == Compiler::MSVC) {

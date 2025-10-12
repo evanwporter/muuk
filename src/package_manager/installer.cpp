@@ -9,8 +9,8 @@
 #include "lockgen/muuklockgen.hpp"
 #include "logger.hpp"
 #include "muuk_parser.hpp"
-#include "muukterminal.hpp"
 #include "rustify.hpp"
+#include "terminal.hpp"
 #include "util.hpp"
 
 namespace fs = std::filesystem;

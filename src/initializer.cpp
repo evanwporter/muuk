@@ -58,26 +58,21 @@ It only covers the most common items, and tries to guess sensible defaults.
         package["name"] = project_name;
         package["author"] = author;
         package["version"] = version;
+        package["cxx_standard"] = "c++20";
         package["license"] = license;
 
         root["package"] = package;
 
         ordered_toml library = {};
         library["include"] = toml::array { include_path };
-        library["libs"] = toml::array {};
         library["sources"] = toml::array { "src/" + project_name + ".cpp" };
 
         root["library"] = library;
 
         ordered_toml project_build = {};
-        project_build["cflags"] = toml::array {
-            "/std:c++20",
-            "/utf-8",
-            "/EHsc",
-            "/FS"
-        };
+
         project_build["sources"] = toml::array { entry_point };
-        project_build["profile"] = toml::array {"debug", "release"};
+        // project_build["profile"] = toml::array {"debug", "release"};
 
         ordered_toml build = {};
         build[project_name] = project_build;
@@ -97,12 +92,9 @@ It only covers the most common items, and tries to guess sensible defaults.
 
         muuk::logger::trace("Successfully created structured muuk.toml!");
 
-        std::ifstream toml_file("muuk.toml");
-        if (toml_file.is_open()) {
-            std::cout << "\nCurrent muuk.toml content:\n";
-            std::cout << toml_file.rdbuf();
-            toml_file.close();
-        }
+
+        std::cout << "\nCurrent muuk.toml content:\n";
+        std::cout << toml::format(root);
 
         std::string confirmation;
         std::cout << "\nIs this OK? (yes): ";
@@ -125,10 +117,10 @@ It only covers the most common items, and tries to guess sensible defaults.
         // Create sample main file
         std::ofstream main_file("src/main.cpp");
         if (main_file) {
-            main_file << R"(#include <iostream>
+            main_file << R"(#include <)" << project_name << R"(.hpp>
 
 int main() {
-    std::cout << "Muuk was here." << std::endl;
+    hello_muuk();
     return 0;
 })";
             main_file.close();
@@ -149,7 +141,7 @@ void hello_muuk();)";
             lib_file << "#include <iostream>\n"
                      << "#include \"" << project_name << ".hpp\"\n\n"
                      << "void hello_muuk() {\n"
-                     << "    std::cout << \"This is a file in " << project_name << " library!\" << std::endl;\n"
+                     << "    std::cout << \"Hello World from " << project_name << ".cpp! This project was build using Muuk!\" << std::endl;\n"
                      << "}";
             lib_file.close();
         }

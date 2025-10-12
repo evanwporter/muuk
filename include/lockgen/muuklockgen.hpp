@@ -39,7 +39,6 @@ namespace muuk {
             static Result<bool> is_dirty();
 
         private:
-            // TODO: Use this somewhere`
             /// The C++ standard to use for the project.
             CXX_Standard base_cxx_standard = CXX_Standard::Cpp17;
 

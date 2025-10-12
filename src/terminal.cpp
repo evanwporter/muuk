@@ -8,7 +8,7 @@
 #include <iostream>
 #include <string>
 
-#include "muukterminal.hpp"
+#include "terminal.hpp"
 
 namespace muuk {
     namespace terminal {

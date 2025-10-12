@@ -1,0 +1,81 @@
+name: bash tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-muuk:
+    name: Build Muuk (Linux)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@v6
+
+      - name: Download latest release
+        shell: bash
+        run: |
+          url=$(gh release view --json assets -q ".assets[] | select(.name == \"muuk-linux.zip\") | .url")
+          curl -L "$url" -o muuk.zip
+          unzip -o muuk.zip
+          chmod +x muuk
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install LLVM (Linux only)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential llvm clang lld
+          echo "LLVM installed at: $(llvm-config --prefix)"
+          echo "$(llvm-config --bindir)" >> $GITHUB_PATH
+
+      - name: Install dependencies with muuk
+        run: ./muuk install
+
+      - name: Create build directory
+        shell: bash
+        run: |
+          mkdir -p build/release
+
+      - name: Build project
+        run: ./muuk build -p release
+
+      - name: Upload Muuk artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: muuk-linux
+          path: build/release/muuk
+
+  bats-tests:
+    name: Run Bats test suite
+    runs-on: ubuntu-latest
+    needs: build-muuk
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Muuk artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: muuk-linux
+          path: .
+
+      - name: Make binary executable (Linux/macOS only)
+        run: |
+          sudo mv muuk /usr/local/bin/muuk
+          chmod +x /usr/local/bin/muuk
+
+      - name: Install Bats
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y bats
+
+      - name: Run Bats tests
+        run: |
+          bats --print-output-on-failure test/external

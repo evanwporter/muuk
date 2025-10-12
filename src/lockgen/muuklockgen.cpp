@@ -72,7 +72,10 @@ namespace muuk {
 
             const auto base_path = fs::path(path).parent_path().string();
 
-            auto deps_result = parse_dependencies(data, package);
+            const auto deps_result = parse_dependencies(data, package);
+            if (!deps_result)
+                return Err(deps_result.error());
+
             for (const auto& [dep_name, version_map] : package->dependencies_)
                 for (const auto& [_, dep_ptr] : version_map)
                     if (dep_ptr)
@@ -143,7 +146,7 @@ namespace muuk {
                 for (const auto& [build_name, build_pkg] : data.at("build").as_table()) {
                     // TODO: Make sure build key exists
                     auto build = std::make_shared<Build>();
-                    build->load(build_pkg, base_path);
+                    build->load(build_pkg, base_path, profiles_config_);
                     builds_[build_name] = build;
                 }
 

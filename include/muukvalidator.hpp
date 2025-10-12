@@ -14,7 +14,6 @@
 namespace muuk {
     namespace validation {
         Result<void> validate_muuk_toml(const toml::value& toml_data);
-        Result<void> validate_muuk_lock_toml(const toml::value& toml_data);
 
         bool is_valid_dependency_name(std::string_view name);
 

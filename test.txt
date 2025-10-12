@@ -1,0 +1,4 @@
+cmake -S C:/Users/evanw/muuk/deps/glob/e796e3ca94e0c514296425d9884e2198c41699ee -B build/glob/e796e3ca94e0c514296425d9884e2198c41699ee -G Ninja "-DCMAKE_TOOLCHAIN_FILE=C:/Users/evanw/muuk/deps/glob/e796e3ca94e0c514296425d9884e2198c41699ee/toolchain.cmake" "-DCMAKE_BUILD_TYPE=Muuk"
+
+cmake --build build/glob/e796e3ca94e0c514296425d9884e2198c41699ee
+cmake --install build/glob/e796e3ca94e0c514296425d9884e2198c41699ee --prefix install/glob

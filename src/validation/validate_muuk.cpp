@@ -256,13 +256,5 @@ namespace muuk {
                 : Err(result);
         }
 
-        // TODO: add a schema for muuk_lock.toml
-        Result<void> validate_muuk_lock_toml(const toml::value& toml_data) {
-            auto result = validation::validate_toml_(toml_data, muuk_lock_schema);
-            return result.has_value()
-                ? Result<void> {}
-                : Err(result);
-        }
-
     } // namespace validation
 } // namespace muuk

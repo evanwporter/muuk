@@ -4,8 +4,8 @@
 
 #include <string>
 
-#include <compiler.hpp>
-#include <logger.hpp>
+#include "compiler.hpp"
+#include "logger.hpp"
 
 #define OPTIMIZATION_LEVELS(X)      \
     X(O0, '0', "-O0", "-O0", "/Od") \

@@ -12,7 +12,6 @@ namespace muuk {
         const std::string& target_build,
         const std::string& compiler,
         const std::string& profile,
-        const toml::value& config,
         const std::string& jobs);
 }
 

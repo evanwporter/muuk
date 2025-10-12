@@ -11,6 +11,8 @@
 #include "lockgen/config/build.hpp"
 #include "lockgen/config/package.hpp"
 #include "rustify.hpp"
+#include "structs/sanitizers.hpp"
+#include "structs/settings.hpp"
 #include "toml_ext.hpp"
 
 namespace fs = std::filesystem;
@@ -154,8 +156,8 @@ namespace muuk {
                 v,
                 "inherits",
                 {});
-            lockgen::load(settings, v);
-            lockgen::load(sanitizers, v);
+            muuk::load(settings, v);
+            muuk::load(sanitizers, v);
         }
 
         void ProfileConfig::serialize(toml::value& out) const {
@@ -165,8 +167,8 @@ namespace muuk {
             if (!inherits.empty())
                 out["inherits"] = inherits;
 
-            lockgen::serialize(settings, out);
-            lockgen::serialize(sanitizers, out);
+            muuk::serialize(settings, out);
+            muuk::serialize(sanitizers, out);
         }
 
         void Library::load(const std::string& name_, const std::string& version_, const std::string& base_path_, const toml::value& v) {
@@ -300,10 +302,21 @@ namespace muuk {
             return {};
         }
 
-        void Build::load(const toml::value& v, const std::string& base_path) {
+        void Build::load(const toml::value& v, const std::string& base_path, std::unordered_map<std::string, ProfileConfig>& profiles_config_) {
             BaseConfig<Build>::load(v, base_path);
 
-            profiles = toml::try_find_or<std::unordered_set<std::string>>(v, "profile", {});
+            if (v.contains("profiles"))
+                profiles = toml::find<std::unordered_set<std::string>>(v, "profiles");
+            else if (v.contains("profile"))
+                profiles = toml::find<std::unordered_set<std::string>>(v, "profile");
+            else
+                profiles.clear();
+
+            if (profiles.empty()) {
+                muuk::logger::trace("No profiles specified for build target. Applying all profiles.");
+                for (const auto& [name, _] : profiles_config_)
+                    profiles.insert(name);
+            }
 
             // Get the link type
             link_type = build_link_from_string(

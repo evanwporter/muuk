@@ -10,8 +10,8 @@
 #include "buildconfig.h"
 #include "logger.hpp"
 #include "muuk.hpp"
-#include "muukterminal.hpp"
 #include "rustify.hpp"
+#include "terminal.hpp"
 #include "util.hpp"
 
 namespace fs = std::filesystem;
@@ -182,7 +182,7 @@ namespace muuk {
         std::ofstream config_file(toml_path, std::ios::out | std::ios::trunc);
         if (!config_file.is_open()) {
             muuk::logger::error("Failed to create muuk.toml in {}", root.string());
-            return Err("Failed to write muuk.toml");
+            return Err("Failed to write muuk.toml in `{}`", root.string());
         }
 
         muuk::logger::info("Writing muuk.toml to '{}'", toml_path.string());

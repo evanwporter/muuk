@@ -10,7 +10,8 @@
 
 #include "compiler.hpp"
 #include "muuk.hpp"
-#include "opt_level.hpp"
+#include "structs/sanitizers.hpp"
+#include "structs/settings.hpp"
 #include "toml_ext.hpp"
 #include "util.hpp"
 
@@ -269,32 +270,6 @@ namespace muuk {
                     platforms.serialize(out);
             }
         };
-
-        struct Settings {
-            // CXX_Standard cxx_standard;
-            // C_Standard c_standard;
-            OptimizationLevel optimization_level;
-            bool lto = false;
-            bool debug = false;
-            bool rpath = false;
-            bool debug_assertions = false; // -DNDEBUG
-        };
-
-        void load(Settings& settings, const toml::value& v);
-
-        void serialize(const Settings& settings, toml::value& out);
-
-        struct Sanitizers {
-            bool address = false; // ASan
-            bool thread = false; // TSan
-            bool undefined = false; // UBSan
-            bool memory = false; // MSan
-            bool leak = false; // LSan
-        };
-
-        void load(Sanitizers& sanitizers, const toml::value& v);
-
-        void serialize(const Sanitizers& sanitizers, toml::value& out);
 
         struct ProfileConfig : BaseConfig<ProfileConfig> {
             std::string name;

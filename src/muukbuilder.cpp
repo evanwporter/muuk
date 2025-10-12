@@ -68,31 +68,6 @@ namespace muuk {
         return Err("No suitable C++ compiler found. Install GCC, Clang, or MSVC.");
     }
 
-    Result<std::string> select_profile(const std::string& profile, const toml::value& config) {
-        if (!profile.empty())
-            return profile;
-
-        if (!config.contains("profile") || !config.at("profile").is_table())
-            return Err("No profiles found in lockfile.");
-
-        const auto& profiles = toml::find<toml::table>(config, "profile");
-        for (const auto& [name, val] : profiles) {
-            if (val.is_table()) {
-                const auto& tbl = val.as_table();
-                if (tbl.contains("default") && toml::get_or(tbl.at("default"), false))
-                    return name;
-            }
-        }
-
-        if (!profiles.empty()) {
-            const auto& first = *profiles.begin();
-            muuk::logger::info("No default profile. Using first available: '{}'", first.first);
-            return first.first;
-        }
-
-        return Err("No valid profiles found in lockfile.");
-    }
-
     bool is_default_profile(const std::string& profile, const toml::value& config) {
         if (!config.contains("profile") || !config.at("profile").is_table())
             return false;
@@ -145,26 +120,19 @@ namespace muuk {
         muuk::logger::info("Generating compile_commands.json for profile '{}'", profile);
         build::CompileCommandsBackend backend(build_manager, compiler, archiver, linker);
         backend.generate_build_file(profile);
-        muuk::logger::info("compile_commands.json generated successfully.");
         return {};
     }
 
-    Result<void> build_cmd(const std::string& target_build, const std::string& compiler, const std::string& profile, const toml::value& config, const std::string& jobs) {
+    Result<void> build_cmd(const std::string& target_build, const std::string& compiler, const std::string& profile, const std::string& jobs) {
         util::file_system::ensure_directory_exists("build/" + profile);
 
         if (!jobs.empty() && !util::is_integer(jobs))
             return Err("Invalid number of jobs specified: " + jobs);
 
-        auto muuk_result = muuk::parse_muuk_file<toml::ordered_type_config>("muuk.toml", false);
-        if (!muuk_result)
-            return Err(muuk_result);
-
-        auto muuk_file = muuk_result.value();
-
         // TODO: Pass the config to the lock generator
         const auto dirty_result = lockgen::MuukLockGenerator::is_dirty();
         if (dirty_result.has_value() && dirty_result.value()) {
-            muuk::logger::info("muuk.lock.toml is out of date or dirty. Regenerating...");
+            muuk::logger::info("`muuk.lock.toml` is out of date or dirty. Regenerating...");
 
             auto lock_generator_ = lockgen::MuukLockGenerator::create("./");
             if (!lock_generator_)
@@ -174,7 +142,11 @@ namespace muuk {
             TRYV(lock_generator_->generate_fingerprints());
         }
 
-        auto compiler_result = compiler.empty()
+        else {
+            muuk::logger::info("`muuk.lock.toml` is up to date and does not need to be regenerated");
+        }
+
+        const auto compiler_result = compiler.empty()
             ? detect_default_compiler()
             : muuk::Compiler::from_string(compiler);
 
@@ -185,42 +157,26 @@ namespace muuk {
         const std::string selected_archiver = selected_compiler.detect_archiver();
         const std::string selected_linker = selected_compiler.detect_linker();
 
-        auto profile_result = select_profile(profile, config);
-        if (!profile_result)
-            return Err(profile_result);
-        auto selected_profile = profile_result.value();
-
-        auto build_manager = std::make_unique<build::BuildManager>();
-
-        if (muuk_file.contains("build")) {
-            const auto& builds = muuk_file["build"].as_table();
-            for (const auto& [build_name, _] : builds) {
-                muuk::logger::info("Adding script for build target '{}'", build_name);
-                TRYV(add_script(selected_profile, build_name));
-            }
-        }
+        auto build_manager = build::BuildManager();
 
         TRYV(parse(
-            *build_manager,
+            build_manager,
             selected_compiler,
-            fs::path("build") / selected_profile,
-            selected_profile));
+            fs::path("build") / profile,
+            profile));
 
         build::NinjaBackend build_backend(
-            *build_manager,
+            build_manager,
             selected_compiler,
             selected_archiver,
             selected_linker);
 
-        build_backend.generate_build_file(selected_profile);
+        build_backend.generate_build_file(profile);
 
-        muuk::logger::info("Generating Ninja file for '{}'", selected_profile);
-        build_backend.generate_build_file(selected_profile);
-
-        execute_build(selected_profile, target_build, jobs);
+        execute_build(profile, target_build, jobs);
         generate_compile_commands(
-            *build_manager,
-            selected_profile,
+            build_manager,
+            profile,
             selected_compiler,
             selected_archiver,
             selected_linker);

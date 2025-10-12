@@ -66,45 +66,44 @@ namespace muuk {
                 profiles_config_["release"] = std::move(release_profile);
             }
 
+            if (!data.contains("profile") || !data.at("profile").is_table())
+                return {};
+
             // Two pass parsing for profiles
             // First pass: Load all profiles
-            if (data.contains("profile") && data.at("profile").is_table()) {
-                for (const auto& [profile_name, profile_data] : data.at("profile").as_table()) {
-                    // this will create or get an existing profile
-                    ProfileConfig& config = profiles_config_[profile_name];
+            for (const auto& [profile_name, profile_data] : data.at("profile").as_table()) {
+                // this will create or get an existing profile
+                ProfileConfig& config = profiles_config_[profile_name];
 
-                    config.load(profile_data, profile_name, base_path_);
-                }
+                config.load(profile_data, profile_name, base_path_);
             }
 
             // Second pass: Process inheritance
-            if (data.contains("profile") && data.at("profile").is_table()) {
-                for (const auto& [profile_name, profile_data] : data.at("profile").as_table()) {
-                    if (!profile_data.is_table())
-                        continue;
+            for (const auto& [profile_name, profile_data] : data.at("profile").as_table()) {
+                if (!profile_data.is_table())
+                    continue;
 
-                    muuk::logger::trace("Parsing inheritance for profile '{}'", profile_name);
+                muuk::logger::trace("Parsing inheritance for profile '{}'", profile_name);
 
-                    if (profile_data.contains("inherits")) {
-                        auto& current_profile = profiles_config_.at(profile_name);
+                if (profile_data.contains("inherits")) {
+                    auto& current_profile = profiles_config_.at(profile_name);
 
-                        if (profile_data.at("inherits").is_array()) {
-                            for (const auto& inherits : profile_data.at("inherits").as_array()) {
-                                std::string inherited_profile = inherits.as_string();
-
-                                if (profiles_config_.find(inherited_profile) == profiles_config_.end())
-                                    return Err("Inherited profile '{}' not found.", inherited_profile);
-
-                                current_profile.merge(profiles_config_.at(inherited_profile));
-                            }
-                        } else if (profile_data.at("inherits").is_string()) {
-                            std::string inherited_profile = profile_data.at("inherits").as_string();
+                    if (profile_data.at("inherits").is_array()) {
+                        for (const auto& inherits : profile_data.at("inherits").as_array()) {
+                            std::string inherited_profile = inherits.as_string();
 
                             if (profiles_config_.find(inherited_profile) == profiles_config_.end())
                                 return Err("Inherited profile '{}' not found.", inherited_profile);
 
                             current_profile.merge(profiles_config_.at(inherited_profile));
                         }
+                    } else if (profile_data.at("inherits").is_string()) {
+                        std::string inherited_profile = profile_data.at("inherits").as_string();
+
+                        if (profiles_config_.find(inherited_profile) == profiles_config_.end())
+                            return Err("Inherited profile '{}' not found.", inherited_profile);
+
+                        current_profile.merge(profiles_config_.at(inherited_profile));
                     }
                 }
             }

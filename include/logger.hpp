@@ -11,8 +11,8 @@
 #include <fmt/core.h>
 #include <spdlog/spdlog.h>
 
-#include "muukterminal.hpp"
 #include "rustify.hpp"
+#include "terminal.hpp"
 
 namespace muuk {
 

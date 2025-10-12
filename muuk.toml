@@ -27,13 +27,14 @@ sources = [
     'src/muukfiler.cpp',
     'src/muukbuilder.cpp',
     'src/lockgen/*.cpp',
+    'src/structs/*.cpp',
     'src/package_manager/*.cpp',
-    'src/muukinitializer.cpp',
+    'src/initializer.cpp',
     'src/flags.cpp',
     'src/build/*.cpp',
     'src/validation/*.cpp',
     'src/quickinitializer.cpp',
-    'src/muukterminal.cpp',
+    'src/terminal.cpp',
     'src/compiler.cpp',
     'src/muuk_toml_handler.cpp',
     'src/muuk_parser.cpp',
@@ -61,7 +62,7 @@ sources = ['test/internal/muuk_test.cpp']
 dependencies = {googletest = '3fbe4db9a39291ae8d7a9c5f1d75896bb4c5a18f'}
 
 [profile.base]
-cflags = ['-std=c++20', '/utf-8', '/EHsc', '/nologo', '/MD']
+cflags = ['-std=c++20', '/utf-8', '/EHsc', '/nologo']
 aflags = ['/nologo']
 lflags = ['/nologo']
 

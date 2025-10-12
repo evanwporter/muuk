@@ -9,8 +9,8 @@ Require muuk
 
 Set Shell "zsh"
 Set FontSize 16
-Set FontFamily "JetBrainsMono Nerd Font"
-Set LetterSpacing 1
+# Set FontFamily "JetBrainsMono Nerd Font"
+# Set LetterSpacing 1
 
 Hide
 Type "source ~/.zshrc && clear" Enter
@@ -25,10 +25,19 @@ Type "0.0.1" Sleep 500ms Enter Sleep 1s
 Enter Sleep 500ms
 Enter Sleep 500ms
 Enter Sleep 500ms
+
 Type "yes" Sleep 500ms Enter Sleep 1s
 
-Type "muuk build -p debug" Sleep 500ms Enter
+Type "muuk add p-ranav/argparse" Sleep 500ms Enter
+Wait+Line /❯$/
+Sleep 500ms
+
+Type "muuk install" Sleep 500ms Enter
+Wait+Line /❯$/
+Sleep 500ms
+
+Type "muuk build" Sleep 500ms Enter
 Wait+Line /❯$/
 Sleep 1s
 
-Type "echo 'Build complete!'" Sleep 500ms Enter Sleep 2s
+Type "muuk run" Sleep 500ms Enter Sleep 3s

@@ -1,6 +1,5 @@
 #include <filesystem>
 #include <fstream>
-#include <memory>
 #include <sstream>
 #include <string>
 
@@ -35,8 +34,6 @@ namespace muuk {
                 muuk::logger::info("Created build directory: {}", build_dir_.string());
             }
 
-            spdlog::default_logger()->flush();
-
             const std::string ninja_file_ = (build_dir_ / "build.ninja").string();
 
             std::ostringstream output_stream;
@@ -46,6 +43,7 @@ namespace muuk {
 
             std::ofstream out(ninja_file_, std::ios::out);
             if (!out) {
+                // TODO: don't throw
                 throw std::runtime_error("Failed to create Ninja build file: " + ninja_file_);
             }
 
@@ -248,21 +246,21 @@ namespace muuk {
                 // MSVC (cl)
                 out << "rule compile\n"
                     << "  command = $cxx /c $in"
-                    << " /Fo$out $profile_cflags $platform_cflags $cflags /showIncludes "
+                    << " /Fo$out /nologo /utf-8 $profile_cflags $platform_cflags $cflags /showIncludes "
                     << "/ifcSearchDir " << module_dir << "\n"
                     << "  deps = msvc\n"
                     << "  description = Compiling $in\n\n"
 
                     << "rule archive\n"
-                    << "  command = $ar /OUT:$out $in $aflags $profile_aflags\n"
+                    << "  command = $ar /OUT:$out $in /nologo $aflags $profile_aflags\n"
                     << "  description = Archiving $out\n\n"
 
                     << "rule link\n"
-                    << "  command = $linker $in /OUT:$out $lflags $profile_lflags $libraries\n"
+                    << "  command = $linker $in /OUT:$out /nologo $lflags $profile_lflags $libraries\n"
                     << "  description = Linking $out\n\n"
 
                     << "rule link_shared\n"
-                    << "  command = $linker $in /DLL /OUT:$out $lflags $profile_lflags $libraries\n"
+                    << "  command = $linker $in /DLL /OUT:$out /nologo $lflags $profile_lflags $libraries\n"
                     << "  description = Linking shared library $out\n\n";
 
             } else {

@@ -24,7 +24,10 @@ namespace muuk {
 
             void merge(const Package& package);
             Result<void> serialize(toml::value& out) const;
-            void load(const toml::value& v, const std::string& base_path);
+            void load(
+                const toml::value& v,
+                const std::string& base_path,
+                std::unordered_map<std::string, ProfileConfig>& profiles_config_);
         };
 
     } // namespace lockgen

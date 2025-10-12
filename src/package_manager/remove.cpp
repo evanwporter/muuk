@@ -7,8 +7,8 @@
 #include "buildconfig.h"
 #include "commands/remove.hpp"
 #include "muuk_parser.hpp"
-#include "muukterminal.hpp"
 #include "rustify.hpp"
+#include "terminal.hpp"
 #include "toml11/types.hpp"
 
 namespace fs = std::filesystem;
