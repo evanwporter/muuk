@@ -8,9 +8,9 @@ namespace muuk {
 
         inline constexpr int major = 0;
         inline constexpr int minor = 1;
-        inline constexpr int patch = 1;
+        inline constexpr int patch = 2;
 
-        inline const std::string string = "0.1.1";
+        inline const std::string string = "0.1.2";
 
     } // namespace version
 } // namespace muuk
