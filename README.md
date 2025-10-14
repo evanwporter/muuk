@@ -4,7 +4,7 @@
 
 ## UPDATE (4/27): There is now basic module support for MSVC (Clang coming soon)
 
-I don't like CMake very much but I do like cargo a lot, so I created my own cargo-like build system.
+A cargo-like build system.
 
 ![meme](meme.jpg)
 
