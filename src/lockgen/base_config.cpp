@@ -276,17 +276,17 @@ namespace muuk {
             compilers.serialize(out);
             platforms.serialize(out);
 
-            // Collect dependencies and sort them by (name, version)
+            // Collect dependencies
             std::vector<std::shared_ptr<Dependency>> sorted_deps;
             for (const auto& dep_ptr : all_dependencies_array)
                 if (dep_ptr)
                     sorted_deps.push_back(dep_ptr);
 
-            std::sort(sorted_deps.begin(), sorted_deps.end(), [](const auto& a, const auto& b) {
-                if (a->name == b->name)
-                    return a->version < b->version;
-                return a->name < b->name;
-            });
+            // std::sort(sorted_deps.begin(), sorted_deps.end(), [](const auto& a, const auto& b) {
+            //     if (a->name == b->name)
+            //         return a->version < b->version;
+            //     return a->name < b->name;
+            // });
 
             toml::array dep_array;
             for (const auto& dep_ptr : sorted_deps) {

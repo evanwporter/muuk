@@ -149,7 +149,9 @@ namespace muuk {
                         else
                             muuk::logger::warn("Unrecognized feature syntax: {}", value);
                     }
-                } else if (feature_value.is_table()) { // Table Syntax
+                }
+
+                else if (feature_value.is_table()) { // Table Syntax
 
                     if (feature_value.contains("define") && feature_value.at("define").is_array())
                         for (const auto& def : feature_value.at("define").as_array())
