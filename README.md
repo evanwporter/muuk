@@ -2,7 +2,7 @@
 
 <!-- find and replace ==> with → -->
 
-![demo](https://github.com/evanwporter/muuk/blob/main/muuk_demo.gif?raw=true))
+![demo](https://github.com/evanwporter/muuk/blob/main/muuk_demo.gif?raw=true)
 
 ## UPDATE (4/27): There is now basic module support for MSVC (Clang coming soon)
 
